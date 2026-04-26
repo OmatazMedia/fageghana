@@ -14,16 +14,264 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activities: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          event_date: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean
+          location: string | null
+          published: boolean
+          spots_remaining: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          event_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean
+          location?: string | null
+          published?: boolean
+          spots_remaining?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          event_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean
+          location?: string | null
+          published?: boolean
+          spots_remaining?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      media: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          published: boolean
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          published?: boolean
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          published?: boolean
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      membership_applications: {
+        Row: {
+          admin_notes: string | null
+          company_name: string
+          contact_name: string
+          country: string
+          created_at: string
+          email: string
+          id: string
+          industry: string | null
+          message: string | null
+          phone: string
+          products_exported: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          company_name: string
+          contact_name: string
+          country?: string
+          created_at?: string
+          email: string
+          id?: string
+          industry?: string | null
+          message?: string | null
+          phone: string
+          products_exported?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          tier?: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          company_name?: string
+          contact_name?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          industry?: string | null
+          message?: string | null
+          phone?: string
+          products_exported?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          tier?: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      news: {
+        Row: {
+          author: string
+          body: string
+          category: string
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          published: boolean
+          published_at: string
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author?: string
+          body?: string
+          category?: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published?: boolean
+          published_at?: string
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          body?: string
+          category?: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published?: boolean
+          published_at?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          display_order: number
+          features: string[]
+          id: string
+          image_url: string | null
+          name: string
+          published: boolean
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          display_order?: number
+          features?: string[]
+          id?: string
+          image_url?: string | null
+          name: string
+          published?: boolean
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          display_order?: number
+          features?: string[]
+          id?: string
+          image_url?: string | null
+          name?: string
+          published?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "editor" | "user"
+      application_status: "new" | "reviewing" | "approved" | "rejected"
+      media_type: "photo" | "video"
+      membership_tier: "associate" | "corporate"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +398,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "editor", "user"],
+      application_status: ["new", "reviewing", "approved", "rejected"],
+      media_type: ["photo", "video"],
+      membership_tier: ["associate", "corporate"],
+    },
   },
 } as const
