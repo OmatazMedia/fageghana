@@ -11,7 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as NewsRouteImport } from './routes/news'
+import { Route as MembershipRouteImport } from './routes/membership'
+import { Route as MediaRouteImport } from './routes/media'
+import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 
 const ServicesRoute = ServicesRouteImport.update({
@@ -24,10 +29,35 @@ const ProductsRoute = ProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembershipRoute = MembershipRouteImport.update({
+  id: '/membership',
+  path: '/membership',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MediaRoute = MediaRouteImport.update({
+  id: '/media',
+  path: '/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivitiesRoute = ActivitiesRouteImport.update({
+  id: '/activities',
+  path: '/activities',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const NewsSlugRoute = NewsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => NewsRoute,
 } as any)
 const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
   id: '/about/who-we-are',
@@ -37,33 +67,80 @@ const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/activities': typeof ActivitiesRoute
+  '/media': typeof MediaRoute
+  '/membership': typeof MembershipRoute
+  '/news': typeof NewsRouteWithChildren
   '/products': typeof ProductsRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/activities': typeof ActivitiesRoute
+  '/media': typeof MediaRoute
+  '/membership': typeof MembershipRoute
+  '/news': typeof NewsRouteWithChildren
   '/products': typeof ProductsRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/activities': typeof ActivitiesRoute
+  '/media': typeof MediaRoute
+  '/membership': typeof MembershipRoute
+  '/news': typeof NewsRouteWithChildren
   '/products': typeof ProductsRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/products' | '/services' | '/about/who-we-are'
+  fullPaths:
+    | '/'
+    | '/activities'
+    | '/media'
+    | '/membership'
+    | '/news'
+    | '/products'
+    | '/services'
+    | '/about/who-we-are'
+    | '/news/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/products' | '/services' | '/about/who-we-are'
-  id: '__root__' | '/' | '/products' | '/services' | '/about/who-we-are'
+  to:
+    | '/'
+    | '/activities'
+    | '/media'
+    | '/membership'
+    | '/news'
+    | '/products'
+    | '/services'
+    | '/about/who-we-are'
+    | '/news/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/activities'
+    | '/media'
+    | '/membership'
+    | '/news'
+    | '/products'
+    | '/services'
+    | '/about/who-we-are'
+    | '/news/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ActivitiesRoute: typeof ActivitiesRoute
+  MediaRoute: typeof MediaRoute
+  MembershipRoute: typeof MembershipRoute
+  NewsRoute: typeof NewsRouteWithChildren
   ProductsRoute: typeof ProductsRoute
   ServicesRoute: typeof ServicesRoute
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
@@ -85,12 +162,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/membership': {
+      id: '/membership'
+      path: '/membership'
+      fullPath: '/membership'
+      preLoaderRoute: typeof MembershipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/media': {
+      id: '/media'
+      path: '/media'
+      fullPath: '/media'
+      preLoaderRoute: typeof MediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activities': {
+      id: '/activities'
+      path: '/activities'
+      fullPath: '/activities'
+      preLoaderRoute: typeof ActivitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/news/$slug': {
+      id: '/news/$slug'
+      path: '/$slug'
+      fullPath: '/news/$slug'
+      preLoaderRoute: typeof NewsSlugRouteImport
+      parentRoute: typeof NewsRoute
     }
     '/about/who-we-are': {
       id: '/about/who-we-are'
@@ -102,8 +214,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface NewsRouteChildren {
+  NewsSlugRoute: typeof NewsSlugRoute
+}
+
+const NewsRouteChildren: NewsRouteChildren = {
+  NewsSlugRoute: NewsSlugRoute,
+}
+
+const NewsRouteWithChildren = NewsRoute._addFileChildren(NewsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ActivitiesRoute: ActivitiesRoute,
+  MediaRoute: MediaRoute,
+  MembershipRoute: MembershipRoute,
+  NewsRoute: NewsRouteWithChildren,
   ProductsRoute: ProductsRoute,
   ServicesRoute: ServicesRoute,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
