@@ -14,9 +14,11 @@ import { Route as ProductsRouteImport } from './routes/products'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as MembershipRouteImport } from './routes/membership'
 import { Route as MediaRouteImport } from './routes/media'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 
 const ServicesRoute = ServicesRouteImport.update({
@@ -44,6 +46,11 @@ const MediaRoute = MediaRouteImport.update({
   path: '/media',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActivitiesRoute = ActivitiesRouteImport.update({
   id: '/activities',
   path: '/activities',
@@ -59,6 +66,11 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => NewsRoute,
 } as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
   id: '/about/who-we-are',
   path: '/about/who-we-are',
@@ -68,35 +80,41 @@ const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
+  '/admin': typeof AdminRouteWithChildren
   '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
   '/news': typeof NewsRouteWithChildren
   '/products': typeof ProductsRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/admin/login': typeof AdminLoginRoute
   '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
+  '/admin': typeof AdminRouteWithChildren
   '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
   '/news': typeof NewsRouteWithChildren
   '/products': typeof ProductsRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/admin/login': typeof AdminLoginRoute
   '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
+  '/admin': typeof AdminRouteWithChildren
   '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
   '/news': typeof NewsRouteWithChildren
   '/products': typeof ProductsRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/admin/login': typeof AdminLoginRoute
   '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRouteTypes {
@@ -104,40 +122,47 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activities'
+    | '/admin'
     | '/media'
     | '/membership'
     | '/news'
     | '/products'
     | '/services'
     | '/about/who-we-are'
+    | '/admin/login'
     | '/news/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/activities'
+    | '/admin'
     | '/media'
     | '/membership'
     | '/news'
     | '/products'
     | '/services'
     | '/about/who-we-are'
+    | '/admin/login'
     | '/news/$slug'
   id:
     | '__root__'
     | '/'
     | '/activities'
+    | '/admin'
     | '/media'
     | '/membership'
     | '/news'
     | '/products'
     | '/services'
     | '/about/who-we-are'
+    | '/admin/login'
     | '/news/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivitiesRoute: typeof ActivitiesRoute
+  AdminRoute: typeof AdminRouteWithChildren
   MediaRoute: typeof MediaRoute
   MembershipRoute: typeof MembershipRoute
   NewsRoute: typeof NewsRouteWithChildren
@@ -183,6 +208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/activities': {
       id: '/activities'
       path: '/activities'
@@ -204,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewsSlugRouteImport
       parentRoute: typeof NewsRoute
     }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/about/who-we-are': {
       id: '/about/who-we-are'
       path: '/about/who-we-are'
@@ -213,6 +252,16 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminLoginRoute: typeof AdminLoginRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminLoginRoute: AdminLoginRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface NewsRouteChildren {
   NewsSlugRoute: typeof NewsSlugRoute
@@ -227,6 +276,7 @@ const NewsRouteWithChildren = NewsRoute._addFileChildren(NewsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivitiesRoute: ActivitiesRoute,
+  AdminRoute: AdminRouteWithChildren,
   MediaRoute: MediaRoute,
   MembershipRoute: MembershipRoute,
   NewsRoute: NewsRouteWithChildren,
