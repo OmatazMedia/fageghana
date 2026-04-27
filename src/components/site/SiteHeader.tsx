@@ -101,12 +101,29 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            aria-label="Search"
+            className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-accent hover:text-primary"
+          >
+            <Search className="h-4.5 w-4.5" />
+          </button>
+          <Link
+            to="/admin/login"
+            aria-label="Admin login"
+            className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-accent hover:text-primary"
+          >
+            <User className="h-4.5 w-4.5" />
+          </Link>
           <Link
             to="/membership"
-            className="hidden md:inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
+            className="hidden md:inline-flex items-center gap-2 rounded-full bg-primary pl-1.5 pr-5 py-1.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
           >
-            Let's Talk <ArrowRight className="h-4 w-4" />
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary">
+              <ArrowRight className="h-4 w-4" />
+            </span>
+            Let's Talk
           </Link>
           <button
             type="button"
