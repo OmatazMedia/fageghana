@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Mail, Phone, ShieldCheck, ArrowRight, Menu, X, ChevronDown, Search, User, Globe } from "lucide-react";
+import { Mail, Phone, ShieldCheck, ArrowRight, Menu, X, ChevronDown, Search, User } from "lucide-react";
 import { useState } from "react";
 
 const aboutItems = [
