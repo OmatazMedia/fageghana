@@ -21,12 +21,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Guard against SSR — supabase auth is browser-only here
+    if (typeof window === "undefined") {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     // Subscribe FIRST, then load existing session
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (cancelled) return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
-        // defer role check to avoid blocking the listener
         setTimeout(() => {
           void checkAdminRole(newSession.user.id);
         }, 0);
@@ -35,16 +43,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    void supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) {
-        void checkAdminRole(data.session.user.id);
-      }
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        if (data.session?.user) {
+          void checkAdminRole(data.session.user.id);
+        }
+      })
+      .catch((e) => {
+        console.error("[auth] getSession failed", e);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   async function checkAdminRole(userId: string) {
