@@ -1,11 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { Mail, Phone, ShieldCheck, ArrowRight, Menu, X } from "lucide-react";
+import { Mail, Phone, ShieldCheck, ArrowRight, Menu, X, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
-const navItems = [
-  { to: "/about/who-we-are", label: "About" },
+const aboutItems = [
+  { to: "/about/who-we-are", label: "Who We Are" },
   { to: "/products", label: "Products" },
   { to: "/services", label: "Services" },
+] as const;
+
+const navItems = [
   { to: "/news", label: "News" },
   { to: "/activities", label: "Activities" },
   { to: "/media", label: "Media" },
@@ -14,6 +17,7 @@ const navItems = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
@@ -22,19 +26,20 @@ export function SiteHeader() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2">
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline">Promoting non-traditional exports</span>
-            <Link to="/membership" className="hidden sm:inline underline-offset-4 hover:underline">
-              Join us now →
-            </Link>
+            <Link to="/membership" className="hidden sm:inline underline-offset-4 hover:underline">Join us now →</Link>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/admin/login" className="flex items-center gap-1 hover:underline">
-              <ShieldCheck className="h-3.5 w-3.5" /> Admin Login
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Admin Login</span>
             </Link>
             <a href="mailto:info@fageghana.com" className="hidden md:flex items-center gap-1 hover:underline">
-              <Mail className="h-3.5 w-3.5" /> info@fageghana.com
+              <Mail className="h-3.5 w-3.5" />
+              <span>info@fageghana.com</span>
             </a>
             <a href="tel:+2330535170780" className="hidden md:flex items-center gap-1 hover:underline">
-              <Phone className="h-3.5 w-3.5" /> +233 (0) 53 517 0780
+              <Phone className="h-3.5 w-3.5" />
+              <span>+233 (0) 53 517 0780</span>
             </a>
           </div>
         </div>
@@ -43,9 +48,7 @@ export function SiteHeader() {
       {/* Main nav */}
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-            F
-          </div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">F</div>
           <div className="leading-tight">
             <div className="font-bold text-lg text-brand-dark">FAGE</div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -55,6 +58,37 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden lg:flex items-center gap-7">
+          {/* About dropdown */}
+          <div
+            className="relative"
+            onMouseEnter={() => setAboutOpen(true)}
+            onMouseLeave={() => setAboutOpen(false)}
+          >
+            <button
+              type="button"
+              className="flex items-center gap-1 text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
+              onClick={() => setAboutOpen((v) => !v)}
+            >
+              About <ChevronDown className={`h-4 w-4 transition-transform ${aboutOpen ? "rotate-180" : ""}`} />
+            </button>
+            {aboutOpen && (
+              <div className="absolute left-1/2 top-full z-50 w-48 -translate-x-1/2 pt-3">
+                <div className="rounded-xl border border-border bg-card p-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                  {aboutItems.map((it) => (
+                    <Link
+                      key={it.to}
+                      to={it.to}
+                      onClick={() => setAboutOpen(false)}
+                      className="block rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-accent hover:text-primary"
+                    >
+                      {it.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {navItems.map((item) => (
             <Link
               key={item.to}
@@ -89,6 +123,16 @@ export function SiteHeader() {
       {open && (
         <div className="lg:hidden border-t border-border bg-background">
           <nav className="mx-auto flex max-w-7xl flex-col px-4 py-3">
+            <div className="py-3 border-b border-border">
+              <div className="text-sm font-semibold text-foreground mb-2">About</div>
+              <div className="flex flex-col gap-1 pl-3">
+                {aboutItems.map((it) => (
+                  <Link key={it.to} to={it.to} onClick={() => setOpen(false)} className="py-1.5 text-sm text-foreground/80">
+                    {it.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
             {navItems.map((item) => (
               <Link
                 key={item.to}
