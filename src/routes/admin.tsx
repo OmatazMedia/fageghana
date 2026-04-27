@@ -8,14 +8,14 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-const sections = [
+const sections: ReadonlyArray<{ to: string; label: string; icon: typeof Home; exact?: boolean }> = [
   { to: "/admin", label: "Overview", icon: Home, exact: true },
   { to: "/admin/news", label: "News", icon: Newspaper },
   { to: "/admin/products", label: "Products", icon: Package },
   { to: "/admin/activities", label: "Activities", icon: CalendarDays },
   { to: "/admin/media", label: "Media", icon: ImageIcon },
   { to: "/admin/applications", label: "Applications", icon: Users },
-] as const;
+];
 
 function AdminLayout() {
   const { user, isAdmin, loading, signOut } = useAuth();
