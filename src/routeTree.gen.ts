@@ -18,7 +18,12 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
+import { Route as AdminProductsRouteImport } from './routes/admin.products'
+import { Route as AdminNewsRouteImport } from './routes/admin.news'
+import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
+import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 
 const ServicesRoute = ServicesRouteImport.update({
@@ -66,9 +71,34 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => NewsRoute,
 } as any)
+const AdminProductsRoute = AdminProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminNewsRoute = AdminNewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMediaRoute = AdminMediaRouteImport.update({
+  id: '/media',
+  path: '/media',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApplicationsRoute = AdminApplicationsRouteImport.update({
+  id: '/applications',
+  path: '/applications',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminActivitiesRoute = AdminActivitiesRouteImport.update({
+  id: '/activities',
+  path: '/activities',
   getParentRoute: () => AdminRoute,
 } as any)
 const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
@@ -87,7 +117,12 @@ export interface FileRoutesByFullPath {
   '/products': typeof ProductsRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/admin/activities': typeof AdminActivitiesRoute
+  '/admin/applications': typeof AdminApplicationsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/media': typeof AdminMediaRoute
+  '/admin/news': typeof AdminNewsRoute
+  '/admin/products': typeof AdminProductsRoute
   '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRoutesByTo {
@@ -100,7 +135,12 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/admin/activities': typeof AdminActivitiesRoute
+  '/admin/applications': typeof AdminApplicationsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/media': typeof AdminMediaRoute
+  '/admin/news': typeof AdminNewsRoute
+  '/admin/products': typeof AdminProductsRoute
   '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRoutesById {
@@ -114,7 +154,12 @@ export interface FileRoutesById {
   '/products': typeof ProductsRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/admin/activities': typeof AdminActivitiesRoute
+  '/admin/applications': typeof AdminApplicationsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/media': typeof AdminMediaRoute
+  '/admin/news': typeof AdminNewsRoute
+  '/admin/products': typeof AdminProductsRoute
   '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRouteTypes {
@@ -129,7 +174,12 @@ export interface FileRouteTypes {
     | '/products'
     | '/services'
     | '/about/who-we-are'
+    | '/admin/activities'
+    | '/admin/applications'
     | '/admin/login'
+    | '/admin/media'
+    | '/admin/news'
+    | '/admin/products'
     | '/news/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -142,7 +192,12 @@ export interface FileRouteTypes {
     | '/products'
     | '/services'
     | '/about/who-we-are'
+    | '/admin/activities'
+    | '/admin/applications'
     | '/admin/login'
+    | '/admin/media'
+    | '/admin/news'
+    | '/admin/products'
     | '/news/$slug'
   id:
     | '__root__'
@@ -155,7 +210,12 @@ export interface FileRouteTypes {
     | '/products'
     | '/services'
     | '/about/who-we-are'
+    | '/admin/activities'
+    | '/admin/applications'
     | '/admin/login'
+    | '/admin/media'
+    | '/admin/news'
+    | '/admin/products'
     | '/news/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -236,11 +296,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewsSlugRouteImport
       parentRoute: typeof NewsRoute
     }
+    '/admin/products': {
+      id: '/admin/products'
+      path: '/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AdminProductsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/news': {
+      id: '/admin/news'
+      path: '/news'
+      fullPath: '/admin/news'
+      preLoaderRoute: typeof AdminNewsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/media': {
+      id: '/admin/media'
+      path: '/media'
+      fullPath: '/admin/media'
+      preLoaderRoute: typeof AdminMediaRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/applications': {
+      id: '/admin/applications'
+      path: '/applications'
+      fullPath: '/admin/applications'
+      preLoaderRoute: typeof AdminApplicationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/activities': {
+      id: '/admin/activities'
+      path: '/activities'
+      fullPath: '/admin/activities'
+      preLoaderRoute: typeof AdminActivitiesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/about/who-we-are': {
@@ -254,11 +349,21 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminActivitiesRoute: typeof AdminActivitiesRoute
+  AdminApplicationsRoute: typeof AdminApplicationsRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminMediaRoute: typeof AdminMediaRoute
+  AdminNewsRoute: typeof AdminNewsRoute
+  AdminProductsRoute: typeof AdminProductsRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminActivitiesRoute: AdminActivitiesRoute,
+  AdminApplicationsRoute: AdminApplicationsRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminMediaRoute: AdminMediaRoute,
+  AdminNewsRoute: AdminNewsRoute,
+  AdminProductsRoute: AdminProductsRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
