@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, Briefcase, Handshake, ShieldCheck, BookOpen, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { Reveal } from "@/components/site/Reveal";
+import { AnimatedStat } from "@/components/site/AnimatedStat";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
@@ -109,32 +111,43 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Service cards */}
-      <section className="bg-muted/40 py-16">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 md:grid-cols-2 lg:grid-cols-4">
-          {services.map((s) => (
-            <div key={s.title} className="rounded-2xl bg-card p-7 shadow-sm transition hover:shadow-md">
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-                <s.icon className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="mb-2 text-xl font-bold">{s.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{s.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Services — 4 cards left, content right */}
+      <section className="bg-muted/40 py-20">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 lg:grid-cols-2 lg:items-center">
+          <Reveal variant="left" className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            {services.map((s, i) => (
+              <Reveal
+                key={s.title}
+                delay={(i + 1) as 1 | 2 | 3 | 4}
+                className="rounded-2xl bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
+                  <s.icon className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="mb-2 text-lg font-bold">{s.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{s.text}</p>
+              </Reveal>
+            ))}
+          </Reveal>
 
-      {/* Services intro */}
-      <section className="py-20">
-        <div className="mx-auto max-w-7xl px-4 text-center">
-          <p className="mb-3 text-sm font-semibold tracking-widest text-primary">• WHAT WE DO •</p>
-          <h2 className="mb-4 text-4xl font-bold md:text-5xl">Services</h2>
-          <p className="mx-auto max-w-2xl text-muted-foreground">
-            We specialize in connecting locally manufactured goods to international buyers.
-          </p>
-          <Link to="/services" className="mt-8 inline-flex items-center gap-2 rounded-full border-2 border-primary px-6 py-3 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition">
-            Explore more <ArrowRight className="h-4 w-4" />
-          </Link>
+          <Reveal variant="right">
+            <p className="mb-3 text-sm font-semibold tracking-widest text-primary">• WHAT WE DO •</p>
+            <h2 className="mb-5 text-4xl font-bold md:text-5xl">Services</h2>
+            <p className="mb-6 text-muted-foreground leading-relaxed">
+              We specialize in connecting locally manufactured goods to international buyers.
+              Through advocacy, matchmaking, trade support and research, FAGE empowers Ghanaian
+              exporters to reach global markets with confidence.
+            </p>
+            <ul className="mb-8 space-y-2 text-sm text-foreground/80">
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" /> Strategic policy framework & advocacy</li>
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" /> International business matchmaking</li>
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" /> Trade fairs & export insurance</li>
+              <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" /> Research & technical resources</li>
+            </ul>
+            <Link to="/services" className="inline-flex items-center gap-2 rounded-full border-2 border-primary px-6 py-3 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition">
+              Explore more <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Reveal>
         </div>
       </section>
 
