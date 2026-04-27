@@ -181,16 +181,9 @@ function HomePage() {
             See how we are connecting locally manufactured produce with international buyers through measurable success.
           </p>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            {[
-              { num: "1992", label: "Operational Since" },
-              { num: "2,800+", label: "Members Added" },
-              { num: "$4.8B", label: "Export Value Enabled" },
-            ].map((n) => (
-              <div key={n.label} className="rounded-2xl border border-border p-10">
-                <div className="text-5xl font-bold text-primary">{n.num}</div>
-                <div className="mt-3 text-sm uppercase tracking-wider text-muted-foreground">{n.label}</div>
-              </div>
-            ))}
+            <AnimatedStat value={1992} label="Operational Since" />
+            <AnimatedStat value={2800} suffix="+" label="Members Added" />
+            <AnimatedStat value={4.8} decimals={1} prefix="$" suffix="B" label="Export Value Enabled" />
           </div>
         </div>
       </section>
