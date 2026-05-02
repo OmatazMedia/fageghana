@@ -110,8 +110,8 @@ export function SiteHeader() {
             <Search className="h-4.5 w-4.5" />
           </button>
           <Link
-            to="/admin/login"
-            aria-label="Admin login"
+            to="/member/login"
+            aria-label="Member login"
             className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-accent hover:text-primary"
           >
             <User className="h-4.5 w-4.5" />

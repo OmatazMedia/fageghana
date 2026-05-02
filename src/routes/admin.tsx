@@ -22,9 +22,17 @@ function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // The /admin/login child route must render publicly — never gate it.
+  const isLoginRoute = location.pathname === "/admin/login";
+
   useEffect(() => {
+    if (isLoginRoute) return;
     if (!loading && (!user || !isAdmin)) navigate({ to: "/admin/login" });
-  }, [loading, user, isAdmin, navigate]);
+  }, [loading, user, isAdmin, navigate, isLoginRoute]);
+
+  if (isLoginRoute) {
+    return <Outlet />;
+  }
 
   if (loading || !user || !isAdmin) {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading…</div>;
