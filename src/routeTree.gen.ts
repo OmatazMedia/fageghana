@@ -18,6 +18,8 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
+import { Route as MemberLoginRouteImport } from './routes/member.login'
+import { Route as MemberDashboardRouteImport } from './routes/member.dashboard'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminNewsRouteImport } from './routes/admin.news'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
@@ -71,6 +73,16 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => NewsRoute,
 } as any)
+const MemberLoginRoute = MemberLoginRouteImport.update({
+  id: '/member/login',
+  path: '/member/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MemberDashboardRoute = MemberDashboardRouteImport.update({
+  id: '/member/dashboard',
+  path: '/member/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminProductsRoute = AdminProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -123,6 +135,8 @@ export interface FileRoutesByFullPath {
   '/admin/media': typeof AdminMediaRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/member/dashboard': typeof MemberDashboardRoute
+  '/member/login': typeof MemberLoginRoute
   '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRoutesByTo {
@@ -141,6 +155,8 @@ export interface FileRoutesByTo {
   '/admin/media': typeof AdminMediaRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/member/dashboard': typeof MemberDashboardRoute
+  '/member/login': typeof MemberLoginRoute
   '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRoutesById {
@@ -160,6 +176,8 @@ export interface FileRoutesById {
   '/admin/media': typeof AdminMediaRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/member/dashboard': typeof MemberDashboardRoute
+  '/member/login': typeof MemberLoginRoute
   '/news/$slug': typeof NewsSlugRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +198,8 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/news'
     | '/admin/products'
+    | '/member/dashboard'
+    | '/member/login'
     | '/news/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +218,8 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/news'
     | '/admin/products'
+    | '/member/dashboard'
+    | '/member/login'
     | '/news/$slug'
   id:
     | '__root__'
@@ -216,6 +238,8 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/news'
     | '/admin/products'
+    | '/member/dashboard'
+    | '/member/login'
     | '/news/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -229,6 +253,8 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRoute
   ServicesRoute: typeof ServicesRoute
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
+  MemberDashboardRoute: typeof MemberDashboardRoute
+  MemberLoginRoute: typeof MemberLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -295,6 +321,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/news/$slug'
       preLoaderRoute: typeof NewsSlugRouteImport
       parentRoute: typeof NewsRoute
+    }
+    '/member/login': {
+      id: '/member/login'
+      path: '/member/login'
+      fullPath: '/member/login'
+      preLoaderRoute: typeof MemberLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/member/dashboard': {
+      id: '/member/dashboard'
+      path: '/member/dashboard'
+      fullPath: '/member/dashboard'
+      preLoaderRoute: typeof MemberDashboardRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/products': {
       id: '/admin/products'
@@ -388,6 +428,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRoute,
   ServicesRoute: ServicesRoute,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
+  MemberDashboardRoute: MemberDashboardRoute,
+  MemberLoginRoute: MemberLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
