@@ -98,6 +98,57 @@ export type Database = {
         }
         Relationships: []
       }
+      member_profiles: {
+        Row: {
+          company_name: string
+          contact_name: string
+          country: string
+          created_at: string
+          email: string
+          id: string
+          industry: string | null
+          notes: string | null
+          phone: string
+          products_exported: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string
+          contact_name?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          phone?: string
+          products_exported?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          tier?: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          contact_name?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          phone?: string
+          products_exported?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          tier?: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       membership_applications: {
         Row: {
           admin_notes: string | null
@@ -114,6 +165,7 @@ export type Database = {
           status: Database["public"]["Enums"]["application_status"]
           tier: Database["public"]["Enums"]["membership_tier"]
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -130,6 +182,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["application_status"]
           tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -146,6 +199,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["application_status"]
           tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
