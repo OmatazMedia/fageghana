@@ -19,7 +19,9 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
+import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminNewsRouteImport } from './routes/admin.news'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
@@ -78,10 +80,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VerifyCodeRoute = VerifyCodeRouteImport.update({
+  id: '/verify/$code',
+  path: '/verify/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NewsSlugRoute = NewsSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => NewsRoute,
+} as any)
+const CertificateIdRoute = CertificateIdRouteImport.update({
+  id: '/certificate/$id',
+  path: '/certificate/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminProductsRoute = AdminProductsRouteImport.update({
   id: '/products',
@@ -137,7 +149,9 @@ export interface FileRoutesByFullPath {
   '/admin/media': typeof AdminMediaRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/verify/$code': typeof VerifyCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -157,7 +171,9 @@ export interface FileRoutesByTo {
   '/admin/media': typeof AdminMediaRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/verify/$code': typeof VerifyCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -178,7 +194,9 @@ export interface FileRoutesById {
   '/admin/media': typeof AdminMediaRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/verify/$code': typeof VerifyCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -200,7 +218,9 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/news'
     | '/admin/products'
+    | '/certificate/$id'
     | '/news/$slug'
+    | '/verify/$code'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -220,7 +240,9 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/news'
     | '/admin/products'
+    | '/certificate/$id'
     | '/news/$slug'
+    | '/verify/$code'
   id:
     | '__root__'
     | '/'
@@ -240,7 +262,9 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/news'
     | '/admin/products'
+    | '/certificate/$id'
     | '/news/$slug'
+    | '/verify/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -255,6 +279,8 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRoute
   ServicesRoute: typeof ServicesRoute
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
+  CertificateIdRoute: typeof CertificateIdRoute
+  VerifyCodeRoute: typeof VerifyCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -329,12 +355,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/verify/$code': {
+      id: '/verify/$code'
+      path: '/verify/$code'
+      fullPath: '/verify/$code'
+      preLoaderRoute: typeof VerifyCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/news/$slug': {
       id: '/news/$slug'
       path: '/$slug'
       fullPath: '/news/$slug'
       preLoaderRoute: typeof NewsSlugRouteImport
       parentRoute: typeof NewsRoute
+    }
+    '/certificate/$id': {
+      id: '/certificate/$id'
+      path: '/certificate/$id'
+      fullPath: '/certificate/$id'
+      preLoaderRoute: typeof CertificateIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/products': {
       id: '/admin/products'
@@ -430,6 +470,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRoute,
   ServicesRoute: ServicesRoute,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
+  CertificateIdRoute: CertificateIdRoute,
+  VerifyCodeRoute: VerifyCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
