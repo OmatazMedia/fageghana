@@ -22,10 +22,15 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
+import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
+import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
+import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminNewsRouteImport } from './routes/admin.news'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
+import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
@@ -95,9 +100,24 @@ const CertificateIdRoute = CertificateIdRouteImport.update({
   path: '/certificate/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminTicketsRoute = AdminTicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProductsRoute = AdminProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminNewsRoute = AdminNewsRouteImport.update({
@@ -113,6 +133,16 @@ const AdminMediaRoute = AdminMediaRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminGatewaysRoute = AdminGatewaysRouteImport.update({
+  id: '/gateways',
+  path: '/gateways',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
+  id: '/certificates',
+  path: '/certificates',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminApplicationsRoute = AdminApplicationsRouteImport.update({
@@ -145,10 +175,15 @@ export interface FileRoutesByFullPath {
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
+  '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/news': typeof AdminNewsRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/tickets': typeof AdminTicketsRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/verify/$code': typeof VerifyCodeRoute
@@ -167,10 +202,15 @@ export interface FileRoutesByTo {
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
+  '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/news': typeof AdminNewsRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/tickets': typeof AdminTicketsRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/verify/$code': typeof VerifyCodeRoute
@@ -190,10 +230,15 @@ export interface FileRoutesById {
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
+  '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/news': typeof AdminNewsRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/tickets': typeof AdminTicketsRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/verify/$code': typeof VerifyCodeRoute
@@ -214,10 +259,15 @@ export interface FileRouteTypes {
     | '/about/who-we-are'
     | '/admin/activities'
     | '/admin/applications'
+    | '/admin/certificates'
+    | '/admin/gateways'
     | '/admin/login'
     | '/admin/media'
     | '/admin/news'
+    | '/admin/notifications'
+    | '/admin/payments'
     | '/admin/products'
+    | '/admin/tickets'
     | '/certificate/$id'
     | '/news/$slug'
     | '/verify/$code'
@@ -236,10 +286,15 @@ export interface FileRouteTypes {
     | '/about/who-we-are'
     | '/admin/activities'
     | '/admin/applications'
+    | '/admin/certificates'
+    | '/admin/gateways'
     | '/admin/login'
     | '/admin/media'
     | '/admin/news'
+    | '/admin/notifications'
+    | '/admin/payments'
     | '/admin/products'
+    | '/admin/tickets'
     | '/certificate/$id'
     | '/news/$slug'
     | '/verify/$code'
@@ -258,10 +313,15 @@ export interface FileRouteTypes {
     | '/about/who-we-are'
     | '/admin/activities'
     | '/admin/applications'
+    | '/admin/certificates'
+    | '/admin/gateways'
     | '/admin/login'
     | '/admin/media'
     | '/admin/news'
+    | '/admin/notifications'
+    | '/admin/payments'
     | '/admin/products'
+    | '/admin/tickets'
     | '/certificate/$id'
     | '/news/$slug'
     | '/verify/$code'
@@ -376,11 +436,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CertificateIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/tickets': {
+      id: '/admin/tickets'
+      path: '/tickets'
+      fullPath: '/admin/tickets'
+      preLoaderRoute: typeof AdminTicketsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/products': {
       id: '/admin/products'
       path: '/products'
       fullPath: '/admin/products'
       preLoaderRoute: typeof AdminProductsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/notifications': {
+      id: '/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AdminNotificationsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/news': {
@@ -402,6 +483,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/gateways': {
+      id: '/admin/gateways'
+      path: '/gateways'
+      fullPath: '/admin/gateways'
+      preLoaderRoute: typeof AdminGatewaysRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/certificates': {
+      id: '/admin/certificates'
+      path: '/certificates'
+      fullPath: '/admin/certificates'
+      preLoaderRoute: typeof AdminCertificatesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/applications': {
@@ -431,19 +526,29 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminActivitiesRoute: typeof AdminActivitiesRoute
   AdminApplicationsRoute: typeof AdminApplicationsRoute
+  AdminCertificatesRoute: typeof AdminCertificatesRoute
+  AdminGatewaysRoute: typeof AdminGatewaysRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMediaRoute: typeof AdminMediaRoute
   AdminNewsRoute: typeof AdminNewsRoute
+  AdminNotificationsRoute: typeof AdminNotificationsRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminProductsRoute: typeof AdminProductsRoute
+  AdminTicketsRoute: typeof AdminTicketsRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminActivitiesRoute: AdminActivitiesRoute,
   AdminApplicationsRoute: AdminApplicationsRoute,
+  AdminCertificatesRoute: AdminCertificatesRoute,
+  AdminGatewaysRoute: AdminGatewaysRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMediaRoute: AdminMediaRoute,
   AdminNewsRoute: AdminNewsRoute,
+  AdminNotificationsRoute: AdminNotificationsRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
   AdminProductsRoute: AdminProductsRoute,
+  AdminTicketsRoute: AdminTicketsRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
