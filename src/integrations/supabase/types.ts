@@ -325,7 +325,7 @@ export type Database = {
       app_role: "admin" | "editor" | "user"
       application_status: "new" | "reviewing" | "approved" | "rejected"
       media_type: "photo" | "video"
-      membership_tier: "associate" | "corporate"
+      membership_tier: "associate" | "corporate" | "standard"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -456,7 +456,7 @@ export const Constants = {
       app_role: ["admin", "editor", "user"],
       application_status: ["new", "reviewing", "approved", "rejected"],
       media_type: ["photo", "video"],
-      membership_tier: ["associate", "corporate"],
+      membership_tier: ["associate", "corporate", "standard"],
     },
   },
 } as const
