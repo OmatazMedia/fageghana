@@ -59,6 +59,95 @@ export type Database = {
         }
         Relationships: []
       }
+      certificate_templates: {
+        Row: {
+          authorized_name: string | null
+          created_at: string
+          field_positions: Json
+          id: string
+          image_url: string
+          is_active: boolean
+          name: string
+          signature_url: string | null
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at: string
+        }
+        Insert: {
+          authorized_name?: string | null
+          created_at?: string
+          field_positions?: Json
+          id?: string
+          image_url: string
+          is_active?: boolean
+          name: string
+          signature_url?: string | null
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+        }
+        Update: {
+          authorized_name?: string | null
+          created_at?: string
+          field_positions?: Json
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          name?: string
+          signature_url?: string | null
+          tier?: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      certificates: {
+        Row: {
+          created_at: string
+          expires_at: string
+          full_name: string
+          id: string
+          issued_at: string
+          member_id: string
+          revoked: boolean
+          template_id: string | null
+          tier: Database["public"]["Enums"]["membership_tier"]
+          user_id: string
+          verification_code: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          full_name: string
+          id?: string
+          issued_at?: string
+          member_id: string
+          revoked?: boolean
+          template_id?: string | null
+          tier: Database["public"]["Enums"]["membership_tier"]
+          user_id: string
+          verification_code: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          full_name?: string
+          id?: string
+          issued_at?: string
+          member_id?: string
+          revoked?: boolean
+          template_id?: string | null
+          tier?: Database["public"]["Enums"]["membership_tier"]
+          user_id?: string
+          verification_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media: {
         Row: {
           category: string
@@ -107,10 +196,13 @@ export type Database = {
           email: string
           id: string
           industry: string | null
+          member_id: string | null
           notes: string | null
           phone: string
           products_exported: string | null
           status: Database["public"]["Enums"]["application_status"]
+          subscription_expiry: string | null
+          subscription_start: string | null
           tier: Database["public"]["Enums"]["membership_tier"]
           updated_at: string
           user_id: string
@@ -123,10 +215,13 @@ export type Database = {
           email?: string
           id?: string
           industry?: string | null
+          member_id?: string | null
           notes?: string | null
           phone?: string
           products_exported?: string | null
           status?: Database["public"]["Enums"]["application_status"]
+          subscription_expiry?: string | null
+          subscription_start?: string | null
           tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
           user_id: string
@@ -139,10 +234,13 @@ export type Database = {
           email?: string
           id?: string
           industry?: string | null
+          member_id?: string | null
           notes?: string | null
           phone?: string
           products_exported?: string | null
           status?: Database["public"]["Enums"]["application_status"]
+          subscription_expiry?: string | null
+          subscription_start?: string | null
           tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
           user_id?: string
@@ -248,6 +346,137 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      payment_gateways: {
+        Row: {
+          bank_details: Json | null
+          config: Json
+          created_at: string
+          display_order: number
+          enabled: boolean
+          id: string
+          name: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          bank_details?: Json | null
+          config?: Json
+          created_at?: string
+          display_order?: number
+          enabled?: boolean
+          id?: string
+          name: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          bank_details?: Json | null
+          config?: Json
+          created_at?: string
+          display_order?: number
+          enabled?: boolean
+          id?: string
+          name?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payment_submissions: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          currency: string
+          duration_months: number
+          gateway_id: string | null
+          id: string
+          member_message: string | null
+          method: string
+          proof_url: string | null
+          reference: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          currency?: string
+          duration_months?: number
+          gateway_id?: string | null
+          id?: string
+          member_message?: string | null
+          method: string
+          proof_url?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          currency?: string
+          duration_months?: number
+          gateway_id?: string | null
+          id?: string
+          member_message?: string | null
+          method?: string
+          proof_url?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_submissions_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "payment_gateways"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string
@@ -287,6 +516,101 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          amount: number
+          currency: string
+          description: string | null
+          duration_months: number
+          id: string
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          currency?: string
+          description?: string | null
+          duration_months?: number
+          id?: string
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          currency?: string
+          description?: string | null
+          duration_months?: number
+          id?: string
+          tier?: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          created_at: string
+          id: string
+          priority: string
+          status: Database["public"]["Enums"]["ticket_status"]
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          priority?: string
+          status?: Database["public"]["Enums"]["ticket_status"]
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          priority?: string
+          status?: Database["public"]["Enums"]["ticket_status"]
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ticket_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_admin: boolean
+          sender_id: string
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          sender_id: string
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          sender_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -313,6 +637,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_member_id: {
+        Args: { _tier: Database["public"]["Enums"]["membership_tier"] }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -325,7 +653,9 @@ export type Database = {
       app_role: "admin" | "editor" | "user"
       application_status: "new" | "reviewing" | "approved" | "rejected"
       media_type: "photo" | "video"
-      membership_tier: "associate" | "corporate"
+      membership_tier: "associate" | "corporate" | "standard"
+      payment_status: "pending" | "confirmed" | "rejected"
+      ticket_status: "open" | "pending" | "resolved" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -456,7 +786,9 @@ export const Constants = {
       app_role: ["admin", "editor", "user"],
       application_status: ["new", "reviewing", "approved", "rejected"],
       media_type: ["photo", "video"],
-      membership_tier: ["associate", "corporate"],
+      membership_tier: ["associate", "corporate", "standard"],
+      payment_status: ["pending", "confirmed", "rejected"],
+      ticket_status: ["open", "pending", "resolved", "closed"],
     },
   },
 } as const

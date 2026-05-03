@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Newspaper, Package, CalendarDays, Image as ImageIcon, Users, LogOut, Home } from "lucide-react";
+import { Newspaper, Package, CalendarDays, Image as ImageIcon, Users, LogOut, Home, CreditCard, Award, Bell, MessageCircle, Settings } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/admin")({
@@ -15,6 +15,11 @@ const sections: ReadonlyArray<{ to: string; label: string; icon: typeof Home; ex
   { to: "/admin/activities", label: "Activities", icon: CalendarDays },
   { to: "/admin/media", label: "Media", icon: ImageIcon },
   { to: "/admin/applications", label: "Applications", icon: Users },
+  { to: "/admin/payments", label: "Payments", icon: CreditCard },
+  { to: "/admin/gateways", label: "Gateways", icon: Settings },
+  { to: "/admin/certificates", label: "Certificates", icon: Award },
+  { to: "/admin/notifications", label: "Notifications", icon: Bell },
+  { to: "/admin/tickets", label: "Support", icon: MessageCircle },
 ];
 
 function AdminLayout() {

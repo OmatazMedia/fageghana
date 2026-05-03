@@ -4,7 +4,7 @@ import { UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-export const Route = createFileRoute("/member/login")({
+export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Member Login — FAGE Ghana" }] }),
   component: MemberLogin,
 });
@@ -18,7 +18,7 @@ function MemberLogin() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/member/dashboard" });
+    if (!loading && user) navigate({ to: "/dashboard" });
   }, [loading, user, navigate]);
 
   async function submit(e: React.FormEvent) {
