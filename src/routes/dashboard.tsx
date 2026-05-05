@@ -108,7 +108,21 @@ function StatCard({ icon, label, value, hint }: any) {
   );
 }
 
-function OverviewTab({ profile }: { profile: any; userId: string }) {
+function OverviewTab({ profile, userId }: { profile: any; userId: string }) {
+  const [counts, setCounts] = useState({ apps: 0, payments: 0, certs: 0, notif: 0, tickets: 0 });
+  useEffect(() => {
+    void (async () => {
+      const [a, p, c, n, t] = await Promise.all([
+        supabase.from("membership_applications").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("payment_submissions").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("certificates").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("revoked", false),
+        supabase.from("notifications").select("id", { count: "exact", head: true }).or(`user_id.eq.${userId},user_id.is.null`).is("read_at", null),
+        supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("user_id", userId).neq("status", "closed"),
+      ]);
+      setCounts({ apps: a.count ?? 0, payments: p.count ?? 0, certs: c.count ?? 0, notif: n.count ?? 0, tickets: t.count ?? 0 });
+    })();
+  }, [userId]);
+
   const expiry = profile.subscription_expiry ? new Date(profile.subscription_expiry) : null;
   const daysLeft = expiry ? Math.ceil((expiry.getTime() - Date.now()) / 86400000) : null;
   const expired = daysLeft !== null && daysLeft < 0;
@@ -130,6 +144,15 @@ function OverviewTab({ profile }: { profile: any; userId: string }) {
             {!expiry ? "Inactive" : expired ? "Expired" : "Active"}
           </span>
         } />
+      </div>
+
+      <h2 className="mt-10 text-lg font-bold">Activity overview</h2>
+      <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <StatCard icon={<Building2 className="h-5 w-5" />} label="Applications" value={counts.apps} />
+        <StatCard icon={<CreditCard className="h-5 w-5" />} label="Payments" value={counts.payments} />
+        <StatCard icon={<FileDown className="h-5 w-5" />} label="Certificates" value={counts.certs} />
+        <StatCard icon={<Bell className="h-5 w-5" />} label="Unread alerts" value={counts.notif} />
+        <StatCard icon={<MessageCircle className="h-5 w-5" />} label="Open tickets" value={counts.tickets} />
       </div>
     </div>
   );
