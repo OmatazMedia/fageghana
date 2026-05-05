@@ -23,6 +23,7 @@ import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
@@ -34,6 +35,8 @@ import { Route as AdminCertificatesRouteImport } from './routes/admin.certificat
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
+import { Route as AdminCertificatesIssuedRouteImport } from './routes/admin.certificates.issued'
+import { Route as AdminCertificatesIssueRouteImport } from './routes/admin.certificates.issue'
 
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
@@ -105,6 +108,11 @@ const AdminTicketsRoute = AdminTicketsRouteImport.update({
   path: '/tickets',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProductsRoute = AdminProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -160,6 +168,16 @@ const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
   path: '/about/who-we-are',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCertificatesIssuedRoute = AdminCertificatesIssuedRouteImport.update({
+  id: '/issued',
+  path: '/issued',
+  getParentRoute: () => AdminCertificatesRoute,
+} as any)
+const AdminCertificatesIssueRoute = AdminCertificatesIssueRouteImport.update({
+  id: '/issue',
+  path: '/issue',
+  getParentRoute: () => AdminCertificatesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -175,7 +193,7 @@ export interface FileRoutesByFullPath {
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
-  '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/certificates': typeof AdminCertificatesRouteWithChildren
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
@@ -183,10 +201,13 @@ export interface FileRoutesByFullPath {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/verify/$code': typeof VerifyCodeRoute
+  '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
+  '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -202,7 +223,7 @@ export interface FileRoutesByTo {
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
-  '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/certificates': typeof AdminCertificatesRouteWithChildren
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
@@ -210,10 +231,13 @@ export interface FileRoutesByTo {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/verify/$code': typeof VerifyCodeRoute
+  '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
+  '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -230,7 +254,7 @@ export interface FileRoutesById {
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
-  '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/certificates': typeof AdminCertificatesRouteWithChildren
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
@@ -238,10 +262,13 @@ export interface FileRoutesById {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/verify/$code': typeof VerifyCodeRoute
+  '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
+  '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -267,10 +294,13 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/payments'
     | '/admin/products'
+    | '/admin/reports'
     | '/admin/tickets'
     | '/certificate/$id'
     | '/news/$slug'
     | '/verify/$code'
+    | '/admin/certificates/issue'
+    | '/admin/certificates/issued'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -294,10 +324,13 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/payments'
     | '/admin/products'
+    | '/admin/reports'
     | '/admin/tickets'
     | '/certificate/$id'
     | '/news/$slug'
     | '/verify/$code'
+    | '/admin/certificates/issue'
+    | '/admin/certificates/issued'
   id:
     | '__root__'
     | '/'
@@ -321,10 +354,13 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/payments'
     | '/admin/products'
+    | '/admin/reports'
     | '/admin/tickets'
     | '/certificate/$id'
     | '/news/$slug'
     | '/verify/$code'
+    | '/admin/certificates/issue'
+    | '/admin/certificates/issued'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -443,6 +479,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTicketsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/products': {
       id: '/admin/products'
       path: '/products'
@@ -520,13 +563,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutWhoWeAreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/certificates/issued': {
+      id: '/admin/certificates/issued'
+      path: '/issued'
+      fullPath: '/admin/certificates/issued'
+      preLoaderRoute: typeof AdminCertificatesIssuedRouteImport
+      parentRoute: typeof AdminCertificatesRoute
+    }
+    '/admin/certificates/issue': {
+      id: '/admin/certificates/issue'
+      path: '/issue'
+      fullPath: '/admin/certificates/issue'
+      preLoaderRoute: typeof AdminCertificatesIssueRouteImport
+      parentRoute: typeof AdminCertificatesRoute
+    }
   }
 }
+
+interface AdminCertificatesRouteChildren {
+  AdminCertificatesIssueRoute: typeof AdminCertificatesIssueRoute
+  AdminCertificatesIssuedRoute: typeof AdminCertificatesIssuedRoute
+}
+
+const AdminCertificatesRouteChildren: AdminCertificatesRouteChildren = {
+  AdminCertificatesIssueRoute: AdminCertificatesIssueRoute,
+  AdminCertificatesIssuedRoute: AdminCertificatesIssuedRoute,
+}
+
+const AdminCertificatesRouteWithChildren =
+  AdminCertificatesRoute._addFileChildren(AdminCertificatesRouteChildren)
 
 interface AdminRouteChildren {
   AdminActivitiesRoute: typeof AdminActivitiesRoute
   AdminApplicationsRoute: typeof AdminApplicationsRoute
-  AdminCertificatesRoute: typeof AdminCertificatesRoute
+  AdminCertificatesRoute: typeof AdminCertificatesRouteWithChildren
   AdminGatewaysRoute: typeof AdminGatewaysRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMediaRoute: typeof AdminMediaRoute
@@ -534,13 +604,14 @@ interface AdminRouteChildren {
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminProductsRoute: typeof AdminProductsRoute
+  AdminReportsRoute: typeof AdminReportsRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminActivitiesRoute: AdminActivitiesRoute,
   AdminApplicationsRoute: AdminApplicationsRoute,
-  AdminCertificatesRoute: AdminCertificatesRoute,
+  AdminCertificatesRoute: AdminCertificatesRouteWithChildren,
   AdminGatewaysRoute: AdminGatewaysRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMediaRoute: AdminMediaRoute,
@@ -548,6 +619,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminProductsRoute: AdminProductsRoute,
+  AdminReportsRoute: AdminReportsRoute,
   AdminTicketsRoute: AdminTicketsRoute,
 }
 

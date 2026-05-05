@@ -175,9 +175,9 @@ function DesignerPage() {
               sampleCert={sampleCert}
               active={active}
               onSelect={setActive}
-              onMoveField={(k, x, y) => updField(k, { x, y })}
-              onMoveQr={(x, y) => setLayout(l => ({ ...l, qr: { ...l.qr, x, y } }))}
-              onMoveSig={(x, y) => setLayout(l => ({ ...l, signature: { ...l.signature, x, y } }))}
+              onMoveField={(k: FieldKey, x: number, y: number) => updField(k, { x, y })}
+              onMoveQr={(x: number, y: number) => setLayout(l => ({ ...l, qr: { ...l.qr, x, y } }))}
+              onMoveSig={(x: number, y: number) => setLayout(l => ({ ...l, signature: { ...l.signature, x, y } }))}
             />
           )}
           {imageUrl && (
