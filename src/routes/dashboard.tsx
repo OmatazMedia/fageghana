@@ -108,7 +108,21 @@ function StatCard({ icon, label, value, hint }: any) {
   );
 }
 
-function OverviewTab({ profile }: { profile: any; userId: string }) {
+function OverviewTab({ profile, userId }: { profile: any; userId: string }) {
+  const [counts, setCounts] = useState({ apps: 0, payments: 0, certs: 0, notif: 0, tickets: 0 });
+  useEffect(() => {
+    void (async () => {
+      const [a, p, c, n, t] = await Promise.all([
+        supabase.from("membership_applications").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("payment_submissions").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("certificates").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("revoked", false),
+        supabase.from("notifications").select("id", { count: "exact", head: true }).or(`user_id.eq.${userId},user_id.is.null`).is("read_at", null),
+        supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("user_id", userId).neq("status", "closed"),
+      ]);
+      setCounts({ apps: a.count ?? 0, payments: p.count ?? 0, certs: c.count ?? 0, notif: n.count ?? 0, tickets: t.count ?? 0 });
+    })();
+  }, [userId]);
+
   const expiry = profile.subscription_expiry ? new Date(profile.subscription_expiry) : null;
   const daysLeft = expiry ? Math.ceil((expiry.getTime() - Date.now()) / 86400000) : null;
   const expired = daysLeft !== null && daysLeft < 0;
@@ -130,6 +144,15 @@ function OverviewTab({ profile }: { profile: any; userId: string }) {
             {!expiry ? "Inactive" : expired ? "Expired" : "Active"}
           </span>
         } />
+      </div>
+
+      <h2 className="mt-10 text-lg font-bold">Activity overview</h2>
+      <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <StatCard icon={<Building2 className="h-5 w-5" />} label="Applications" value={counts.apps} />
+        <StatCard icon={<CreditCard className="h-5 w-5" />} label="Payments" value={counts.payments} />
+        <StatCard icon={<FileDown className="h-5 w-5" />} label="Certificates" value={counts.certs} />
+        <StatCard icon={<Bell className="h-5 w-5" />} label="Unread alerts" value={counts.notif} />
+        <StatCard icon={<MessageCircle className="h-5 w-5" />} label="Open tickets" value={counts.tickets} />
       </div>
     </div>
   );
@@ -300,21 +323,35 @@ function CertificateTab({ userId }: { userId: string }) {
     <div className="rounded-2xl bg-card p-6 shadow-sm">
       <h2 className="mb-4 text-xl font-bold">Your certificates</h2>
       {certs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No certificate issued yet. Once your payment is confirmed by admin, your certificate will appear here.</p>
+        <div className="rounded-xl border border-dashed border-border p-10 text-center">
+          <FileDown className="mx-auto h-10 w-10 text-muted-foreground" />
+          <p className="mt-3 text-sm text-muted-foreground">No certificate yet. Once admin confirms your payment, your certificate will appear here for download.</p>
+        </div>
       ) : (
-        <div className="space-y-3">
-          {certs.map(c => (
-            <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4 text-sm">
-              <div>
-                <div className="font-semibold">{c.full_name} — <span className="capitalize">{c.tier}</span></div>
-                <div className="text-xs text-muted-foreground">ID: {c.member_id} · Issued {new Date(c.issued_at).toLocaleDateString()} · Expires {new Date(c.expires_at).toLocaleDateString()}</div>
-                <div className="mt-1 text-xs">Verification: <Link to="/verify/$code" params={{ code: c.verification_code }} className="text-primary hover:underline">{c.verification_code}</Link></div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {certs.map(c => {
+            const valid = !c.revoked && new Date(c.expires_at) > new Date();
+            return (
+              <div key={c.id} className="overflow-hidden rounded-xl border border-border bg-background">
+                <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3 text-sm">
+                  <div>
+                    <div className="font-semibold">{c.full_name}</div>
+                    <div className="text-xs text-muted-foreground">ID: {c.member_id} · <span className="capitalize">{c.tier}</span></div>
+                  </div>
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${valid ? "bg-emerald-100 text-emerald-700" : "bg-destructive/10 text-destructive"}`}>{valid ? "Active" : c.revoked ? "Revoked" : "Expired"}</span>
+                </div>
+                <div className="p-4 text-xs text-muted-foreground">
+                  <div>Issued: {new Date(c.issued_at).toLocaleDateString()}</div>
+                  <div>Expires: {new Date(c.expires_at).toLocaleDateString()}</div>
+                  <div className="mt-1 break-all">Code: <span className="font-mono">{c.verification_code}</span></div>
+                </div>
+                <div className="flex border-t border-border">
+                  <Link to="/certificate/$id" params={{ id: c.id }} className="flex-1 bg-primary py-2.5 text-center text-xs font-semibold text-primary-foreground">View & download</Link>
+                  <Link to="/verify/$code" params={{ code: c.verification_code }} className="flex-1 py-2.5 text-center text-xs font-semibold hover:bg-accent">Verify page</Link>
+                </div>
               </div>
-              <Link to="/certificate/$id" params={{ id: c.id }} className="flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">
-                <FileDown className="h-3.5 w-3.5" /> Download
-              </Link>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

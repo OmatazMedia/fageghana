@@ -40,8 +40,27 @@ function PaymentsPage() {
     }
     await supabase.from("member_profiles").update(updates).eq("user_id", p.user_id);
     await supabase.from("payment_submissions").update({ status: "confirmed", admin_notes: notes, confirmed_at: new Date().toISOString() }).eq("id", p.id);
-    await supabase.from("notifications").insert({ user_id: p.user_id, title: "Payment confirmed", body: `Your subscription has been extended to ${newExpiry.toLocaleDateString()}.` });
-    toast.success("Confirmed"); await load();
+
+    // Auto-issue certificate using active template for tier
+    const memberId = updates.member_id ?? profile.member_id;
+    if (memberId) {
+      const { data: tpl } = await supabase.from("certificate_templates").select("*").eq("tier", profile.tier).eq("is_active", true).maybeSingle();
+      if (tpl) {
+        // Avoid duplicate active cert
+        const { data: existing } = await supabase.from("certificates").select("id").eq("user_id", p.user_id).eq("revoked", false).gt("expires_at", new Date().toISOString()).maybeSingle();
+        if (!existing) {
+          const code = `FAGE${memberId.replace(/[^A-Z0-9]/g, "")}${Date.now().toString(36).toUpperCase().slice(-6)}`;
+          await supabase.from("certificates").insert({
+            user_id: p.user_id, template_id: tpl.id, member_id: memberId,
+            full_name: profile.contact_name || profile.company_name, tier: profile.tier,
+            expires_at: newExpiry.toISOString(), verification_code: code,
+          });
+        }
+      }
+    }
+
+    await supabase.from("notifications").insert({ user_id: p.user_id, title: "Payment confirmed", body: `Your subscription has been extended to ${newExpiry.toLocaleDateString()}. Your certificate is now available in your dashboard.` });
+    toast.success("Confirmed & certificate assigned"); await load();
   }
 
   async function reject(p: any) {

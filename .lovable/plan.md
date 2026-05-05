@@ -1,126 +1,131 @@
-## What I found
 
-### Why `/admin/login` is stuck on “Loading…”
-The `/admin/login` route currently lives under the `/admin` layout. That parent admin layout checks for an already-signed-in admin before rendering any child route. So when a visitor goes to `/admin/login`, the parent route blocks it and shows `Loading…`/redirect logic instead of allowing the login form to render.
+# Certificate Designer, Batch Issuance & Dashboard Redesign
 
-### Why the membership login/dashboard is missing
-Only the public `/membership` page and public application form exist right now. There is no member login route, no protected member dashboard route, and no member profile/dashboard database tables yet.
+## 1. Certificate Template Designer (`/admin/certificates`)
 
-### Admin auto-grant status
-A migration file exists for auto-granting `omatazmedia@gmail.com` admin access on signup, but the current live database metadata shows no auth trigger installed. I will re-apply/fix that via a migration so the role is actually granted on registration and backfilled for the existing user if already created.
+Rebuild as a two-panel visual editor:
 
-## Already done
+**Left panel — Live preview**
+- Fixed landscape canvas at standard certificate ratio (e.g. 1414×1000, A4 landscape) with uploaded background image scaled to fit (object-fit cover, locked aspect).
+- Overlays rendered absolutely positioned on top: name, member ID, tier, issue date, expiry date, signature image, QR code.
+- Each overlay is draggable directly on the canvas (click + drag to reposition); selection highlights the active field.
 
-- Public website pages: Home, Who We Are, Products, Services, News, Media, Activities, Membership.
-- Public membership application form at `/membership`.
-- Membership applications table and admin review workflow.
-- Admin CMS routes for News, Products, Activities, Media, and Applications.
-- Admin applications page can review applications, update status, add admin notes, and delete applications.
-- Navbar About dropdown grouping Who We Are, Products, Services.
-- Search and user icons added to navbar.
-- Homepage service section updated to 4 service cards on the left and details on the right.
-- Scroll reveal and animated stats components were added.
+**Right panel — Field controls**
+- Tabs: `Background`, `Fields`, `QR Code`, `Signature`, `Save`.
+- **Background**: upload image (stored in `certificate-assets`); auto-detects natural width/height to set canvas dimensions.
+- **Fields** (name, member_id, tier, issued, expires, custom lines): per field controls
+  - X / Y sliders (also editable via numeric input)
+  - Font size slider
+  - Font family dropdown (serif, sans, script, mono — Google Fonts loaded)
+  - Font weight (normal, bold, 600/700/800)
+  - Color picker
+  - Alignment (left / center / right)
+  - Toggle visible
+- **QR Code**: 
+  - X/Y/size sliders
+  - Style: dots / squares / rounded
+  - Foreground & background color pickers
+  - Border (none/thin/thick) with color
+  - Center logo upload (optional) + size slider
+  - Library: switch from `qrcode` to `qr-code-styling` for dot/square/logo options.
+- **Signature**: upload PNG, X/Y/width/height sliders, plus authorized name text field with its own font controls.
+- **Save**: persists all positions/styles into `certificate_templates.field_positions` JSONB.
 
-## Remaining / not yet done
+A `tier` selector at top picks which template (associate / standard / corporate) is being edited. One template per tier, `is_active`.
 
-- Fix `/admin/login` route rendering.
-- Ensure `omatazmedia@gmail.com` is automatically granted the highest admin access when signing up.
-- Add a dedicated membership login/signup page.
-- Add a protected member dashboard.
-- Add member profile/company records tied to authenticated users.
-- Connect membership application records to member accounts so members can see their own application status.
-- Add member-facing dashboard pages/components for profile, application status, resources, and account actions.
-- Update navbar user icon to point to member login/dashboard instead of only admin login.
-- Add proper RLS policies so members can only view/update their own data while admins can manage all records.
+**Verification page payload (`/verify/:code`)**
+Admin defines (in template settings) which fields to show on the public verification page (name, member ID, tier, expiry, status). Page shows green "Authentic — Active" check if `expires_at > now()` and not revoked, red "Expired" otherwise.
 
-## Implementation plan
+## 2. Certificate Issuance Flow
 
-### 1. Fix `/admin/login`
-- Move the admin login page outside the protected `/admin` layout so it can render publicly.
-- Keep `/admin` and all admin content protected.
-- Update route generation naturally by adding/renaming route files instead of manually editing `routeTree.gen.ts`.
-- Keep admin auth checks server/database-backed through `user_roles`, not client-side storage.
+**Single issue (existing pattern, improved)**
+On `/admin/payments` Confirm action, after subscription is extended, automatically:
+- Generate `verification_code` (random 12-char).
+- Insert `certificates` row using active template for that tier.
+- Set `expires_at` = new `subscription_expiry`.
+- Notify the member.
 
-### 2. Repair admin auto-grant for `omatazmedia@gmail.com`
-- Add a database migration that ensures the signup trigger exists.
-- Backfill admin role for `omatazmedia@gmail.com` if that account already exists.
-- Keep roles in the separate `user_roles` table, following the existing secure pattern.
-- Treat the existing `admin` role as the highest admin/super-admin role unless you want a separate `super_admin` role later.
+**Batch issue (new — `/admin/certificates/issue`)**
+- Lists all members whose latest payment is `confirmed` AND who don't yet have an active certificate for current subscription period.
+- Checkbox selection + "Issue Certificates" button.
+- Admin sets default expiry override (or uses each member's `subscription_expiry`).
+- Bulk insert; bulk notify.
 
-### 3. Add membership database structure
-Create secure member-focused tables, for example:
+**All issued certificates (`/admin/certificates/issued`)**
+- Table: member, tier, issued, expires, status (active/expired/revoked), verification code, actions (view, revoke, re-send).
+- Filters by tier, status, date range. Search by name/member ID.
 
-```text
-member_profiles
-- id
-- user_id
-- company_name
-- contact_name
-- phone
-- country
-- industry
-- products_exported
-- membership_tier
-- status
-- created_at
-- updated_at
+## 3. Member Dashboard Redesign (`/dashboard`)
 
-member_documents or member_resources access records, if needed later
-```
+Redesign as card-based overview matching admin style.
 
-Also update `membership_applications` to optionally connect an application to a logged-in member account.
+**Top: at-a-glance cards**
+- Membership Status (active / expiring soon / expired) with colored badge.
+- Member ID (large, copy button).
+- Subscription expiry + days remaining.
+- Latest payment status.
 
-RLS rules:
-- Members can read/update only their own profile.
-- Members can read only their own applications.
-- Public visitors can still submit membership applications.
-- Admins can read/update/manage all member profiles and applications.
+**Tabs / sections below**
+- **Overview**: summary cards (applications submitted, payments made count, active certificate, unread notifications, open tickets).
+- **My Certificate**: visual preview of issued certificate using same renderer as admin, Download PNG / PDF buttons. Empty state if none yet ("Available once admin confirms payment").
+- **Subscription & Renew**: current plan, expiry, renew button (opens payment gateway flow).
+- **Payments**: history table with statuses + proof.
+- **Profile**: editable contact info.
+- **Notifications**: list with mark-as-read.
+- **Support**: tickets list + new ticket.
 
-### 4. Add membership auth flow
-- Create `/member/login` for member login/signup.
-- Use email/password auth.
-- Add Google sign-in if the project auth settings support it.
-- After signup/login, redirect members to `/member/dashboard`.
-- If a signed-in user has no member profile yet, guide them through completing their company/member profile.
+## 4. Admin Overview Redesign (`/admin`)
 
-### 5. Add protected member dashboard
-Create `/member/dashboard` with clear member-facing sections:
+Replace current landing with card dashboard:
+- KPI cards: Total members, Active subscriptions, Expiring in 30 days, Pending payments, Open tickets, Certificates issued (this month).
+- Quick action grid: Review payments, Issue certificates, Manage gateways, Send announcement, Add news, Manage products.
+- Recent activity feed: last 10 applications, payments, tickets.
+- Link to `/admin/reports` (new, placeholder).
 
-- Overview: membership tier, current status, quick actions.
-- Application Status: submitted application, review status, admin notes if appropriate.
-- Company/Profile: editable company/contact details.
-- Membership Benefits: benefits by tier.
-- Resources: placeholder/resource area for future downloadable member content.
-- Support/Contact: quick contact CTA.
+## 5. Reports & Analytics (`/admin/reports`)
 
-### 6. Connect public membership page to member login/dashboard
-- Keep `/membership` as the public information + application page.
-- Add clear CTAs:
-  - “Apply for membership”
-  - “Member Login”
-  - “Go to Dashboard” when already signed in.
-- Optionally let logged-in members prefill the application form from their profile.
+New empty placeholder page with section stubs:
+- Membership growth chart (placeholder)
+- Revenue by month (placeholder)
+- Certificates issued (placeholder)
+- Tickets resolution time (placeholder)
+"Coming soon" labels; route registered in admin nav.
 
-### 7. Update navbar behavior
-- Change the navbar user icon to point to member login/dashboard.
-- Keep admin login accessible from the top utility bar or footer, but not confuse it with member login.
-- Add a visible “Member Login” path where appropriate.
+## 6. QR Verification Enhancement (`/verify/:code`)
 
-### 8. QA after implementation
-- Open `/admin/login` unauthenticated and confirm the form renders instead of `Loading…`.
-- Register/sign in with `omatazmedia@gmail.com` and confirm admin access.
-- Open `/member/login`, create a member account, and confirm redirect to dashboard.
-- Submit a membership application and confirm it appears in admin applications.
-- Confirm RLS behavior: members cannot see other members’ data; admins can manage all.
-- Check console/network logs for auth or routing errors.
+- Loads certificate, shows:
+  - Authenticity badge (green check / red X)
+  - Member name, member ID, tier, issue date, expiry date
+  - "Issued by FAGE Ghana"
+- Admin-configurable list of visible fields stored on template `field_positions.verification_display`.
 
-## Expected result
+## Technical Details
 
-After this is implemented:
+- **Dependency**: add `qr-code-styling` for advanced QR (dots/squares/logo). Keep `qrcode` for simple cases.
+- **Schema additions** (migration):
+  - `certificate_templates.field_positions` already JSONB — extend shape to:
+    ```
+    {
+      canvas: { w, h },
+      qr: { x, y, size, dotType, fgColor, bgColor, border, logoUrl, logoSize },
+      signature: { x, y, w, h },
+      fields: { name: { x, y, fontSize, font, weight, color, align, visible }, ... },
+      verification_display: ["name","member_id","tier","expires"]
+    }
+    ```
+  - No new tables required.
+- **Renderer**: extract canvas render logic from `certificate.$id.tsx` into `src/lib/certificate-render.ts` so both member dashboard preview and admin designer reuse it. Designer uses live DOM overlay for editing; render-to-canvas used only for download.
+- **Download**: PNG via canvas `toDataURL`; PDF via `jspdf` (add dependency) embedding the PNG at landscape A4.
+- **New routes**:
+  - `src/routes/admin.certificates.issue.tsx` (batch)
+  - `src/routes/admin.certificates.issued.tsx` (list all)
+  - `src/routes/admin.reports.tsx` (placeholder)
+  - `src/routes/admin.index.tsx` rebuilt as overview (currently `/admin` shows nav only).
+- **Member dashboard**: rewrite `src/routes/dashboard.tsx` using shadcn Tabs + Cards.
+- **Admin nav**: add Reports + Issued Certificates + Issue (batch) entries.
 
-- `/admin/login` will work correctly.
-- `omatazmedia@gmail.com` will receive admin access on registration.
-- Members will have their own login and dashboard.
-- Public membership applications will still work.
-- Admins will be able to review and manage membership applications.
-- Member data will be protected by proper database access rules.
+## Out of Scope (this round)
+- Actual analytics charts (page is placeholder per request).
+- Online Paystack/Hubtel checkout (manual gateway flow stays as-is).
+
+After approval I will implement in this order: dependencies → schema migration → render lib → designer page → batch + issued pages → member dashboard redesign → admin overview redesign → reports placeholder → verification page polish.
