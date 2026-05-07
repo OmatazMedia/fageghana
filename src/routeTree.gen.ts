@@ -34,6 +34,7 @@ import { Route as AdminMembersRouteImport } from './routes/admin.members'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
+import { Route as AdminFormsRouteImport } from './routes/admin.forms'
 import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
@@ -166,6 +167,11 @@ const AdminGatewaysRoute = AdminGatewaysRouteImport.update({
   path: '/gateways',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminFormsRoute = AdminFormsRouteImport.update({
+  id: '/forms',
+  path: '/forms',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
   id: '/certificates',
   path: '/certificates',
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/certificates': typeof AdminCertificatesRouteWithChildren
+  '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/certificates': typeof AdminCertificatesRouteWithChildren
+  '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
@@ -280,6 +288,7 @@ export interface FileRoutesById {
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/certificates': typeof AdminCertificatesRouteWithChildren
+  '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
@@ -315,6 +324,7 @@ export interface FileRouteTypes {
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/certificates'
+    | '/admin/forms'
     | '/admin/gateways'
     | '/admin/login'
     | '/admin/media'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/certificates'
+    | '/admin/forms'
     | '/admin/gateways'
     | '/admin/login'
     | '/admin/media'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/certificates'
+    | '/admin/forms'
     | '/admin/gateways'
     | '/admin/login'
     | '/admin/media'
@@ -593,6 +605,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminGatewaysRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/forms': {
+      id: '/admin/forms'
+      path: '/forms'
+      fullPath: '/admin/forms'
+      preLoaderRoute: typeof AdminFormsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/certificates': {
       id: '/admin/certificates'
       path: '/certificates'
@@ -655,6 +674,7 @@ interface AdminRouteChildren {
   AdminActivitiesRoute: typeof AdminActivitiesRoute
   AdminApplicationsRoute: typeof AdminApplicationsRoute
   AdminCertificatesRoute: typeof AdminCertificatesRouteWithChildren
+  AdminFormsRoute: typeof AdminFormsRoute
   AdminGatewaysRoute: typeof AdminGatewaysRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMediaRoute: typeof AdminMediaRoute
@@ -672,6 +692,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminActivitiesRoute: AdminActivitiesRoute,
   AdminApplicationsRoute: AdminApplicationsRoute,
   AdminCertificatesRoute: AdminCertificatesRouteWithChildren,
+  AdminFormsRoute: AdminFormsRoute,
   AdminGatewaysRoute: AdminGatewaysRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMediaRoute: AdminMediaRoute,
