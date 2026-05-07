@@ -26,9 +26,11 @@ import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
+import { Route as AdminPlansRouteImport } from './routes/admin.plans'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminNewsRouteImport } from './routes/admin.news'
+import { Route as AdminMembersRouteImport } from './routes/admin.members'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
@@ -124,6 +126,11 @@ const AdminProductsRoute = AdminProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPlansRoute = AdminPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
@@ -137,6 +144,11 @@ const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
 const AdminNewsRoute = AdminNewsRouteImport.update({
   id: '/news',
   path: '/news',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMembersRoute = AdminMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMediaRoute = AdminMediaRouteImport.update({
@@ -204,9 +216,11 @@ export interface FileRoutesByFullPath {
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
+  '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/plans': typeof AdminPlansRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
@@ -235,9 +249,11 @@ export interface FileRoutesByTo {
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
+  '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/plans': typeof AdminPlansRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
@@ -267,9 +283,11 @@ export interface FileRoutesById {
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
+  '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/plans': typeof AdminPlansRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
@@ -300,9 +318,11 @@ export interface FileRouteTypes {
     | '/admin/gateways'
     | '/admin/login'
     | '/admin/media'
+    | '/admin/members'
     | '/admin/news'
     | '/admin/notifications'
     | '/admin/payments'
+    | '/admin/plans'
     | '/admin/products'
     | '/admin/reports'
     | '/admin/tickets'
@@ -331,9 +351,11 @@ export interface FileRouteTypes {
     | '/admin/gateways'
     | '/admin/login'
     | '/admin/media'
+    | '/admin/members'
     | '/admin/news'
     | '/admin/notifications'
     | '/admin/payments'
+    | '/admin/plans'
     | '/admin/products'
     | '/admin/reports'
     | '/admin/tickets'
@@ -362,9 +384,11 @@ export interface FileRouteTypes {
     | '/admin/gateways'
     | '/admin/login'
     | '/admin/media'
+    | '/admin/members'
     | '/admin/news'
     | '/admin/notifications'
     | '/admin/payments'
+    | '/admin/plans'
     | '/admin/products'
     | '/admin/reports'
     | '/admin/tickets'
@@ -513,6 +537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/plans': {
+      id: '/admin/plans'
+      path: '/plans'
+      fullPath: '/admin/plans'
+      preLoaderRoute: typeof AdminPlansRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/payments': {
       id: '/admin/payments'
       path: '/payments'
@@ -532,6 +563,13 @@ declare module '@tanstack/react-router' {
       path: '/news'
       fullPath: '/admin/news'
       preLoaderRoute: typeof AdminNewsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/members': {
+      id: '/admin/members'
+      path: '/members'
+      fullPath: '/admin/members'
+      preLoaderRoute: typeof AdminMembersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/media': {
@@ -620,9 +658,11 @@ interface AdminRouteChildren {
   AdminGatewaysRoute: typeof AdminGatewaysRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMediaRoute: typeof AdminMediaRoute
+  AdminMembersRoute: typeof AdminMembersRoute
   AdminNewsRoute: typeof AdminNewsRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminPlansRoute: typeof AdminPlansRoute
   AdminProductsRoute: typeof AdminProductsRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
@@ -635,9 +675,11 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGatewaysRoute: AdminGatewaysRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMediaRoute: AdminMediaRoute,
+  AdminMembersRoute: AdminMembersRoute,
   AdminNewsRoute: AdminNewsRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminPlansRoute: AdminPlansRoute,
   AdminProductsRoute: AdminProductsRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminTicketsRoute: AdminTicketsRoute,
@@ -674,3 +716,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
