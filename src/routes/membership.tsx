@@ -140,33 +140,3 @@ function MembershipPage() {
     </SiteLayout>
   );
 }
-
-  label,
-  type = "text",
-  required,
-  placeholder,
-  defaultValue,
-}: {
-  name: string;
-  label: string;
-  type?: string;
-  required?: boolean;
-  placeholder?: string;
-  defaultValue?: string;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium">
-        {label} {required && <span className="text-primary">*</span>}
-      </label>
-      <input
-        name={name}
-        type={type}
-        required={required}
-        placeholder={placeholder}
-        defaultValue={defaultValue}
-        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-      />
-    </div>
-  );
-}
