@@ -126,10 +126,21 @@ function OverviewTab({ profile, userId }: { profile: any; userId: string }) {
   const expiry = profile.subscription_expiry ? new Date(profile.subscription_expiry) : null;
   const daysLeft = expiry ? Math.ceil((expiry.getTime() - Date.now()) / 86400000) : null;
   const expired = daysLeft !== null && daysLeft < 0;
+  const showRenewBanner = daysLeft === null || daysLeft <= 60;
+  const urgent = daysLeft !== null && daysLeft <= 14;
   return (
     <div>
       <h1 className="text-3xl font-bold">Welcome{profile.contact_name ? `, ${profile.contact_name}` : ""} 👋</h1>
       <p className="mt-1 text-muted-foreground">Your membership at a glance.</p>
+      {showRenewBanner && (
+        <div className={`mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5 ${expired ? "bg-destructive/10 text-destructive" : urgent ? "bg-amber-100 text-amber-900" : "bg-accent"}`}>
+          <div>
+            <p className="font-semibold">{expired ? "Your membership has expired" : daysLeft === null ? "Activate your membership" : `Your membership expires in ${daysLeft} days`}</p>
+            <p className="text-sm opacity-80">{expired ? "Renew now to restore your benefits and certificate." : "Renew now to keep your member ID, certificate and benefits active."}</p>
+          </div>
+          <a href={profile.tier ? `/apply/${profile.tier}` : "/membership"} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Renew membership</a>
+        </div>
+      )}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={<BadgeCheck className="h-5 w-5" />} label="Member ID" value={profile.member_id ?? "Pending"} hint={profile.member_id ? null : "Issued after first payment"} />
         <StatCard icon={<Building2 className="h-5 w-5" />} label="Tier" value={<span className="capitalize">{profile.tier}</span>} />

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Newspaper, Package, CalendarDays, Image as ImageIcon, Users, LogOut, Home, CreditCard, Award, Bell, MessageCircle, Settings, BarChart3, Layers, ListChecks, AlertCircle } from "lucide-react";
+import { Newspaper, Package, CalendarDays, Image as ImageIcon, Users, LogOut, Home, CreditCard, Award, Bell, MessageCircle, Settings, BarChart3, Layers, ListChecks, AlertCircle, FormInput, Tag, UserPlus } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,7 +12,10 @@ export const Route = createFileRoute("/admin")({
 const sections: ReadonlyArray<{ to: string; label: string; icon: typeof Home; exact?: boolean }> = [
   { to: "/admin", label: "Overview", icon: Home, exact: true },
   { to: "/admin/applications", label: "Applications", icon: Users },
+  { to: "/admin/members", label: "Members", icon: UserPlus },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
+  { to: "/admin/plans", label: "Plans & Forms", icon: Tag },
+  { to: "/admin/forms", label: "Form Builder", icon: FormInput },
   { to: "/admin/gateways", label: "Gateways", icon: Settings },
   { to: "/admin/certificates", label: "Cert Designer", icon: Award },
   { to: "/admin/certificates/issue", label: "Batch Issue", icon: Layers },

@@ -1,131 +1,124 @@
 
-# Certificate Designer, Batch Issuance & Dashboard Redesign
+## 1. Auth pages redesign (`/admin/login`, `/login`)
 
-## 1. Certificate Template Designer (`/admin/certificates`)
+Two-column split layout (image + brand copy on left, form on right). Reuse the same shell component with different copy.
+- **Member login** left panel: hero image + "Why join FAGE" benefits list (Certificate of membership, Networking & trade leads, Trainings & events, Export advisory, Recognition & advocacy, Discounts on FAGE programs).
+- **Admin login** left panel: hero image + "FAGE Admin Console" copy ("Manage members, payments, certificates, content").
+- All password inputs become **always-visible plain text** (`type="text"` styled like a password) per request — applies to `/login`, `/admin/login`, `/reset-password`, and any future password fields.
+- Add hero images to `src/assets/` (generated, agriculture/Ghana export themed).
 
-Rebuild as a two-panel visual editor:
+## 2. Admin-managed member accounts
 
-**Left panel — Live preview**
-- Fixed landscape canvas at standard certificate ratio (e.g. 1414×1000, A4 landscape) with uploaded background image scaled to fit (object-fit cover, locked aspect).
-- Overlays rendered absolutely positioned on top: name, member ID, tier, issue date, expiry date, signature image, QR code.
-- Each overlay is draggable directly on the canvas (click + drag to reposition); selection highlights the active field.
+New page `/admin/members` (list of `member_profiles` joined with auth) and **"Create member" modal** with:
+- Email, full name, phone, company, **membership tier** (required), subscription start/expiry (auto from plan duration).
+- Toggle: **"Set password now (immediate login)"** vs **"Send set-password email link"**.
+  - Path A: server function uses admin client to `auth.admin.createUser({ email, password, email_confirm: true })`.
+  - Path B: `auth.admin.inviteUserByEmail(email)` (or `generateLink({ type: 'invite' })`) — member receives email, sets password, lands on `/dashboard`.
+- After creation: insert `member_profiles` row, auto-generate `member_id` via existing `generate_member_id`, mark subscription active, auto-issue certificate (reuses payment-confirmed flow).
 
-**Right panel — Field controls**
-- Tabs: `Background`, `Fields`, `QR Code`, `Signature`, `Save`.
-- **Background**: upload image (stored in `certificate-assets`); auto-detects natural width/height to set canvas dimensions.
-- **Fields** (name, member_id, tier, issued, expires, custom lines): per field controls
-  - X / Y sliders (also editable via numeric input)
-  - Font size slider
-  - Font family dropdown (serif, sans, script, mono — Google Fonts loaded)
-  - Font weight (normal, bold, 600/700/800)
-  - Color picker
-  - Alignment (left / center / right)
-  - Toggle visible
-- **QR Code**: 
-  - X/Y/size sliders
-  - Style: dots / squares / rounded
-  - Foreground & background color pickers
-  - Border (none/thin/thick) with color
-  - Center logo upload (optional) + size slider
-  - Library: switch from `qrcode` to `qr-code-styling` for dot/square/logo options.
-- **Signature**: upload PNG, X/Y/width/height sliders, plus authorized name text field with its own font controls.
-- **Save**: persists all positions/styles into `certificate_templates.field_positions` JSONB.
+## 3. Application approval → certificate flow
 
-A `tier` selector at top picks which template (associate / standard / corporate) is being edited. One template per tier, `is_active`.
+Currently certs auto-issue on payment confirmation. Extend so **any approved application** (admin clicks "Approve" on `/admin/applications`) also:
+- Creates/links member account (if not existing — sends invite link by default).
+- Generates member_id for selected tier.
+- Issues certificate.
+- Sends notification.
 
-**Verification page payload (`/verify/:code`)**
-Admin defines (in template settings) which fields to show on the public verification page (name, member ID, tier, expiry, status). Page shows green "Authentic — Active" check if `expires_at > now()` and not revoked, red "Expired" otherwise.
+## 4. Form builder (drag-and-drop) per membership tier
 
-## 2. Certificate Issuance Flow
+New table `application_forms` (one per tier) with `schema jsonb` storing field array. New table `application_submissions` storing `answers jsonb`, `tier`, `payment_id`, `user_id`, `status`.
 
-**Single issue (existing pattern, improved)**
-On `/admin/payments` Confirm action, after subscription is extended, automatically:
-- Generate `verification_code` (random 12-char).
-- Insert `certificates` row using active template for that tier.
-- Set `expires_at` = new `subscription_expiry`.
-- Notify the member.
+**Builder UI** at `/admin/forms` — uses **`@dnd-kit/core` + `@dnd-kit/sortable`** (already idiomatic for React DnD).
+- Left palette: Text, Paragraph (textarea), Number, Email, Phone, Date, Dropdown, Radio group, Checkbox group, Single checkbox, File upload, Section heading.
+- Center canvas: drag fields in, reorder, click to edit (label, name, required, placeholder, options, help text).
+- Right inspector panel for selected field props.
+- Save serializes to `schema` jsonb. Per-tier publish toggle.
 
-**Batch issue (new — `/admin/certificates/issue`)**
-- Lists all members whose latest payment is `confirmed` AND who don't yet have an active certificate for current subscription period.
-- Checkbox selection + "Issue Certificates" button.
-- Admin sets default expiry override (or uses each member's `subscription_expiry`).
-- Bulk insert; bulk notify.
+**Renderer** component `<DynamicForm schema={...} onSubmit={...} />` used by the application page.
 
-**All issued certificates (`/admin/certificates/issued`)**
-- Table: member, tier, issued, expires, status (active/expired/revoked), verification code, actions (view, revoke, re-send).
-- Filters by tier, status, date range. Search by name/member ID.
+## 5. Paid application flow (cannot bypass payment)
 
-## 3. Member Dashboard Redesign (`/dashboard`)
+Public membership page `/membership` already lists tiers with "Apply as Associate / Standard / Corporate" buttons. New flow:
 
-Redesign as card-based overview matching admin style.
+```text
+Membership page
+  ├─ "Apply as X"  ──► /apply/$tier  (payment selection page)
+  └─ "Download form (PDF)"  ──► direct PDF download + toast with admin-set instructions
+```
 
-**Top: at-a-glance cards**
-- Membership Status (active / expiring soon / expired) with colored badge.
-- Member ID (large, copy button).
-- Subscription expiry + days remaining.
-- Latest payment status.
+`/apply/$tier`:
+1. Show plan amount (from `subscription_plans`, admin-editable).
+2. Show enabled gateways. If member picks **online gateway** → (placeholder Paystack init, manual stub for now) → on success creates `payment_submissions` row `confirmed` → unlock form.
+3. If member picks **manual bank deposit** → show bank details + downloadable form + toast/instructions: *"Download the registration form, complete it, attach proof of payment, and email both to <admin email>. Your account will be created once payment is verified."* → no form unlock; admin handles in step 2/3.
+4. Form route `/apply/$tier/form/$paymentId` is **gated** by server function checking `payment_submissions.status = 'confirmed' AND user_id = auth.uid()`. Direct URL access without confirmed payment → redirect to `/apply/$tier`.
 
-**Tabs / sections below**
-- **Overview**: summary cards (applications submitted, payments made count, active certificate, unread notifications, open tickets).
-- **My Certificate**: visual preview of issued certificate using same renderer as admin, Download PNG / PDF buttons. Empty state if none yet ("Available once admin confirms payment").
-- **Subscription & Renew**: current plan, expiry, renew button (opens payment gateway flow).
-- **Payments**: history table with statuses + proof.
-- **Profile**: editable contact info.
-- **Notifications**: list with mark-as-read.
-- **Support**: tickets list + new ticket.
+Auth requirement: must be signed in to apply. If not, prompt sign-in/sign-up first (account auto-created so payment links to user).
 
-## 4. Admin Overview Redesign (`/admin`)
+## 6. Per-tier downloadable PDF + post-download instructions
 
-Replace current landing with card dashboard:
-- KPI cards: Total members, Active subscriptions, Expiring in 30 days, Pending payments, Open tickets, Certificates issued (this month).
-- Quick action grid: Review payments, Issue certificates, Manage gateways, Send announcement, Add news, Manage products.
-- Recent activity feed: last 10 applications, payments, tickets.
-- Link to `/admin/reports` (new, placeholder).
+Extend `subscription_plans` (or new `membership_tier_settings` table keyed by tier) with:
+- `application_form_pdf_url text`
+- `post_download_message text` (default seed: *"Thanks for downloading the FAGE membership form. Complete all sections, attach your proof of payment, and email everything to membership@fageghana.org. Our team will verify and activate your account within 2 business days."*)
+- `bank_deposit_email text` (where members send proof)
 
-## 5. Reports & Analytics (`/admin/reports`)
+Admin edits these on `/admin/plans` (new page) — also sets **amount, currency, duration_months** per tier.
 
-New empty placeholder page with section stubs:
-- Membership growth chart (placeholder)
-- Revenue by month (placeholder)
-- Certificates issued (placeholder)
-- Tickets resolution time (placeholder)
-"Coming soon" labels; route registered in admin nav.
+Membership page shows "Download form (PDF)" button next to each tier card → triggers download + sonner toast with `post_download_message`.
 
-## 6. QR Verification Enhancement (`/verify/:code`)
+## 7. Manual bank deposit — multiple banks
 
-- Loads certificate, shows:
-  - Authenticity badge (green check / red X)
-  - Member name, member ID, tier, issue date, expiry date
-  - "Issued by FAGE Ghana"
-- Admin-configurable list of visible fields stored on template `field_positions.verification_display`.
+Currently `payment_gateways` of provider `manual_bank` has single `bank_details` jsonb. Change semantics: allow **multiple `manual_bank` rows** (already supported — each row is its own gateway entry). On `/admin/gateways`, clarify with helper text "Add one entry per bank account." On member payment page, list every enabled manual_bank row as a separate option.
 
-## Technical Details
+## 8. Member dashboard — subscription status & renewal countdown
 
-- **Dependency**: add `qr-code-styling` for advanced QR (dots/squares/logo). Keep `qrcode` for simple cases.
-- **Schema additions** (migration):
-  - `certificate_templates.field_positions` already JSONB — extend shape to:
-    ```
-    {
-      canvas: { w, h },
-      qr: { x, y, size, dotType, fgColor, bgColor, border, logoUrl, logoSize },
-      signature: { x, y, w, h },
-      fields: { name: { x, y, fontSize, font, weight, color, align, visible }, ... },
-      verification_display: ["name","member_id","tier","expires"]
-    }
-    ```
-  - No new tables required.
-- **Renderer**: extract canvas render logic from `certificate.$id.tsx` into `src/lib/certificate-render.ts` so both member dashboard preview and admin designer reuse it. Designer uses live DOM overlay for editing; render-to-canvas used only for download.
-- **Download**: PNG via canvas `toDataURL`; PDF via `jspdf` (add dependency) embedding the PNG at landscape A4.
-- **New routes**:
-  - `src/routes/admin.certificates.issue.tsx` (batch)
-  - `src/routes/admin.certificates.issued.tsx` (list all)
-  - `src/routes/admin.reports.tsx` (placeholder)
-  - `src/routes/admin.index.tsx` rebuilt as overview (currently `/admin` shows nav only).
-- **Member dashboard**: rewrite `src/routes/dashboard.tsx` using shadcn Tabs + Cards.
-- **Admin nav**: add Reports + Issued Certificates + Issue (batch) entries.
+On `/dashboard` Overview: prominent card showing
+- Status badge (Active / Expiring soon / Expired) based on `subscription_expiry`.
+- **Countdown** ("Expires in 23 days") when within 60 days; red banner when within 14 days or expired.
+- **"Renew membership"** button → `/renew` → tier picker (defaults to current tier) + gateway picker (reuses `/apply` payment component). On confirmed payment:
+  - Extend `subscription_expiry` by plan duration.
+  - Re-issue certificate (new `verification_code`, new `expires_at`). Member ID is **kept** (per request: "id changes" — confirm? Currently member_id is permanent; re-issuing on renewal means new cert only, same ID. **Implementation: keep member_id permanent, regenerate cert.** If user truly wants new ID per renewal we'll flip a flag.)
+- No form re-fill on renewal.
 
-## Out of Scope (this round)
-- Actual analytics charts (page is placeholder per request).
-- Online Paystack/Hubtel checkout (manual gateway flow stays as-is).
+Notifications panel surfaces "Your membership expires in N days" reminders (admin can also broadcast).
 
-After approval I will implement in this order: dependencies → schema migration → render lib → designer page → batch + issued pages → member dashboard redesign → admin overview redesign → reports placeholder → verification page polish.
+## 9. Membership page front-end additions
+
+For each tier card on `/membership`:
+- "Apply as {tier}" → `/apply/{tier}` (payment-first)
+- "Download form (PDF)" → triggers PDF download + toast with admin-configured message
+
+## Technical details
+
+**New/changed DB:**
+- `application_forms (id, tier unique, schema jsonb, published bool, updated_at)`
+- `application_submissions (id, user_id, tier, payment_id, answers jsonb, status, created_at)`
+- `subscription_plans` add columns: `application_form_pdf_url`, `post_download_message`, `bank_deposit_email`
+- Seed default `post_download_message` for each tier.
+
+**RLS:** application_forms public-read where published; admin manage. application_submissions: members own row, admins all.
+
+**New routes:**
+- `src/routes/admin.members.tsx` — member directory + create modal
+- `src/routes/admin.forms.tsx` — DnD form builder
+- `src/routes/admin.plans.tsx` — tier amount, PDF, instructions, bank email
+- `src/routes/apply.$tier.tsx` — payment gate
+- `src/routes/apply.$tier.form.$paymentId.tsx` — gated dynamic form
+- `src/routes/renew.tsx` — renewal flow
+- `src/routes/reset-password.tsx` — for invite-link path
+
+**New libs:** `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`.
+
+**Server functions:**
+- `createMemberAccount` (admin client: createUser or inviteUserByEmail) — `requireSupabaseAuth` + admin role check, then admin client.
+- `unlockApplicationForm` — verifies payment confirmed, returns form schema.
+- `processRenewal` — extends expiry, re-issues cert.
+
+**Auth pages:** new shared `<AuthSplit>` component (image left, content right). All password inputs use `type="text"` (unmaskable) per explicit user request — flagged as a UX/security tradeoff but honoring the instruction.
+
+**Admin nav additions:** Members, Plans & Forms (PDF/instructions), Form Builder.
+
+## Out of scope (this iteration)
+
+- Real Paystack/Hubtel SDK integration (still stubbed; manual bank flow is fully functional).
+- Email template branding (uses default Supabase invite email; can be scaffolded later).
+- Per-renewal new member ID (keeping IDs permanent — confirm if you want changed).
