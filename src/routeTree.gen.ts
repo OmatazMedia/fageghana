@@ -23,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
+import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
@@ -110,6 +111,11 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
 const CertificateIdRoute = CertificateIdRouteImport.update({
   id: '/certificate/$id',
   path: '/certificate/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApplyTierRoute = ApplyTierRouteImport.update({
+  id: '/apply/$tier',
+  path: '/apply/$tier',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminTicketsRoute = AdminTicketsRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/admin/products': typeof AdminProductsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/verify/$code': typeof VerifyCodeRoute
@@ -265,6 +272,7 @@ export interface FileRoutesByTo {
   '/admin/products': typeof AdminProductsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/verify/$code': typeof VerifyCodeRoute
@@ -300,6 +308,7 @@ export interface FileRoutesById {
   '/admin/products': typeof AdminProductsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/verify/$code': typeof VerifyCodeRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/reports'
     | '/admin/tickets'
+    | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
     | '/verify/$code'
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/reports'
     | '/admin/tickets'
+    | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
     | '/verify/$code'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/reports'
     | '/admin/tickets'
+    | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
     | '/verify/$code'
@@ -424,6 +436,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
+  ApplyTierRoute: typeof ApplyTierRoute
   CertificateIdRoute: typeof CertificateIdRoute
   VerifyCodeRoute: typeof VerifyCodeRoute
 }
@@ -526,6 +539,13 @@ declare module '@tanstack/react-router' {
       path: '/certificate/$id'
       fullPath: '/certificate/$id'
       preLoaderRoute: typeof CertificateIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/apply/$tier': {
+      id: '/apply/$tier'
+      path: '/apply/$tier'
+      fullPath: '/apply/$tier'
+      preLoaderRoute: typeof ApplyTierRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/tickets': {
@@ -731,6 +751,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
+  ApplyTierRoute: ApplyTierRoute,
   CertificateIdRoute: CertificateIdRoute,
   VerifyCodeRoute: VerifyCodeRoute,
 }
