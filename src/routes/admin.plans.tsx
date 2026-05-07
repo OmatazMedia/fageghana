@@ -28,7 +28,7 @@ function PlansPage() {
 
   async function uploadPdf(plan: any, file: File) {
     try {
-      const url = await uploadImage(file, "content", `forms/${plan.tier}-${Date.now()}.pdf`);
+      const url = await uploadImage(file, `forms/${plan.tier}`);
       await save(plan, { application_form_pdf_url: url });
     } catch (e: any) { toast.error(e.message); }
   }
