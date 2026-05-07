@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as MembershipRouteImport } from './routes/membership'
@@ -41,6 +42,11 @@ import { Route as AdminCertificatesIssueRouteImport } from './routes/admin.certi
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsRoute = ProductsRouteImport.update({
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/membership': typeof MembershipRoute
   '/news': typeof NewsRouteWithChildren
   '/products': typeof ProductsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
@@ -219,6 +226,7 @@ export interface FileRoutesByTo {
   '/membership': typeof MembershipRoute
   '/news': typeof NewsRouteWithChildren
   '/products': typeof ProductsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/membership': typeof MembershipRoute
   '/news': typeof NewsRouteWithChildren
   '/products': typeof ProductsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
     | '/membership'
     | '/news'
     | '/products'
+    | '/reset-password'
     | '/services'
     | '/about/who-we-are'
     | '/admin/activities'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/membership'
     | '/news'
     | '/products'
+    | '/reset-password'
     | '/services'
     | '/about/who-we-are'
     | '/admin/activities'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/membership'
     | '/news'
     | '/products'
+    | '/reset-password'
     | '/services'
     | '/about/who-we-are'
     | '/admin/activities'
@@ -373,6 +385,7 @@ export interface RootRouteChildren {
   MembershipRoute: typeof MembershipRoute
   NewsRoute: typeof NewsRouteWithChildren
   ProductsRoute: typeof ProductsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
   CertificateIdRoute: typeof CertificateIdRoute
@@ -386,6 +399,13 @@ declare module '@tanstack/react-router' {
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products': {
@@ -645,6 +665,7 @@ const rootRouteChildren: RootRouteChildren = {
   MembershipRoute: MembershipRoute,
   NewsRoute: NewsRouteWithChildren,
   ProductsRoute: ProductsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
   CertificateIdRoute: CertificateIdRoute,
