@@ -52,62 +52,20 @@ const benefits = [
   { icon: Award, title: "Trusted Recognition", text: "Members benefit from FAGE's reputation as Ghana's premier export federation." },
 ];
 
-const applicationSchema = z.object({
-  tier: z.enum(["associate", "corporate"]),
-  company_name: z.string().trim().min(2, "Company name is required").max(200),
-  contact_name: z.string().trim().min(2, "Contact name is required").max(120),
-  email: z.string().trim().email("Valid email required").max(255),
-  phone: z.string().trim().min(6, "Phone is required").max(40),
-  country: z.string().trim().min(2).max(100),
-  industry: z.string().trim().max(120).optional().or(z.literal("")),
-  products_exported: z.string().trim().max(500).optional().or(z.literal("")),
-  message: z.string().trim().max(2000).optional().or(z.literal("")),
-});
-
 function MembershipPage() {
-  const [selectedTier, setSelectedTier] = useState<"associate" | "corporate">("associate");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [plans, setPlans] = useState<Record<string, any>>({});
+  useEffect(() => { void (async () => {
+    const { data } = await supabase.from("subscription_plans").select("*");
+    const m: Record<string, any> = {};
+    (data ?? []).forEach((p: any) => { m[p.tier] = p; });
+    setPlans(m);
+  })(); }, []);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const raw = {
-      tier: selectedTier,
-      company_name: String(fd.get("company_name") ?? ""),
-      contact_name: String(fd.get("contact_name") ?? ""),
-      email: String(fd.get("email") ?? ""),
-      phone: String(fd.get("phone") ?? ""),
-      country: String(fd.get("country") ?? "Ghana"),
-      industry: String(fd.get("industry") ?? ""),
-      products_exported: String(fd.get("products_exported") ?? ""),
-      message: String(fd.get("message") ?? ""),
-    };
-    const parsed = applicationSchema.safeParse(raw);
-    if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Please check your information");
-      return;
-    }
-    setSubmitting(true);
-    const { error } = await supabase.from("membership_applications").insert({
-      tier: parsed.data.tier,
-      company_name: parsed.data.company_name,
-      contact_name: parsed.data.contact_name,
-      email: parsed.data.email,
-      phone: parsed.data.phone,
-      country: parsed.data.country,
-      industry: parsed.data.industry || null,
-      products_exported: parsed.data.products_exported || null,
-      message: parsed.data.message || null,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error("Submission failed. Please try again.");
-      return;
-    }
-    setSubmitted(true);
-    (e.target as HTMLFormElement).reset();
-    toast.success("Application submitted! We'll be in touch.");
+  function downloadForm(tierId: string) {
+    const p = plans[tierId];
+    if (!p?.application_form_pdf_url) return toast.error("No form available yet for this tier.");
+    window.open(p.application_form_pdf_url, "_blank");
+    toast.message("Form downloaded", { description: p.post_download_message ?? "", duration: 12000 });
   }
 
   return (
@@ -130,22 +88,16 @@ function MembershipPage() {
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             {tiers.map((t) => {
-              const isSelected = selectedTier === t.id;
               const isCorp = t.id === "corporate";
+              const plan = plans[t.id];
               return (
-                <div
-                  key={t.id}
-                  className={`relative rounded-3xl p-8 transition ${
-                    isCorp ? "border-2 border-primary bg-card shadow-lg" : "border border-border bg-card shadow-sm"
-                  }`}
-                >
+                <div key={t.id} className={`relative rounded-3xl p-8 transition ${isCorp ? "border-2 border-primary bg-card shadow-lg" : "border border-border bg-card shadow-sm"}`}>
                   {isCorp && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-bold text-primary-foreground">
-                      MOST RECOMMENDED
-                    </div>
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-bold text-primary-foreground">MOST RECOMMENDED</div>
                   )}
                   <p className="text-xs font-semibold tracking-widest text-primary">{t.eyebrow}</p>
                   <h3 className="mt-2 text-2xl font-bold">{t.name}</h3>
+                  {plan && <p className="mt-2 text-3xl font-bold text-primary">{plan.currency} {Number(plan.amount).toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/{plan.duration_months}mo</span></p>}
                   <p className="mt-3 text-muted-foreground">{t.description}</p>
                   <ul className="mt-6 space-y-3">
                     {t.benefits.map((b) => (
@@ -155,18 +107,11 @@ function MembershipPage() {
                       </li>
                     ))}
                   </ul>
-                  <button
-                    onClick={() => {
-                      setSelectedTier(t.id);
-                      document.getElementById("apply")?.scrollIntoView({ behavior: "smooth" });
-                    }}
-                    className={`mt-7 w-full rounded-full py-3 text-sm font-semibold transition ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                    }`}
-                  >
+                  <Link to="/apply/$tier" params={{ tier: t.id }} className="mt-7 block w-full rounded-full bg-primary py-3 text-center text-sm font-semibold text-primary-foreground transition hover:scale-[1.01]">
                     Apply as {t.id === "associate" ? "Associate" : "Corporate"}
+                  </Link>
+                  <button onClick={() => downloadForm(t.id)} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-primary py-2.5 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition">
+                    <Download className="h-4 w-4" /> Download form (PDF)
                   </button>
                 </div>
               );
@@ -192,72 +137,10 @@ function MembershipPage() {
           </div>
         </div>
       </section>
-
-      <section id="apply" className="py-20">
-        <div className="mx-auto max-w-3xl px-4">
-          <div className="text-center">
-            <p className="mb-3 text-sm font-semibold tracking-widest text-primary">APPLY NOW</p>
-            <h2 className="mb-3 text-3xl font-bold md:text-4xl">Submit Your Application</h2>
-            <p className="text-muted-foreground">Fill in your details and our team will reach out within 3 business days.</p>
-          </div>
-
-          {submitted ? (
-            <div className="mt-10 rounded-2xl border border-primary/30 bg-accent p-10 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                <Check className="h-7 w-7" />
-              </div>
-              <h3 className="text-2xl font-bold">Thank you!</h3>
-              <p className="mt-2 text-muted-foreground">Your application has been received. We'll be in touch soon.</p>
-              <button onClick={() => setSubmitted(false)} className="mt-6 rounded-full border border-primary px-5 py-2 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition">
-                Submit another
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="mt-10 space-y-5 rounded-2xl bg-card p-8 shadow-sm">
-              <div className="flex gap-3">
-                {(["associate", "corporate"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setSelectedTier(t)}
-                    className={`flex-1 rounded-full py-2.5 text-sm font-semibold capitalize transition ${
-                      selectedTier === t ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {t} Membership
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                <Field name="company_name" label="Company name" required />
-                <Field name="contact_name" label="Contact name" required />
-                <Field name="email" label="Email" type="email" required />
-                <Field name="phone" label="Phone" required />
-                <Field name="country" label="Country" defaultValue="Ghana" required />
-                <Field name="industry" label="Industry" placeholder="e.g. Agriculture, Textiles" />
-              </div>
-              <Field name="products_exported" label="Products you export (or plan to)" placeholder="e.g. Pineapple, cocoa, cashew" />
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">Message (optional)</label>
-                <textarea name="message" rows={4} maxLength={2000} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-              </div>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:scale-[1.01] disabled:opacity-60"
-              >
-                {submitting ? "Submitting…" : "Submit Application"}
-              </button>
-            </form>
-          )}
-        </div>
-      </section>
     </SiteLayout>
   );
 }
 
-function Field({
-  name,
   label,
   type = "text",
   required,
