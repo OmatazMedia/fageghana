@@ -59,6 +59,66 @@ export type Database = {
         }
         Relationships: []
       }
+      application_forms: {
+        Row: {
+          created_at: string
+          id: string
+          published: boolean
+          schema: Json
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          published?: boolean
+          schema?: Json
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          published?: boolean
+          schema?: Json
+          tier?: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      application_submissions: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          payment_id: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          tier: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          tier?: Database["public"]["Enums"]["membership_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       certificate_templates: {
         Row: {
           authorized_name: string | null
@@ -519,28 +579,37 @@ export type Database = {
       subscription_plans: {
         Row: {
           amount: number
+          application_form_pdf_url: string | null
+          bank_deposit_email: string | null
           currency: string
           description: string | null
           duration_months: number
           id: string
+          post_download_message: string | null
           tier: Database["public"]["Enums"]["membership_tier"]
           updated_at: string
         }
         Insert: {
           amount?: number
+          application_form_pdf_url?: string | null
+          bank_deposit_email?: string | null
           currency?: string
           description?: string | null
           duration_months?: number
           id?: string
+          post_download_message?: string | null
           tier: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
         }
         Update: {
           amount?: number
+          application_form_pdf_url?: string | null
+          bank_deposit_email?: string | null
           currency?: string
           description?: string | null
           duration_months?: number
           id?: string
+          post_download_message?: string | null
           tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
         }
