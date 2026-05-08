@@ -26,6 +26,8 @@ function ApplyPage() {
   const [formSchema, setFormSchema] = useState<FormField[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState<"loading"|"choose"|"form"|"manual">("loading");
+  const initPaystackFn = useServerFn(initPaystack);
+  const initHubtelFn = useServerFn(initHubtel);
 
   const load = useCallback(async () => {
     if (!user) return;
