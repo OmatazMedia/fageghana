@@ -21,6 +21,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
+import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
@@ -103,6 +104,11 @@ const IndexRoute = IndexRouteImport.update({
 const VerifyCodeRoute = VerifyCodeRouteImport.update({
   id: '/verify/$code',
   path: '/verify/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentCallbackRoute = PaymentCallbackRouteImport.update({
+  id: '/payment/callback',
+  path: '/payment/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewsSlugRoute = NewsSlugRouteImport.update({
@@ -253,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/payment/callback': typeof PaymentCallbackRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
   '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
@@ -290,6 +297,7 @@ export interface FileRoutesByTo {
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/payment/callback': typeof PaymentCallbackRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
   '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
@@ -328,6 +336,7 @@ export interface FileRoutesById {
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/payment/callback': typeof PaymentCallbackRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
   '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
@@ -367,6 +376,7 @@ export interface FileRouteTypes {
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
+    | '/payment/callback'
     | '/verify/$code'
     | '/admin/certificates/issue'
     | '/admin/certificates/issued'
@@ -404,6 +414,7 @@ export interface FileRouteTypes {
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
+    | '/payment/callback'
     | '/verify/$code'
     | '/admin/certificates/issue'
     | '/admin/certificates/issued'
@@ -441,6 +452,7 @@ export interface FileRouteTypes {
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
+    | '/payment/callback'
     | '/verify/$code'
     | '/admin/certificates/issue'
     | '/admin/certificates/issued'
@@ -463,6 +475,7 @@ export interface RootRouteChildren {
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
   ApplyTierRoute: typeof ApplyTierRoute
   CertificateIdRoute: typeof CertificateIdRoute
+  PaymentCallbackRoute: typeof PaymentCallbackRoute
   VerifyCodeRoute: typeof VerifyCodeRoute
   ApiPublicHubtelCallbackRoute: typeof ApiPublicHubtelCallbackRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
@@ -552,6 +565,13 @@ declare module '@tanstack/react-router' {
       path: '/verify/$code'
       fullPath: '/verify/$code'
       preLoaderRoute: typeof VerifyCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/callback': {
+      id: '/payment/callback'
+      path: '/payment/callback'
+      fullPath: '/payment/callback'
+      preLoaderRoute: typeof PaymentCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/news/$slug': {
@@ -794,6 +814,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
   ApplyTierRoute: ApplyTierRoute,
   CertificateIdRoute: CertificateIdRoute,
+  PaymentCallbackRoute: PaymentCallbackRoute,
   VerifyCodeRoute: VerifyCodeRoute,
   ApiPublicHubtelCallbackRoute: ApiPublicHubtelCallbackRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
