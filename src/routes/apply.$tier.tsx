@@ -2,10 +2,12 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { CreditCard, Banknote, Download, ShieldCheck, ArrowLeft, FileText } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { DynamicForm, type FormField } from "@/components/forms/DynamicForm";
+import { initPaystack, initHubtel } from "@/lib/payments.functions";
 
 export const Route = createFileRoute("/apply/$tier")({
   head: () => ({ meta: [{ title: "Apply for Membership — FAGE Ghana" }] }),
