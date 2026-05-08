@@ -21,6 +21,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
+import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
@@ -40,6 +41,8 @@ import { Route as AdminCertificatesRouteImport } from './routes/admin.certificat
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
+import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
+import { Route as ApiPublicHubtelCallbackRouteImport } from './routes/api/public/hubtel-callback'
 import { Route as AdminCertificatesIssuedRouteImport } from './routes/admin.certificates.issued'
 import { Route as AdminCertificatesIssueRouteImport } from './routes/admin.certificates.issue'
 
@@ -101,6 +104,11 @@ const IndexRoute = IndexRouteImport.update({
 const VerifyCodeRoute = VerifyCodeRouteImport.update({
   id: '/verify/$code',
   path: '/verify/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentCallbackRoute = PaymentCallbackRouteImport.update({
+  id: '/payment/callback',
+  path: '/payment/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewsSlugRoute = NewsSlugRouteImport.update({
@@ -198,6 +206,17 @@ const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
   path: '/about/who-we-are',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaystackWebhookRoute =
+  ApiPublicPaystackWebhookRouteImport.update({
+    id: '/api/public/paystack-webhook',
+    path: '/api/public/paystack-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHubtelCallbackRoute = ApiPublicHubtelCallbackRouteImport.update({
+  id: '/api/public/hubtel-callback',
+  path: '/api/public/hubtel-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCertificatesIssuedRoute = AdminCertificatesIssuedRouteImport.update({
   id: '/issued',
   path: '/issued',
@@ -240,9 +259,12 @@ export interface FileRoutesByFullPath {
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/payment/callback': typeof PaymentCallbackRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
   '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
+  '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
+  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -275,9 +297,12 @@ export interface FileRoutesByTo {
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/payment/callback': typeof PaymentCallbackRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
   '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
+  '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
+  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -311,9 +336,12 @@ export interface FileRoutesById {
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/payment/callback': typeof PaymentCallbackRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
   '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
+  '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
+  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -348,9 +376,12 @@ export interface FileRouteTypes {
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
+    | '/payment/callback'
     | '/verify/$code'
     | '/admin/certificates/issue'
     | '/admin/certificates/issued'
+    | '/api/public/hubtel-callback'
+    | '/api/public/paystack-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -383,9 +414,12 @@ export interface FileRouteTypes {
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
+    | '/payment/callback'
     | '/verify/$code'
     | '/admin/certificates/issue'
     | '/admin/certificates/issued'
+    | '/api/public/hubtel-callback'
+    | '/api/public/paystack-webhook'
   id:
     | '__root__'
     | '/'
@@ -418,9 +452,12 @@ export interface FileRouteTypes {
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
+    | '/payment/callback'
     | '/verify/$code'
     | '/admin/certificates/issue'
     | '/admin/certificates/issued'
+    | '/api/public/hubtel-callback'
+    | '/api/public/paystack-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -438,7 +475,10 @@ export interface RootRouteChildren {
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
   ApplyTierRoute: typeof ApplyTierRoute
   CertificateIdRoute: typeof CertificateIdRoute
+  PaymentCallbackRoute: typeof PaymentCallbackRoute
   VerifyCodeRoute: typeof VerifyCodeRoute
+  ApiPublicHubtelCallbackRoute: typeof ApiPublicHubtelCallbackRoute
+  ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -525,6 +565,13 @@ declare module '@tanstack/react-router' {
       path: '/verify/$code'
       fullPath: '/verify/$code'
       preLoaderRoute: typeof VerifyCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/callback': {
+      id: '/payment/callback'
+      path: '/payment/callback'
+      fullPath: '/payment/callback'
+      preLoaderRoute: typeof PaymentCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/news/$slug': {
@@ -660,6 +707,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutWhoWeAreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/paystack-webhook': {
+      id: '/api/public/paystack-webhook'
+      path: '/api/public/paystack-webhook'
+      fullPath: '/api/public/paystack-webhook'
+      preLoaderRoute: typeof ApiPublicPaystackWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hubtel-callback': {
+      id: '/api/public/hubtel-callback'
+      path: '/api/public/hubtel-callback'
+      fullPath: '/api/public/hubtel-callback'
+      preLoaderRoute: typeof ApiPublicHubtelCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/certificates/issued': {
       id: '/admin/certificates/issued'
       path: '/issued'
@@ -753,7 +814,10 @@ const rootRouteChildren: RootRouteChildren = {
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
   ApplyTierRoute: ApplyTierRoute,
   CertificateIdRoute: CertificateIdRoute,
+  PaymentCallbackRoute: PaymentCallbackRoute,
   VerifyCodeRoute: VerifyCodeRoute,
+  ApiPublicHubtelCallbackRoute: ApiPublicHubtelCallbackRoute,
+  ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
