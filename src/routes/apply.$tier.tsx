@@ -60,18 +60,23 @@ function ApplyPage() {
   async function payOnline(g: any) {
     if (!user) return;
     setBusy(true);
-    // Stub: in production this would init Paystack/Hubtel checkout. We simulate confirmation.
-    const ok = confirm(`Simulate successful payment of ${plan.currency} ${plan.amount} via ${g.name}?`);
-    if (!ok) { setBusy(false); return; }
-    const { data, error } = await supabase.from("payment_submissions").insert({
-      user_id: user.id, gateway_id: g.id, method: g.provider, amount: plan.amount, currency: plan.currency,
-      duration_months: plan.duration_months, status: "confirmed", reference: `STUB-${Date.now()}`, confirmed_at: new Date().toISOString(),
-    }).select("*").single();
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    setConfirmedPayment(data);
-    setStep("form");
-    toast.success("Payment confirmed. Please complete your application.");
+    try {
+      if (g.provider === "paystack") {
+        const { authorization_url } = await initPaystackFn({ data: { tier: tierKey, gateway_id: g.id } });
+        window.location.href = authorization_url;
+        return;
+      }
+      if (g.provider === "hubtel") {
+        const { checkoutUrl } = await initHubtelFn({ data: { tier: tierKey, gateway_id: g.id } });
+        window.location.href = checkoutUrl;
+        return;
+      }
+      toast.error(`Unsupported online provider: ${g.provider}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not start payment");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function submitManual(g: any, file: File | null, message: string) {
