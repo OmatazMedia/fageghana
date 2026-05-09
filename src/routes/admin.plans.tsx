@@ -48,7 +48,7 @@ function PlansPage() {
           }); }} className="rounded-2xl border border-border bg-card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-lg font-bold capitalize">{p.tier} membership</h3>
-              {p.application_form_pdf_url && <a href={p.application_form_pdf_url} target="_blank" rel="noreferrer" className="text-xs text-primary underline">View current PDF</a>}
+              {p.application_form_pdf_url && <button type="button" onClick={() => downloadFile(p.application_form_pdf_url, `FAGE-${p.tier}-application.pdf`)} className="text-xs text-primary underline">Download current PDF</button>}
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <FormField label="Amount"><input name="amount" type="number" step="0.01" defaultValue={p.amount} className={inputCls} /></FormField>
