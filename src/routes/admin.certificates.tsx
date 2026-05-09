@@ -122,6 +122,32 @@ function DesignerPage() {
     finally { setSaving(false); }
   }
 
+  async function duplicateTo(targetTier: typeof TIERS[number]) {
+    if (targetTier === tier) return toast.error("Pick a different tier to copy into.");
+    if (!imageUrl) return toast.error("Save or upload a background first.");
+    if (!confirm(`Copy this design into the ${targetTier} template? Any existing ${targetTier} template will be overwritten.`)) return;
+    setSaving(true);
+    try {
+      const { data: existing } = await supabase.from("certificate_templates").select("id").eq("tier", targetTier).maybeSingle();
+      const payload = {
+        name: `${targetTier.charAt(0).toUpperCase()}${targetTier.slice(1)} Certificate`,
+        tier: targetTier,
+        image_url: imageUrl,
+        signature_url: signatureUrl || null,
+        authorized_name: authorizedName,
+        field_positions: layout,
+        is_active: true,
+      };
+      const { error } = existing
+        ? await supabase.from("certificate_templates").update(payload).eq("id", existing.id)
+        : await supabase.from("certificate_templates").insert(payload);
+      if (error) throw error;
+      toast.success(`Copied to ${targetTier}. Switching…`);
+      setTier(targetTier);
+    } catch (err: any) { toast.error(err.message); }
+    finally { setSaving(false); }
+  }
+
   function updField(k: FieldKey, patch: Partial<TemplateLayout["fields"][string]>) {
     setLayout(l => ({ ...l, fields: { ...l.fields, [k]: { ...l.fields[k], ...patch } } }));
   }
