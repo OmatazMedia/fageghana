@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import { uploadImage } from "@/lib/uploadImage";
+import { downloadFile } from "@/lib/forceDownload";
 
 export const Route = createFileRoute("/admin/plans")({
   head: () => ({ meta: [{ title: "Membership Plans — Admin" }] }),
