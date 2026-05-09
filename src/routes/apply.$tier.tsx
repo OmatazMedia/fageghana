@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { DynamicForm, type FormField } from "@/components/forms/DynamicForm";
 import { initPaystack, initHubtel } from "@/lib/payments.functions";
+import { downloadFile } from "@/lib/forceDownload";
 
 export const Route = createFileRoute("/apply/$tier")({
   head: () => ({ meta: [{ title: "Apply for Membership — FAGE Ghana" }] }),
@@ -111,9 +112,9 @@ function ApplyPage() {
     navigate({ to: "/dashboard" });
   }
 
-  function downloadForm() {
+  async function downloadForm() {
     if (!plan.application_form_pdf_url) return toast.error("No form available yet.");
-    window.open(plan.application_form_pdf_url, "_blank");
+    await downloadFile(plan.application_form_pdf_url, `FAGE-${tierKey}-application.pdf`);
     toast.message("Form downloaded", { description: plan.post_download_message ?? "", duration: 12000 });
   }
 
