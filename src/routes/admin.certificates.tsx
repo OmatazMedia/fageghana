@@ -173,6 +173,15 @@ function DesignerPage() {
             </button>
           ))}
         </div>
+        <select
+          onChange={(e) => { const v = e.target.value as typeof TIERS[number] | ""; if (v) { void duplicateTo(v); e.currentTarget.selectedIndex = 0; } }}
+          disabled={saving || !imageUrl}
+          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm disabled:opacity-50"
+          title={imageUrl ? "Copy this design to another tier" : "Upload a background first"}
+        >
+          <option value="">Copy design to…</option>
+          {TIERS.filter(t => t !== tier).map(t => <option key={t} value={t}>Copy to {t}</option>)}
+        </select>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Template name"
           className="ml-auto rounded-lg border border-input bg-background px-3 py-1.5 text-sm" />
         <button onClick={save} disabled={saving} className="flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
