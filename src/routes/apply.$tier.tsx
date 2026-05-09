@@ -185,6 +185,20 @@ function ApplyPage() {
                 </div>
               )}
 
+              {/* Form preview — show what will be asked after payment */}
+              {formSchema && formSchema.length > 0 && (
+                <div className="rounded-2xl border border-border bg-card p-6">
+                  <div className="mb-1 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-bold">Application form preview</h3>
+                  </div>
+                  <p className="mb-4 text-sm text-muted-foreground">These are the questions you'll complete after your payment is confirmed.</p>
+                  <div className="pointer-events-none opacity-90">
+                    <DynamicForm schema={formSchema} onSubmit={() => {}} busy={false} />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h3 className="mb-3 text-lg font-bold">Choose how to pay</h3>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

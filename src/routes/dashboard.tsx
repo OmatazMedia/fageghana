@@ -59,8 +59,8 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div>
             <div className="font-bold">FAGE Member Portal</div>
             <div className="text-xs text-muted-foreground">{user?.email}</div>
@@ -74,22 +74,35 @@ function Dashboard() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-6 flex flex-wrap gap-2 border-b border-border pb-3 overflow-x-auto">
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${tab === t.id ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>
-              <t.icon className="h-4 w-4" /> {t.label}
-            </button>
-          ))}
-        </div>
+      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
+        <aside className="hidden md:block w-60 shrink-0">
+          <nav className="sticky top-24 space-y-1 rounded-2xl border border-border bg-card p-3 shadow-sm">
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${tab === t.id ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>
+                <t.icon className="h-4 w-4" /> {t.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
 
-        {tab === "overview" && <OverviewTab profile={profile} userId={user!.id} />}
-        {tab === "subscription" && <SubscriptionTab profile={profile} userId={user!.id} onChange={loadProfile} />}
-        {tab === "certificate" && <CertificateTab userId={user!.id} />}
-        {tab === "notifications" && <NotificationsTab userId={user!.id} />}
-        {tab === "support" && <SupportTab userId={user!.id} />}
-        {tab === "profile" && <ProfileTab profile={profile} onSaved={loadProfile} />}
+        <main className="min-w-0 flex-1">
+          <div className="mb-4 flex gap-2 overflow-x-auto border-b border-border pb-3 md:hidden">
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${tab === t.id ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>
+                <t.icon className="h-4 w-4" /> {t.label}
+              </button>
+            ))}
+          </div>
+
+          {tab === "overview" && <OverviewTab profile={profile} userId={user!.id} />}
+          {tab === "subscription" && <SubscriptionTab profile={profile} userId={user!.id} onChange={loadProfile} />}
+          {tab === "certificate" && <CertificateTab userId={user!.id} />}
+          {tab === "notifications" && <NotificationsTab userId={user!.id} />}
+          {tab === "support" && <SupportTab userId={user!.id} />}
+          {tab === "profile" && <ProfileTab profile={profile} onSaved={loadProfile} />}
+        </main>
       </div>
     </div>
   );
