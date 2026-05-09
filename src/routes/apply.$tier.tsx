@@ -151,11 +151,39 @@ function ApplyPage() {
                   We've received your payment proof. Once admin verifies it, your account will be activated and you'll be able to complete the application.
                 </div>
               )}
+
+              {/* Plan summary — always visible */}
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h3 className="text-lg font-bold capitalize">{tierKey} membership</h3>
+                <p className="mt-1 text-2xl font-bold text-primary">{plan.currency} {Number(plan.amount).toLocaleString()} <span className="text-sm font-normal text-muted-foreground">/ {plan.duration_months} months</span></p>
+                {plan.description && <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>}
+                {plan.bank_deposit_email && (
+                  <p className="mt-3 text-sm">Send completed forms & proof of payment to <a href={`mailto:${plan.bank_deposit_email}`} className="font-semibold text-primary underline">{plan.bank_deposit_email}</a></p>
+                )}
+              </div>
+
               <div className="rounded-2xl border border-border bg-card p-6">
                 <div className="mb-2 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /><h3 className="text-lg font-bold">Need the printable form?</h3></div>
                 <p className="mb-3 text-sm text-muted-foreground">Download the official membership form to complete by hand.</p>
                 <button onClick={downloadForm} className="inline-flex items-center gap-2 rounded-full border-2 border-primary px-5 py-2 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground"><Download className="h-4 w-4" /> Download form (PDF)</button>
               </div>
+
+              {/* Bank accounts preview when manual gateways exist */}
+              {gateways.some(g => g.provider === "manual_bank") && (
+                <div className="rounded-2xl border border-border bg-card p-6">
+                  <h3 className="mb-3 text-lg font-bold">Bank accounts for manual deposit</h3>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {gateways.filter(g => g.provider === "manual_bank").map((g: any) => (
+                      <dl key={g.id} className="rounded-lg bg-muted/40 p-4 text-sm">
+                        <div className="mb-2 font-semibold">{g.bank_details?.bank ?? g.name}</div>
+                        {g.bank_details?.account_name && <div className="text-xs text-muted-foreground">Account name<div className="text-sm font-medium text-foreground">{g.bank_details.account_name}</div></div>}
+                        {g.bank_details?.account_number && <div className="mt-1 text-xs text-muted-foreground">Account number<div className="font-mono text-sm font-medium text-foreground">{g.bank_details.account_number}</div></div>}
+                        {g.bank_details?.branch && <div className="mt-1 text-xs text-muted-foreground">Branch<div className="text-sm font-medium text-foreground">{g.bank_details.branch}</div></div>}
+                      </dl>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <h3 className="mb-3 text-lg font-bold">Choose how to pay</h3>
@@ -178,7 +206,16 @@ function ApplyPage() {
                       </div>
                     </button>
                   )}
-                  {gateways.length === 0 && <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground md:col-span-2">No payment methods configured yet. Please contact admin.</p>}
+                  {gateways.length === 0 && (
+                    <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground md:col-span-2">
+                      <p className="font-medium text-foreground">No online payment methods configured yet.</p>
+                      {plan.bank_deposit_email ? (
+                        <p className="mt-1">Please download the form above, complete it, and email it together with your proof of payment to <a href={`mailto:${plan.bank_deposit_email}`} className="font-semibold text-primary underline">{plan.bank_deposit_email}</a>. Admin will verify and activate your account.</p>
+                      ) : (
+                        <p className="mt-1">Please contact admin to arrange payment.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
