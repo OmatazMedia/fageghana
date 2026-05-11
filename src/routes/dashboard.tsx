@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import {
   LogOut, Loader2, BadgeCheck, Calendar, CreditCard, FileDown, Bell, MessageCircle,
-  Building2, Mail, Phone, MapPin, Briefcase, Upload, Send, X
+  Building2, Mail, Phone, MapPin, Briefcase, Upload, Send, X, Menu, ChevronDown, User as UserIcon, Search, Home, Settings
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
