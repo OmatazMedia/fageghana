@@ -23,6 +23,10 @@ function Dashboard() {
   const [tab, setTab] = useState<Tab>("overview");
   const [profile, setProfile] = useState<any>(null);
   const [busy, setBusy] = useState(true);
+  const [unread, setUnread] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -44,58 +48,174 @@ function Dashboard() {
 
   useEffect(() => { void loadProfile(); }, [loadProfile]);
 
+  useEffect(() => {
+    if (!user) return;
+    void supabase.from("notifications")
+      .select("id", { count: "exact", head: true })
+      .or(`user_id.eq.${user.id},user_id.is.null`)
+      .is("read_at", null)
+      .then(({ count }) => setUnread(count ?? 0));
+  }, [user, tab]);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
   if (loading || busy || !profile) {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…</div>;
   }
 
-  const tabs: Array<{ id: Tab; label: string; icon: any }> = [
-    { id: "overview", label: "Overview", icon: BadgeCheck },
+  const tabs: Array<{ id: Tab; label: string; icon: any; badge?: number }> = [
+    { id: "overview", label: "Overview", icon: Home },
     { id: "subscription", label: "Subscription", icon: CreditCard },
     { id: "certificate", label: "Certificate", icon: FileDown },
-    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "notifications", label: "Notifications", icon: Bell, badge: unread },
     { id: "support", label: "Support", icon: MessageCircle },
-    { id: "profile", label: "Profile", icon: Building2 },
+    { id: "profile", label: "Profile", icon: Settings },
   ];
+
+  const initials = (profile.contact_name || profile.email || "U")
+    .split(" ").map((s: string) => s[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+
+  const expiry = profile.subscription_expiry ? new Date(profile.subscription_expiry) : null;
+  const expired = expiry ? expiry.getTime() < Date.now() : true;
+  const statusBadge = !expiry ? { label: "Inactive", cls: "bg-muted text-muted-foreground" }
+    : expired ? { label: "Expired", cls: "bg-destructive/10 text-destructive" }
+    : { label: "Active", cls: "bg-emerald-100 text-emerald-700" };
+
+  function selectTab(t: Tab) { setTab(t); setSidebarOpen(false); }
+
+  const sidebar = (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2 px-5 py-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">F</div>
+        <div>
+          <div className="text-sm font-bold leading-tight">FAGE</div>
+          <div className="text-[11px] text-muted-foreground">Member Portal</div>
+        </div>
+      </div>
+      <div className="mx-3 mb-3 rounded-xl bg-accent/40 p-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{initials}</div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">{profile.contact_name || "Member"}</div>
+            <div className="truncate text-[11px] text-muted-foreground">{profile.member_id ?? "ID pending"}</div>
+          </div>
+        </div>
+      </div>
+      <nav className="flex-1 space-y-0.5 px-3">
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => selectTab(t.id)}
+            className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition ${tab === t.id ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/80 hover:bg-accent"}`}>
+            <span className="flex items-center gap-3"><t.icon className="h-4 w-4" /> {t.label}</span>
+            {!!t.badge && t.badge > 0 && (
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${tab === t.id ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"}`}>{t.badge}</span>
+            )}
+          </button>
+        ))}
+      </nav>
+      <div className="border-t border-border p-3">
+        <Link to="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent">
+          <Home className="h-4 w-4" /> Back to website
+        </Link>
+        <button onClick={() => signOut().then(() => navigate({ to: "/" }))}
+          className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10">
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <div>
-            <div className="font-bold">FAGE Member Portal</div>
-            <div className="text-xs text-muted-foreground">{user?.email}</div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/" className="text-sm text-muted-foreground hover:text-primary">View site</Link>
-            <button onClick={() => signOut().then(() => navigate({ to: "/" }))} className="flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-sm hover:bg-accent">
-              <LogOut className="h-4 w-4" /> Sign out
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-foreground/40" onClick={() => setSidebarOpen(false)} />
+          <aside className="absolute left-0 top-0 h-full w-72 border-r border-border bg-card shadow-xl">
+            <button onClick={() => setSidebarOpen(false)} className="absolute right-3 top-3 rounded p-1 hover:bg-accent">
+              <X className="h-4 w-4" />
             </button>
-          </div>
+            {sidebar}
+          </aside>
         </div>
-      </header>
+      )}
 
-      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
-        <aside className="hidden md:block w-60 shrink-0">
-          <nav className="sticky top-24 space-y-1 rounded-2xl border border-border bg-card p-3 shadow-sm">
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${tab === t.id ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>
-                <t.icon className="h-4 w-4" /> {t.label}
-              </button>
-            ))}
-          </nav>
-        </aside>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-card lg:block">
+        {sidebar}
+      </aside>
 
-        <main className="min-w-0 flex-1">
-          <div className="mb-4 flex gap-2 overflow-x-auto border-b border-border pb-3 md:hidden">
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${tab === t.id ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>
-                <t.icon className="h-4 w-4" /> {t.label}
-              </button>
-            ))}
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:px-8">
+          <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 hover:bg-accent lg:hidden">
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="hidden md:block">
+            <div className="text-sm font-semibold capitalize">{tab}</div>
+            <div className="text-xs text-muted-foreground">Welcome back, {profile.contact_name || profile.email}</div>
           </div>
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={() => selectTab("notifications")} className="relative rounded-lg p-2 hover:bg-accent" aria-label="Notifications">
+              <Bell className="h-5 w-5" />
+              {unread > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">{unread > 9 ? "9+" : unread}</span>
+              )}
+            </button>
+            <span className={`hidden rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${statusBadge.cls}`}>{statusBadge.label}</span>
 
+            <div ref={menuRef} className="relative">
+              <button onClick={() => setMenuOpen(o => !o)} className="flex items-center gap-2 rounded-full border border-border bg-background py-1 pl-1 pr-3 text-sm hover:bg-accent">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{initials}</span>
+                <span className="hidden max-w-[140px] truncate text-left sm:block">
+                  <span className="block text-xs font-semibold leading-tight">{profile.contact_name || "Member"}</span>
+                  <span className="block text-[10px] text-muted-foreground">{profile.email}</span>
+                </span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+                  <div className="border-b border-border bg-muted/30 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{initials}</div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold">{profile.contact_name || "Member"}</div>
+                        <div className="truncate text-xs text-muted-foreground">{profile.email}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="rounded-lg bg-background p-2">
+                        <div className="text-muted-foreground">Member ID</div>
+                        <div className="truncate font-semibold">{profile.member_id ?? "Pending"}</div>
+                      </div>
+                      <div className="rounded-lg bg-background p-2">
+                        <div className="text-muted-foreground">Tier</div>
+                        <div className="truncate font-semibold capitalize">{profile.tier}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={() => { setMenuOpen(false); selectTab("profile"); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent">
+                    <UserIcon className="h-4 w-4" /> View profile
+                  </button>
+                  <button onClick={() => { setMenuOpen(false); selectTab("subscription"); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent">
+                    <CreditCard className="h-4 w-4" /> Subscription
+                  </button>
+                  <Link to="/" className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent" onClick={() => setMenuOpen(false)}>
+                    <Home className="h-4 w-4" /> Back to website
+                  </Link>
+                  <button onClick={() => signOut().then(() => navigate({ to: "/" }))}
+                    className="flex w-full items-center gap-2 border-t border-border px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10">
+                    <LogOut className="h-4 w-4" /> Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="p-4 lg:p-8">
           {tab === "overview" && <OverviewTab profile={profile} userId={user!.id} />}
           {tab === "subscription" && <SubscriptionTab profile={profile} userId={user!.id} onChange={loadProfile} />}
           {tab === "certificate" && <CertificateTab userId={user!.id} />}
