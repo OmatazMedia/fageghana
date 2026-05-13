@@ -706,6 +706,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_exec_sql: { Args: { sql: string }; Returns: undefined }
+      admin_list_enums: { Args: never; Returns: Json }
+      admin_list_functions: { Args: never; Returns: Json }
+      admin_list_policies: { Args: never; Returns: Json }
+      admin_list_sequences: { Args: never; Returns: Json }
+      admin_list_tables: { Args: never; Returns: Json }
       generate_member_id: {
         Args: { _tier: Database["public"]["Enums"]["membership_tier"] }
         Returns: string
