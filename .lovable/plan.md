@@ -1,62 +1,107 @@
-## Fixes
+# Backup & Restore System
 
-### 1. Membership page shows only 2 hardcoded tiers
-`src/routes/membership.tsx` has a hardcoded `tiers` array with only `associate` and `corporate`. Any third plan (e.g. `standard`) created in admin never appears.
+A new admin-only page (`/admin/backup`) that produces a single downloadable `.zip` snapshot of the entire backend, and accepts that same zip back via drag-and-drop to restore into this project or any other Lovable Cloud project.
 
-**Fix:** Drive the cards from `subscription_plans` rows (joined with a small per-tier copy map for benefits/eyebrow). Show every plan that exists in the DB, in `amount` order. Also pull `application_form_pdf_url`, `description`, `currency`, `amount`, `duration_months` from each row (already loaded). Members with no admin-defined benefits get a sensible default list.
+## What gets backed up
 
-### 2. Downloaded PDF opens inline / appears blocked
-Today: `window.open(application_form_pdf_url, "_blank")` — browsers render PDFs inline and popup blockers can stop it.
+1. **Database data** — every row of every table in the `public` schema (all 18 tables: `member_profiles`, `subscription_plans`, `payment_submissions`, `application_forms`, `application_submissions`, `certificates`, `certificate_templates`, `news`, `activities`, `media`, `products`, `notifications`, `support_tickets`, `ticket_messages`, `payment_gateways`, `membership_applications`, `user_roles`, plus any future tables discovered via `information_schema`).
+2. **Database schema** — `CREATE TABLE`, enums (`app_role`, `membership_tier`, `application_status`, `payment_status`, `media_type`, `ticket_status`), sequences (`member_id_seq`), functions (`has_role`, `set_updated_at`, `generate_member_id`, `handle_new_user_super_admin`), and all RLS policies — reconstructed from `pg_catalog` / `information_schema` so a fresh project can be rebuilt.
+3. **Storage buckets** — every file in `content`, `payment-proofs`, `certificate-assets` (downloaded via service-role) plus bucket metadata (public flag, policies).
+4. **Auth users** — full list from `auth.admin.listUsers()` with `id`, `email`, `phone`, `email_confirmed_at`, `user_metadata`, `app_metadata`, `created_at`. Roles come from the `user_roles` table.
+5. **Manifest** — `manifest.json` with project ref, schema version, table row counts, file counts, timestamp, and a checksum.
 
-**Fix:** Force download by:
-- Fetching the file as a Blob, then triggering an `<a download="FAGE-<tier>-application.pdf">` click via an object URL (works cross-origin since the `content` bucket is public).
-- Fallback: if fetch fails, use a plain `<a href download>` click rather than `window.open`.
-- Apply the same helper in both `membership.tsx` and `apply.$tier.tsx`.
+## Zip layout
 
-### 3. "Payment details are not seen"
-Two related issues on `/apply/$tier`:
-- If no `payment_gateways` rows are enabled, the page only says *"No payment methods configured yet"* with no further info — members can't see plan price/bank info.
-- The bank account details only render under the manual_bank step.
+```text
+fage-backup-2026-05-13T14-22.zip
+├── manifest.json
+├── schema/
+│   ├── enums.sql
+│   ├── functions.sql
+│   ├── sequences.sql
+│   ├── tables.sql        # CREATE TABLE for every public table
+│   └── policies.sql      # RLS enable + policies
+├── data/
+│   ├── member_profiles.jsonl
+│   ├── subscription_plans.jsonl
+│   └── … one .jsonl per table
+├── auth/
+│   └── users.json
+└── storage/
+    ├── _buckets.json
+    ├── content/<original-paths…>
+    ├── payment-proofs/<…>
+    └── certificate-assets/<…>
+```
 
-**Fix:**
-- Always show the plan summary (price, duration, description, bank deposit email) at the top of `/apply/$tier`, regardless of gateway state.
-- When at least one `manual_bank` gateway exists, surface a compact "Bank accounts" preview card on the **choose** step too (bank, account name, account number) so members see where to pay before clicking through.
-- When no gateways are configured but a `bank_deposit_email` exists on the plan, show the manual instructions + email so members can still proceed.
+JSON Lines (one row per line) keeps memory bounded and makes diffs/merges streamable.
 
-### 4. Copy a certificate template to another tier
-Today `admin/certificates` requires rebuilding the layout per tier from scratch.
+## Restore flow
 
-**Fix:** Add a "Duplicate to…" dropdown in the designer header. Selecting a target tier:
-- Copies `image_url`, `signature_url`, `authorized_name`, `field_positions`, `name` from the current tier.
-- Upserts into `certificate_templates` for the target tier (insert if missing, update if it exists, after a confirm dialog).
-- Toasts success and (optionally) switches the editor to the target tier so the user can fine-tune.
+The same page has a drop-zone. Once a zip is dropped:
 
-No DB migration needed — uses the existing `certificate_templates` columns.
+1. Parse `manifest.json`, show a confirmation modal: source project ref, snapshot date, row counts, file counts.
+2. User picks a **mode**:
+  - **Merge** — `upsert` rows by primary key, skip storage objects that already exist, create only missing auth users.
+  - **Overwrite** — `TRUNCATE … RESTART IDENTITY CASCADE` per table, empty buckets, delete & recreate auth users (except the currently-signed-in admin to avoid lockout).
+3. Pre-flight check: for each table in the backup, if the table is missing in the target DB, auto-run the corresponding `CREATE TABLE` / enum / function / policy from `schema/*.sql`. Same for missing buckets.
+4. Restore order respects dependencies: enums → sequences → functions → tables → policies → auth users → `user_roles` → other data → storage files.
+5. Stream progress back to the UI (per-table row count, per-bucket file count, errors).
 
-## Files to change
-- `src/routes/membership.tsx` — dynamic plans + force-download helper
-- `src/routes/apply.$tier.tsx` — always-visible plan/bank details + force-download
-- `src/lib/forceDownload.ts` *(new)* — shared `downloadFile(url, filename)` helper
-- `src/routes/admin.certificates.tsx` — "Duplicate to tier" action
+## UI
 
-## Remaining phases (status snapshot)
+- `/admin/backup` route, gated behind `isAdmin`.
+- Two cards side-by-side:
+  - **Create backup** — button "Generate backup"; shows a progress log; ends with a download button (the zip is built server-side and returned as a signed URL or streamed response).
+  - **Restore backup** — drag-and-drop `.zip` (also a "Choose file" fallback). After parsing manifest, a destructive-action dialog forces the admin to type **RESTORE** to confirm, with mode toggle (Merge / Overwrite) and an explicit warning list:
+    - "Overwrite will delete every row in every table currently in this project."
+    - "Auth user passwords cannot be restored — affected users will need to reset their password after restore."
+    - "Storage objects with the same path will be replaced in Overwrite mode."
+    - "Restore runs with service-role privileges and bypasses RLS — only admins can use this."
+- Live progress bar + scrolling log; final summary (rows imported, files imported, users imported, errors).
 
-| Phase | Status |
-|---|---|
-| Auth (member + admin), roles, password reset | Done |
-| Membership plans CRUD + downloadable PDF | Done (this fix completes it) |
-| Drag-and-drop form builder + dynamic public form | Done |
-| Pre-form payment flow (Paystack + Hubtel + manual bank) | Done |
-| Admin payments dashboard (list/confirm/reject) | Done |
-| Admin members CRUD + admin-created accounts | Done |
-| Certificate designer + issue + verify | Done; **template duplication added now** |
-| News / Activities / Media / Products / Notifications / Tickets | Done |
-| **Remaining work** | |
-| Email notifications (payment confirmed, account created, certificate issued) — currently in-app only | Pending |
-| PDF certificate download (server-rendered) for issued certs | Pending |
-| Bulk member CSV import | Pending |
-| Public member directory (corporate) | Pending |
-| Reports/analytics export polish | Partial |
-| End-to-end test of live Paystack/Hubtel webhooks against the real domain | Pending |
+## Server functions
 
-Tell me which of the "Remaining work" items you want next after these fixes land.
+All server-side, all behind `requireSupabaseAuth` + admin role check, all using `supabaseAdmin`:
+
+- `createBackup` — introspects schema, dumps rows, downloads bucket files, builds zip in-memory using `jszip`, returns it as a base64 blob (or, for larger projects, uploads it to a private `backups` bucket and returns a signed URL).
+- `parseBackupManifest` — accepts the uploaded zip (base64), returns manifest + counts for the confirmation step (no writes).
+- `restoreBackup` — accepts the zip + `{ mode: "merge" | "overwrite" }`, runs the restore plan, returns a summary log.
+
+These live in `src/lib/backup.functions.ts`. A new `backups` storage bucket (private, admin-only RLS) holds generated backup zips so the user can re-download recent ones.
+
+## Known limitations (called out in the UI before backup/restore runs)
+
+- **Auth passwords are not restorable.** Supabase does not expose password hashes via the admin API. Restored users keep their email/metadata/roles, but must reset their password on first login. The restore step will optionally trigger a password-reset email per imported user.
+- **Cross-project restore requires the target project's service-role key to be the one signed into Lovable Cloud** — i.e. you run the restore from inside the destination project's `/admin/backup` page.
+- **Worker memory ceiling.** Projects with > ~200 MB of storage will be split into multiple zip parts (`part-1.zip`, `part-2.zip`) and the manifest lists them; the restore UI accepts multiple files in one drop.
+- **Schema drift.** Custom Supabase-managed schemas (`auth`, `storage`, `realtime`, `vault`) are NEVER recreated — only `public`. Tables added by future migrations are picked up automatically because schema is read from `information_schema` at backup time.
+- **Edge functions / secrets are not included.** Secrets (`PAYSTACK_SECRET_KEY`, etc.) must be re-added manually in the destination project — the restore log lists which secret names were referenced so the admin knows what to paste in.
+
+## Files to add / change
+
+- `src/routes/admin.backup.tsx` *(new)* — UI with backup card + drag-and-drop restore card, confirm dialog, progress log.
+- `src/lib/backup.functions.ts` *(new)* — `createBackup`, `parseBackupManifest`, `restoreBackup` server functions.
+- `src/lib/backup.server.ts` *(new)* — schema introspection, jsonl streaming, zip building, restore planner. Server-only, imports `supabaseAdmin`.
+- `src/components/admin/AdminShell.tsx` — add "Backup & Restore" sidebar entry.
+- New storage bucket `backups` (private) + RLS policy "admins only" via migration.
+- `package.json` — add `jszip`.
+
+## Phase status update
+
+Adds **Backup & Restore** as a new completed phase once shipped. Remaining work from earlier (emails, server-rendered cert PDFs, bulk CSV import, public corporate directory, live webhook E2E) is unchanged.
+
+---
+
+**Confirm before I implement:**
+
+1. OK to add a private `backups` storage bucket for storing generated zips (so admins can re-download recent backups without re-running)?
+2. On Overwrite restore, should the **currently-signed-in admin** be preserved automatically (recommended, avoids lockout)?
+3. For cross-project restores, you'll run the restore from inside the destination project's admin page (same project's service role) — confirmed?  
+  
+answer to your confirmation:  
+  
+1.  yes please  
+2.  yes  
+3. yes.  
+4.  add backup and restore progress animation 
