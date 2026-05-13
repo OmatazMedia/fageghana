@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Newspaper, Package, CalendarDays, Image as ImageIcon, Users, LogOut, Home, CreditCard, Award, Bell, MessageCircle, Settings, BarChart3, Layers, ListChecks, AlertCircle, FormInput, Tag, UserPlus } from "lucide-react";
+import { Newspaper, Package, CalendarDays, Image as ImageIcon, Users, LogOut, Home, CreditCard, Award, Bell, MessageCircle, Settings, BarChart3, Layers, ListChecks, AlertCircle, FormInput, Tag, UserPlus, DatabaseBackup } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,6 +27,7 @@ const sections: ReadonlyArray<{ to: string; label: string; icon: typeof Home; ex
   { to: "/admin/notifications", label: "Notifications", icon: Bell },
   { to: "/admin/tickets", label: "Support", icon: MessageCircle },
   { to: "/admin/reports", label: "Reports", icon: BarChart3 },
+  { to: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup },
 ];
 
 function AdminLayout() {

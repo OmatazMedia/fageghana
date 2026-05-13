@@ -38,6 +38,7 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
 import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
+import { Route as AdminBackupRouteImport } from './routes/admin.backup'
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
@@ -191,6 +192,11 @@ const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
   path: '/certificates',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBackupRoute = AdminBackupRouteImport.update({
+  id: '/backup',
+  path: '/backup',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminApplicationsRoute = AdminApplicationsRouteImport.update({
   id: '/applications',
   path: '/applications',
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
+  '/admin/backup': typeof AdminBackupRoute
   '/admin/certificates': typeof AdminCertificatesRouteWithChildren
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
@@ -281,6 +288,7 @@ export interface FileRoutesByTo {
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
+  '/admin/backup': typeof AdminBackupRoute
   '/admin/certificates': typeof AdminCertificatesRouteWithChildren
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
@@ -320,6 +328,7 @@ export interface FileRoutesById {
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
+  '/admin/backup': typeof AdminBackupRoute
   '/admin/certificates': typeof AdminCertificatesRouteWithChildren
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
@@ -360,6 +369,7 @@ export interface FileRouteTypes {
     | '/about/who-we-are'
     | '/admin/activities'
     | '/admin/applications'
+    | '/admin/backup'
     | '/admin/certificates'
     | '/admin/forms'
     | '/admin/gateways'
@@ -398,6 +408,7 @@ export interface FileRouteTypes {
     | '/about/who-we-are'
     | '/admin/activities'
     | '/admin/applications'
+    | '/admin/backup'
     | '/admin/certificates'
     | '/admin/forms'
     | '/admin/gateways'
@@ -436,6 +447,7 @@ export interface FileRouteTypes {
     | '/about/who-we-are'
     | '/admin/activities'
     | '/admin/applications'
+    | '/admin/backup'
     | '/admin/certificates'
     | '/admin/forms'
     | '/admin/gateways'
@@ -686,6 +698,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCertificatesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/backup': {
+      id: '/admin/backup'
+      path: '/backup'
+      fullPath: '/admin/backup'
+      preLoaderRoute: typeof AdminBackupRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/applications': {
       id: '/admin/applications'
       path: '/applications'
@@ -754,6 +773,7 @@ const AdminCertificatesRouteWithChildren =
 interface AdminRouteChildren {
   AdminActivitiesRoute: typeof AdminActivitiesRoute
   AdminApplicationsRoute: typeof AdminApplicationsRoute
+  AdminBackupRoute: typeof AdminBackupRoute
   AdminCertificatesRoute: typeof AdminCertificatesRouteWithChildren
   AdminFormsRoute: typeof AdminFormsRoute
   AdminGatewaysRoute: typeof AdminGatewaysRoute
@@ -772,6 +792,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminActivitiesRoute: AdminActivitiesRoute,
   AdminApplicationsRoute: AdminApplicationsRoute,
+  AdminBackupRoute: AdminBackupRoute,
   AdminCertificatesRoute: AdminCertificatesRouteWithChildren,
   AdminFormsRoute: AdminFormsRoute,
   AdminGatewaysRoute: AdminGatewaysRoute,
