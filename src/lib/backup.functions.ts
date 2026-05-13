@@ -152,7 +152,7 @@ export const createBackup = createServerFn({ method: "POST" })
       let from = 0;
       const lines: string[] = [];
       while (true) {
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await (supabaseAdmin as any)
           .from(tableName)
           .select("*")
           .range(from, from + PAGE - 1);
@@ -379,8 +379,8 @@ export const restoreBackup = createServerFn({ method: "POST" })
       for (let i = 0; i < rows.length; i += CHUNK) {
         const chunk = rows.slice(i, i + CHUNK);
         const q = data.mode === "overwrite"
-          ? supabaseAdmin.from(t).insert(chunk)
-          : supabaseAdmin.from(t).upsert(chunk);
+          ? (supabaseAdmin as any).from(t).insert(chunk)
+          : (supabaseAdmin as any).from(t).upsert(chunk);
         const { error } = await q;
         if (error) {
           summary.errors++;
