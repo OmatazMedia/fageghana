@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ShieldCheck, Eye, EyeOff, Lock, Mail, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
@@ -146,12 +146,13 @@ function AdminLogin() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-sm font-medium text-foreground">Password</label>
-                <Link
-                  to="/reset-password"
-                  className="text-xs text-primary hover:underline"
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/reset-password" })}
+                  className="text-xs text-primary cursor-pointer"
                 >
                   Forgot password?
-                </Link>
+                </button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
