@@ -74,7 +74,7 @@ export const initApplicationPayment = createServerFn({ method: "POST" })
         kind: "new",
         pending_application_id: pending.id,
         member_message: `tier:${plan.tier}`,
-      })
+      } as any)
       .select("*")
       .single();
     if (subErr) throw new Error(subErr.message);
