@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ShieldCheck, Eye, EyeOff, Lock, Mail, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
@@ -45,13 +45,14 @@ function AdminLogin() {
     <div className="min-h-screen bg-gradient-to-br from-brand-dark via-brand-dark/95 to-primary/80 flex items-center justify-center px-4 py-12">
 
       {/* Back to site */}
-      <Link
-        to="/"
-        className="fixed top-6 left-6 flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+      <button
+        type="button"
+        onClick={() => navigate({ to: "/" })}
+        className="fixed top-6 left-6 flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors z-50 cursor-pointer"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to site
-      </Link>
+      </button>
 
       <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-0 rounded-3xl overflow-hidden shadow-2xl">
 

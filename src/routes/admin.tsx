@@ -80,7 +80,7 @@ function AdminLayout() {
 
   useEffect(() => {
     if (isLoginRoute) return;
-    if (!loading && (!user || !isAdmin)) navigate({ to: "/admin/login" });
+    if (!loading && (!user || !isAdmin)) navigate({ to: "/" });
   }, [loading, user, isAdmin, navigate, isLoginRoute]);
 
   if (isLoginRoute) return <Outlet />;
