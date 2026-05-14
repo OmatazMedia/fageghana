@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone, ShieldCheck, ArrowRight, Menu, X, ChevronDown, Search, User } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const aboutItems = [
   { to: "/about/who-we-are", label: "Who We Are" },
@@ -9,7 +9,7 @@ const aboutItems = [
 ] as const;
 
 const navItems = [
-  { to: "/news", label: "News" },
+  { to: "/news", label: "News & Blog" },
   { to: "/activities", label: "Activities" },
   { to: "/media", label: "Media" },
   { to: "/membership", label: "Membership" },
@@ -18,11 +18,27 @@ const navItems = [
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [topBarVisible, setTopBarVisible] = useState(true);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    function onScroll() {
+      setTopBarVisible(window.scrollY < 40);
+      const el = document.documentElement;
+      const total = el.scrollHeight - el.clientHeight;
+      setProgress(total > 0 ? (el.scrollTop / total) * 100 : 0);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
-      {/* Top utility bar */}
-      <div className="bg-primary text-primary-foreground text-xs">
+      {/* Top utility bar — hides while scrolled, shows at top */}
+      <div
+        className="bg-primary text-primary-foreground text-xs overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ maxHeight: topBarVisible ? "40px" : "0px", opacity: topBarVisible ? 1 : 0 }}
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2">
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline">Promoting non-traditional exports</span>
@@ -174,6 +190,13 @@ export function SiteHeader() {
           </nav>
         </div>
       )}
+      {/* Page progress bar */}
+      <div className="absolute bottom-0 left-0 h-[3px] w-full bg-transparent">
+        <div
+          className="h-full bg-primary transition-all duration-100 ease-linear rounded-r-full"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
     </header>
   );
 }

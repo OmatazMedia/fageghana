@@ -8,9 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/news")({
   head: () => ({
     meta: [
-      { title: "News & Updates — FAGE Ghana" },
+      { title: "News & Blog — FAGE Ghana" },
       { name: "description", content: "Stay informed about the latest developments in Ghana's export sector." },
-      { property: "og:title", content: "News & Updates — FAGE Ghana" },
+      { property: "og:title", content: "News & Blog — FAGE Ghana" },
       { property: "og:image", content: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop" },
     ],
   }),
