@@ -65,19 +65,29 @@ function ApplyPage() {
     setBusy(true);
     try {
       const res = await createPending({ data: { plan_id: plan.id, ...contact } });
-      setPending({ id: res.id, claim_token: res.claim_token, tier: res.tier });
+      const newPending = { id: res.id, claim_token: res.claim_token, tier: res.tier };
+      setPending(newPending);
+      // If exactly one online gateway and no manual option, skip the picker entirely.
+      if (singleOnlineGateway && manualGateways.length === 0) {
+        await payOnlineWith(newPending, singleOnlineGateway);
+        return;
+      }
       setStep("pay");
     } catch (e: any) { toast.error(e?.message ?? "Could not save details"); }
     finally { setBusy(false); }
   }
 
-  async function payOnline(g: any) {
-    if (!pending) return toast.error("Missing application");
+  async function payOnlineWith(p: { id: string }, g: any) {
     setBusy(true);
     try {
-      const { redirect_url } = await initPay({ data: { pending_application_id: pending.id, gateway_id: g.id } });
+      const { redirect_url } = await initPay({ data: { pending_application_id: p.id, gateway_id: g.id } });
       window.location.href = redirect_url;
     } catch (e: any) { toast.error(e?.message ?? "Could not start payment"); setBusy(false); }
+  }
+
+  async function payOnline(g: any) {
+    if (!pending) return toast.error("Missing application");
+    await payOnlineWith(pending, g);
   }
 
   async function submitForm(answers: Record<string, any>) {
@@ -99,6 +109,7 @@ function ApplyPage() {
   async function downloadPdf() {
     if (!plan.application_form_pdf_url) return toast.error("No form PDF available yet.");
     await downloadFile(plan.application_form_pdf_url, `FAGE-${tier}-application.pdf`);
+    setShowDownloadModal(true);
   }
 
   return (
