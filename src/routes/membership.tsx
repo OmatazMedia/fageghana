@@ -6,6 +6,7 @@ import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadFile } from "@/lib/forceDownload";
+import { PostDownloadModal } from "@/components/membership/PostDownloadModal";
 
 export const Route = createFileRoute("/membership")({
   head: () => ({
