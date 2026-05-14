@@ -1,95 +1,227 @@
-## Phase: Fixes & New Member Onboarding Flow
+## Goal
 
-### 1. Backup → Restore: diagnose & fix
-- Wrap `restoreBackup` server fn in a try/catch that returns `{ ok:false, step, message, stack }` instead of throwing the generic React error boundary.
-- Surface real server error in the UI restore log (not just toast "Something went wrong").
-- Add granular `log.push(...)` per step (parse manifest, apply enums, apply tables, apply policies, restore data per table, restore auth, restore storage). Catch per-step so one failure shows exactly where.
-- Likely root causes to patch:
-  - `admin_exec_sql` rejects multi-statement strings → split SQL on `;` and execute one statement at a time.
-  - JSONL parse errors when bucket files are not text → handle binary by skipping non-JSONL paths.
-  - Missing `admin_list_sequences` SQL block on overwrite restore.
-- After fix: re-run a small backup, restore in merge mode, confirm tables refilled.
+Wire the membership lifecycle end-to-end:
 
-### 2. Certificate admin: separate the three pages
-Cause: `admin.certificates.tsx` is the parent of `admin.certificates.issue.tsx` and `admin.certificates.issued.tsx`, so the Designer renders as the layout for both child pages.
-- Rename routes so they are siblings, not children:
-  - `src/routes/admin.certificates.tsx` → `src/routes/admin.cert-designer.tsx` (path `/admin/cert-designer`)
-  - `src/routes/admin.certificates.issue.tsx` → `src/routes/admin.cert-batch.tsx`
-  - `src/routes/admin.certificates.issued.tsx` → `src/routes/admin.cert-issued.tsx`
-- Update the sidebar in `src/routes/admin.tsx` and any internal `<Link to="...">` references.
-- Result: each page is fully independent — no shared layout bleed.
-
-### 3. Certificate Designer enhancements
-- **Per-field on/off toggles**: store a `visible: boolean` per field key in `field_positions` (default true). Add a checkbox in the field list. Renderer (`src/lib/certificate-render.ts`) skips fields where `visible === false`.
-- **Up to 3 named signatures**:
-  - Migration: add `signatures jsonb DEFAULT '[]'` to `certificate_templates` (each entry: `{ url, name, x, y, width }`). Keep legacy `signature_url`/`authorized_name` for backward compatibility — render falls back to `signatures[0]` when present.
-  - Designer UI: a "Signatures" section with up to 3 slots. Each slot: image upload (required to enable that slot), free-text signatory name, drag handle on canvas.
-  - Renderer: draw each signature image at its slot position with the signatory name printed beneath the line — name does NOT appear anywhere else on the certificate (not appended to body/title).
-
-### 4. New "Apply" funnel: pay first → autofill → submit → auto account → first-login experience
-
-#### 4a. Anonymous-friendly apply page (`/apply/:tier`)
-- Remove the "must be logged in" gate at the top of `apply.$tier.tsx`.
-- Step 1 (always shown to anonymous): mini form — Full name, Email, Phone — then choose payment gateway.
-- `initPaystack` / `initHubtel` server functions: accept anonymous calls, create a `payment_submissions` row owned by a placeholder identity tied to the email; metadata carries `name/email/phone/tier`.
-- Migration: relax `payment_submissions.user_id` to allow NULL for anonymous applicants; add `applicant_email`, `applicant_name`, `applicant_phone` columns; loosen INSERT RLS via a server fn rather than direct client insert.
-
-#### 4b. Payment callback → auto account creation
-Extend `paystack-webhook.ts` and `hubtel-callback.ts` (or wrap in a shared `finalizePayment` helper):
-1. Mark payment confirmed.
-2. If no auth user with that email: `supabaseAdmin.auth.admin.createUser({ email, password: <generated>, email_confirm: true, user_metadata:{ must_change_password: true, first_login: true } })`. Password = first name (lowercased, alnum) + 4 random digits.
-3. Insert `member_profiles` row + generate `member_id` (existing RPC).
-4. Send welcome email via Lovable Emails (template `welcome-member` with `{ name, email, password, member_id, login_url }`) — agent will set up email infra + scaffold the template.
-5. Insert a row in new `account_credentials_seed` table (`user_id`, `temp_password_hash`, `delivered_at`) for audit; or just rely on the email.
-
-#### 4c. Form auto-fill after payment (post-payment redirect)
-- Apply page `/apply/:tier` after redirect with `?payment=success&ref=...`:
-  - Sign the new user in automatically (one-time via `supabase.auth.signInWithPassword` using the temp password returned through a short-lived signed token from the webhook callback page) **OR** require email verification first.
-  - Pre-fill DynamicForm with `name`, `email`, `phone` from the payment record; fields remain editable.
-  - On submit → insert `application_submissions`, link `payment_id`.
-
-#### 4d. Forced password change on first login
-- New route `/first-login` (or use existing `/reset-password`): if `user.user_metadata.must_change_password === true`, redirect there before dashboard. After successful update, set `must_change_password=false`.
-- Auth-guarded layout (`_authenticated` style or `dashboard.tsx`) checks the metadata flag.
-
-#### 4e. Welcome modal + confetti (first login ever)
-- On dashboard mount, if `user.user_metadata.first_login === true` AND `must_change_password === false`:
-  - Show modal "Welcome to FAGE — brief things to know" (content sourced from new `site_settings.welcome_brief` text, editable in admin).
-  - Fire `canvas-confetti` once.
-  - Set `first_login=false` via `supabaseAdmin.auth.admin.updateUserById` through a small server fn.
-- Auto-issue a certificate at this point if none exists (generate from the active template for the user's tier; show in dashboard immediately).
-
-### 5. Admin: editable email templates + welcome brief
-- New page `/admin/email-templates`:
-  - List all transactional templates registered (welcome-member, password-reset-confirmed, certificate-issued, payment-received).
-  - For each: editable subject + Markdown body with token chips: `{{name}}`, `{{member_id}}`, `{{password}}`, `{{login_url}}`, `{{tier}}`.
-  - Storage: new `email_templates` table (`key`, `subject`, `body_md`, `updated_at`).
-  - Welcome message logic in webhook reads from this table at send time (falls back to a built-in default).
-- Welcome modal text: stored in the same admin page or a `site_settings` row.
-
-### 6. Email infrastructure
-- Run email-domain setup (Lovable Emails) → scaffold transactional templates → register `welcome-member` template that pulls subject/body from the DB row above (template renders `templateData` injected at send time).
+1. Anyone clicks **Apply Now** on a plan → enters minimal contact details → goes to admin-configured payment gateway → after payment success, account is auto-created → the full corporate-PDF form is shown → submission populates the rest of their portal.
+2. Existing members get a **Renew** modal listing every active plan; same plan = extend expiry only, member ID kept; different plan = new ID + new dates.
+3. Admin can create / edit / toggle off any plan; new plans flow through the same Apply / Renew UI automatically.
+4. Use the uploaded **FAGE-Membership-Form-Corporate.pdf** as the canonical Corporate form schema (download + on-screen form).
+5. Fix the Restore feature on `/admin/backup`.
 
 ---
 
-## Technical notes (for the agent)
+## 1. Corporate form (from your PDF)
 
-**Files touched (high-level):**
-- Backup: `src/lib/backup.functions.ts`, `src/routes/admin.backup.tsx`.
-- Cert routes rename: 3 file moves + `src/routes/admin.tsx` sidebar + cert-render lib.
-- Migrations: `certificate_templates.signatures jsonb`, `payment_submissions` nullable user_id + applicant fields, new `email_templates`, new `site_settings` row.
-- Apply funnel: `src/routes/apply.$tier.tsx`, `src/lib/payments.functions.ts`, `src/routes/api/public/paystack-webhook.ts`, `src/routes/api/public/hubtel-callback.ts`, new `src/lib/onboarding.functions.ts` (server fn for first-login flag flip + cert auto-issue).
-- New routes: `/admin/email-templates`, `/first-login`.
-- Welcome modal + confetti: `src/routes/dashboard.tsx` + `bun add canvas-confetti`.
-- Email: `email_domain--setup_email_infra` + `email_domain--scaffold_transactional_email` + `src/lib/email-templates/welcome-member.tsx`.
+Seed `application_forms` for `tier=corporate` with these fields (mirrors the PDF exactly):
 
-**Order of work:** 1 → 2 → 3 → 5 (templates table) → 4 (depends on email) → 6.
+```
+Company's Name*           (text)
+Company's Address*        (paragraph)
+Telephone*                (phone)
+Fax                       (text)
+Email*                    (email)
+Website                   (text)
+Bankers — up to 3         (heading + 3× {Bank name, Bank address})
+Auditors — Name + Address (text + text)
+Legal Status*             (radio: Limited liability (Public/Private) | Partnership | Sole Proprietorship | Limited by Guarantee | Cooperative | Branch of foreign Co. | Agent of foreign Co. | Other)
+Other legal status        (text — shown if "Other")
+Type of Activity*         (checkboxes: Producer/Manufacturer | Producer/Exporter | Manufacturer/Exporter | Exporter | Other)
+Other activity            (text)
+Company profile (1 page)* (file)
+Products*                 (paragraph)
+% Exported per Annum*     (number)
+Company Executives        (paragraph — Name / Designation, one per line)
+Contact Person / CEO*     (text)
+Location of Company*      (text)
+Postal address*           (text)
+Cert. of Incorporation No*+ Date (text + date)
+Cert. to Commence Business No + Date (text + date)
+No. of Management*        (number)
+No. of Workers*           (number)
+Declaration*              (checkbox — "Information provided is true")
+```
+
+Also drop the original PDF into the **content** bucket and set
+`subscription_plans.application_form_pdf_url` for `corporate` so the
+Download-form button serves the official PDF.
 
 ---
 
-## Remaining phases (after this batch)
-- Public corporate member directory page.
-- Server-rendered certificate PDFs (current is canvas-based, no SSR PDF).
-- Bulk CSV member import.
-- Live webhook end-to-end test against Paystack/Hubtel sandbox.
-- Public REST API for verifying certificates by code (partially in `verify.$code.tsx`).
+## 2. Apply flow — anonymous-start + pay-first
+
+Replace `src/routes/apply.$tier.tsx` with a 4-step flow that no longer
+gates step 1 behind login:
+
+```text
+[choose plan] → [contact mini-form] → [payment gateway] → [auto-account] → [full form] → [dashboard]
+```
+
+### Step A — Contact mini-form (public)
+
+Anonymous-friendly. Collects: full name, work email, phone, company name.
+Stored in a new `pending_applications` row with the chosen `tier` and a
+short-lived `claim_token` (uuid, 24h). No auth needed.
+
+### Step B — Payment
+
+Server fn `initPaystack` / `initHubtel` already takes `tier + gateway_id`.
+Extend them to also accept `pending_application_id` so they can:
+- write the row's email into the gateway request,
+- store `pending_application_id` in `payment_submissions.member_message`
+  alongside `tier:<x>`,
+- include it in the callback URL.
+
+The manual-bank path stays available but admin must verify before account
+creation.
+
+### Step C — Auto-account on payment confirmed
+
+In `verifyPayment` (and the Paystack/Hubtel webhooks), once status flips
+to `confirmed`:
+
+1. Look up `pending_applications` by id.
+2. If `auth.users` already has that email → reuse the user.
+3. Otherwise call `supabaseAdmin.auth.admin.createUser({ email, password: <8-char random>, email_confirm: true })` and email a magic-link via `supabase.auth.admin.generateLink({ type: "magiclink" })` so the user lands signed-in on `/apply/<tier>?claim=<token>`.
+4. Upsert `member_profiles` (status `approved`, member_id from `generate_member_id`, subscription_start = now, subscription_expiry = now + plan.duration_months).
+5. Send a notification + (best-effort) welcome email.
+
+### Step D — Full corporate form
+
+`/apply/$tier?claim=<token>` resolves the token, signs the user in if
+needed, and renders the corporate `DynamicForm`. On submit it writes
+`application_submissions` with `status='new'`. Dashboard then shows the
+member portal with the data filled from `application_submissions.answers`
+(used to display profile + later cert generation).
+
+---
+
+## 3. Renew flow
+
+Add a **Renew membership** button to `dashboard.tsx` (member portal
+header). Clicking opens a modal listing every `subscription_plans` row
+returned `where active=true` (new column, see §5).
+
+- Same plan → after payment confirms, extend `subscription_expiry` by
+  `plan.duration_months` from `max(now, current_expiry)`. Keep `member_id`,
+  keep `tier`.
+- Different plan → after payment confirms, set `tier=newTier`,
+  generate a new `member_id` via `generate_member_id`, reset
+  `subscription_start=now`, `subscription_expiry=now + duration`.
+- Auto-prompt the same modal when expiry is < 30 days away.
+
+A new server fn `renewMembership({ plan_id })` handles the post-payment
+update so the logic lives in one place (called from `verifyPayment` when
+the submission is flagged as a renewal via `member_message=renew:<plan_id>`).
+
+---
+
+## 4. Admin plans — CRUD + toggle
+
+Extend `subscription_plans`:
+
+- add `active boolean DEFAULT true`
+- add `display_order int DEFAULT 0`
+- relax `tier` so admins can create custom tiers (keep enum but also
+  accept arbitrary slugs via a new `slug text unique` column the public
+  routes use for `/apply/$slug`).
+
+Update `/admin/plans`:
+
+- "+ New plan" button → modal (slug, display name, amount, currency,
+  duration, description, PDF, post-download message).
+- Each plan row gets a **toggle switch** wired to `active`.
+- Reorder via up/down arrows on `display_order`.
+
+`membership.tsx` and the renew modal both filter `where active=true` and
+order by `display_order`, so any new plan flows automatically.
+
+---
+
+## 5. Backup / Restore fix
+
+Symptom: Restore still throws. Most likely culprits in `restoreBackup`:
+
+1. `admin_exec_sql` rejects multi-statement strings — even though we
+   added `splitSql`, the policy block is still a single huge string.
+   Switch to executing one statement at a time and surface the failing
+   SQL in the log entry.
+2. JSONL imports for tables that have generated columns or array types
+   crash on `insert(parsed)` — wrap each row in try/catch, log row
+   number, continue.
+3. Storage restore uses `upload(path, blob, { upsert: true })` but the
+   blob comes back as a `Uint8Array` from JSZip — wrap in
+   `new Blob([bytes])`.
+
+Add a `/admin/backup` "Diagnostics" panel that calls a new
+`pingBackupSystem` server fn returning `{ admin_exec_sql: ok, list_tables: ok, buckets: [...] }` so we can confirm DB plumbing before a real restore.
+
+---
+
+## Database changes (single migration)
+
+```sql
+-- Plans
+alter table public.subscription_plans
+  add column if not exists active boolean not null default true,
+  add column if not exists display_order int not null default 0,
+  add column if not exists slug text unique;
+
+-- Pending applications (anonymous start)
+create table public.pending_applications (
+  id uuid primary key default gen_random_uuid(),
+  tier text not null,
+  full_name text not null,
+  email text not null,
+  phone text not null,
+  company_name text not null default '',
+  claim_token uuid not null default gen_random_uuid(),
+  user_id uuid,
+  status text not null default 'awaiting_payment',  -- awaiting_payment | paid | claimed
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default now() + interval '24 hours'
+);
+alter table public.pending_applications enable row level security;
+create policy "Anyone can create" on public.pending_applications
+  for insert to anon, authenticated with check (true);
+create policy "Owner reads via token" on public.pending_applications
+  for select using (true);  -- token is the secret
+create policy "Admins manage" on public.pending_applications
+  for all to authenticated using (has_role(auth.uid(),'admin'))
+  with check (has_role(auth.uid(),'admin'));
+
+-- Mark renewals
+alter table public.payment_submissions
+  add column if not exists kind text not null default 'new'; -- new | renew
+```
+
+(All RLS scoped via `has_role` + token; service-role server fns do the
+actual writes.)
+
+---
+
+## Files to add / change
+
+```
+NEW   src/lib/onboarding.functions.ts        # createPendingApplication, claimPendingApplication, renewMembership
+NEW   src/components/dashboard/RenewModal.tsx
+EDIT  src/lib/payments.functions.ts          # accept pending_application_id; on confirm → auto-create user + member_profile + run renewMembership
+EDIT  src/routes/api/public/paystack-webhook.ts + hubtel-callback.ts (idempotent confirm path)
+EDIT  src/routes/apply.$tier.tsx             # 4-step flow, anonymous start, corporate form
+EDIT  src/routes/membership.tsx              # filter active plans, order by display_order
+EDIT  src/routes/admin.plans.tsx             # +New plan, toggle, reorder, slug
+EDIT  src/routes/dashboard.tsx               # Renew button + modal mount
+EDIT  src/lib/backup.functions.ts            # statement-by-statement exec, blob wrap, per-row try/catch, ping fn
+EDIT  src/routes/admin.backup.tsx            # show diagnostics; surface per-statement errors
+SEED  supabase/insert  → application_forms (corporate schema above)
+SEED  upload PDF → content bucket → set subscription_plans.application_form_pdf_url for corporate
+```
+
+---
+
+## Out of scope for this turn (can follow up)
+
+- Per-field visibility toggles + 3 named signature slots in cert designer
+- `/admin/email-templates` page (welcome email currently uses default magic-link template)
+- Welcome modal + confetti on first login
+
+Let me know if you want any of those folded in now.
