@@ -149,22 +149,49 @@ function ApplyPage() {
           {step === "pay" && (
             <div className="space-y-4">
               <div className="rounded-2xl border border-border bg-card p-6">
-                <h2 className="mb-3 text-lg font-bold">Choose how to pay</h2>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {gateways.filter(g => g.provider !== "manual_bank").map(g => (
-                    <button key={g.id} disabled={busy} onClick={() => payOnline(g)} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary disabled:opacity-60">
-                      <CreditCard className="h-5 w-5 text-primary" />
-                      <div><div className="font-semibold">{g.name}</div><div className="text-xs capitalize text-muted-foreground">Pay online via {g.provider}</div></div>
+                {singleOnlineGateway ? (
+                  <>
+                    <h2 className="mb-1 text-lg font-bold">Pay {plan.currency} {Number(plan.amount).toLocaleString()}</h2>
+                    <p className="mb-4 text-sm text-muted-foreground">You'll be redirected to {singleOnlineGateway.name} to complete payment securely.</p>
+                    <button
+                      disabled={busy}
+                      onClick={() => payOnline(singleOnlineGateway)}
+                      className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      {busy ? "Redirecting…" : `Proceed to payment with ${singleOnlineGateway.name}`}
                     </button>
-                  ))}
-                  {gateways.some(g => g.provider === "manual_bank") && (
-                    <button onClick={() => setStep("manual")} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary">
-                      <Banknote className="h-5 w-5 text-primary" />
-                      <div><div className="font-semibold">Manual bank deposit</div><div className="text-xs text-muted-foreground">Pay into a FAGE bank account, then upload proof.</div></div>
-                    </button>
-                  )}
-                  {gateways.length === 0 && <p className="text-sm text-muted-foreground md:col-span-2">No payment methods configured yet. Please contact admin.</p>}
-                </div>
+                    {manualGateways.length > 0 && (
+                      <button onClick={() => setStep("manual")} className="ml-3 text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline">
+                        Or pay by bank deposit
+                      </button>
+                    )}
+                  </>
+                ) : onlineGateways.length > 1 ? (
+                  <>
+                    <h2 className="mb-3 text-lg font-bold">Choose how to pay</h2>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {onlineGateways.map(g => (
+                        <button key={g.id} disabled={busy} onClick={() => payOnline(g)} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary disabled:opacity-60">
+                          <CreditCard className="h-5 w-5 text-primary" />
+                          <div><div className="font-semibold">{g.name}</div><div className="text-xs capitalize text-muted-foreground">Pay online via {g.provider}</div></div>
+                        </button>
+                      ))}
+                      {manualGateways.length > 0 && (
+                        <button onClick={() => setStep("manual")} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary">
+                          <Banknote className="h-5 w-5 text-primary" />
+                          <div><div className="font-semibold">Manual bank deposit</div><div className="text-xs text-muted-foreground">Pay into a FAGE bank account, then upload proof.</div></div>
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : manualGateways.length > 0 ? (
+                  <button onClick={() => setStep("manual")} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
+                    <Banknote className="h-4 w-4" /> Continue with bank deposit
+                  </button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No payment methods configured yet. Please contact admin.</p>
+                )}
               </div>
               <div className="rounded-2xl border border-border bg-card p-6">
                 <div className="mb-2 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /><h3 className="text-lg font-bold">Need the printable form?</h3></div>
