@@ -9,6 +9,7 @@ import { DynamicForm, type FormField } from "@/components/forms/DynamicForm";
 import { initApplicationPayment } from "@/lib/payments.functions";
 import { createPendingApplication } from "@/lib/onboarding.functions";
 import { downloadFile } from "@/lib/forceDownload";
+import { PostDownloadModal } from "@/components/membership/PostDownloadModal";
 
 export const Route = createFileRoute("/apply/$tier")({
   head: () => ({ meta: [{ title: "Apply for Membership — FAGE Ghana" }] }),
