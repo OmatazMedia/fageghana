@@ -225,6 +225,13 @@ function ApplyPage() {
           )}
         </div>
       </section>
+
+      <PostDownloadModal
+        open={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        planName={`${String(tier).charAt(0).toUpperCase()}${String(tier).slice(1)} Membership form`}
+        message={plan.post_download_message ?? "Complete the form, attach your proof of payment, and email everything to membership@fageghana.org."}
+      />
     </SiteLayout>
   );
 }
