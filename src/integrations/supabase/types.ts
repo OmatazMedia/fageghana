@@ -483,8 +483,10 @@ export type Database = {
           duration_months: number
           gateway_id: string | null
           id: string
+          kind: string
           member_message: string | null
           method: string
+          pending_application_id: string | null
           proof_url: string | null
           reference: string | null
           status: Database["public"]["Enums"]["payment_status"]
@@ -501,8 +503,10 @@ export type Database = {
           duration_months?: number
           gateway_id?: string | null
           id?: string
+          kind?: string
           member_message?: string | null
           method: string
+          pending_application_id?: string | null
           proof_url?: string | null
           reference?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -519,8 +523,10 @@ export type Database = {
           duration_months?: number
           gateway_id?: string | null
           id?: string
+          kind?: string
           member_message?: string | null
           method?: string
+          pending_application_id?: string | null
           proof_url?: string | null
           reference?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -533,6 +539,66 @@ export type Database = {
             columns: ["gateway_id"]
             isOneToOne: false
             referencedRelation: "payment_gateways"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_submissions_pending_application_id_fkey"
+            columns: ["pending_application_id"]
+            isOneToOne: false
+            referencedRelation: "pending_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_applications: {
+        Row: {
+          claim_token: string
+          company_name: string
+          created_at: string
+          email: string
+          expires_at: string
+          full_name: string
+          id: string
+          phone: string
+          plan_id: string | null
+          status: string
+          tier: string
+          user_id: string | null
+        }
+        Insert: {
+          claim_token?: string
+          company_name?: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          full_name: string
+          id?: string
+          phone: string
+          plan_id?: string | null
+          status?: string
+          tier: string
+          user_id?: string | null
+        }
+        Update: {
+          claim_token?: string
+          company_name?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          full_name?: string
+          id?: string
+          phone?: string
+          plan_id?: string | null
+          status?: string
+          tier?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_applications_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -578,38 +644,50 @@ export type Database = {
       }
       subscription_plans: {
         Row: {
+          active: boolean
           amount: number
           application_form_pdf_url: string | null
           bank_deposit_email: string | null
           currency: string
           description: string | null
+          display_order: number
           duration_months: number
           id: string
+          name: string | null
           post_download_message: string | null
+          slug: string | null
           tier: Database["public"]["Enums"]["membership_tier"]
           updated_at: string
         }
         Insert: {
+          active?: boolean
           amount?: number
           application_form_pdf_url?: string | null
           bank_deposit_email?: string | null
           currency?: string
           description?: string | null
+          display_order?: number
           duration_months?: number
           id?: string
+          name?: string | null
           post_download_message?: string | null
+          slug?: string | null
           tier: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
         }
         Update: {
+          active?: boolean
           amount?: number
           application_form_pdf_url?: string | null
           bank_deposit_email?: string | null
           currency?: string
           description?: string | null
+          display_order?: number
           duration_months?: number
           id?: string
+          name?: string | null
           post_download_message?: string | null
+          slug?: string | null
           tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
         }
