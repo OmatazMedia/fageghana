@@ -29,17 +29,21 @@ export function SiteHeader() {
             <Link to="/membership" className="hidden sm:inline underline-offset-4 hover:underline">Join us now →</Link>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/admin/login" className="flex items-center gap-1 hover:underline">
+            <Link to="/verify" className="flex items-center gap-1 hover:underline">
               <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Admin Login</span>
+              <span>Verify Member</span>
             </Link>
             <a href="mailto:info@fageghana.com" className="hidden md:flex items-center gap-1 hover:underline">
               <Mail className="h-3.5 w-3.5" />
               <span>info@fageghana.com</span>
             </a>
-            <a href="tel:+2330535170780" className="hidden md:flex items-center gap-1 hover:underline">
+            <a href="tel:+233535170780" className="hidden md:flex items-center gap-1 hover:underline">
               <Phone className="h-3.5 w-3.5" />
               <span>+233 (0) 53 517 0780</span>
+            </a>
+            <a href="tel:+233535224555" className="hidden md:flex items-center gap-1 hover:underline">
+              <Phone className="h-3.5 w-3.5" />
+              <span>+233 (0) 53 522 4555</span>
             </a>
           </div>
         </div>
@@ -48,13 +52,11 @@ export function SiteHeader() {
       {/* Main nav */}
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">F</div>
-          <div className="leading-tight">
-            <div className="font-bold text-lg text-brand-dark">FAGE</div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Federation of Associations of Ghanaian Exporters
-            </div>
-          </div>
+          <img
+            src="/images/logos/fage-logo-main.webp"
+            alt="FAGE Logo"
+            className="h-10 w-auto object-contain"
+          />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-7">
@@ -118,12 +120,14 @@ export function SiteHeader() {
           </Link>
           <Link
             to="/membership"
-            className="hidden md:inline-flex items-center gap-2 rounded-full bg-primary pl-1.5 pr-5 py-1.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
+            className="lets-talk-btn hidden md:inline-flex"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary">
+            {/* Circle starts LEFT, slides to RIGHT on hover */}
+            <span className="lets-talk-circle">
               <ArrowRight className="h-4 w-4" />
             </span>
-            Let's Talk
+            {/* Text sits behind the circle */}
+            <span className="lets-talk-text">Let's Talk</span>
           </Link>
           <button
             type="button"

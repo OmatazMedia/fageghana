@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProductsRouteImport } from './routes/products'
@@ -47,6 +48,11 @@ import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
 import { Route as ApiPublicHubtelCallbackRouteImport } from './routes/api/public/hubtel-callback'
 
+const VerifyRoute = VerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
@@ -103,9 +109,9 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyCodeRoute = VerifyCodeRouteImport.update({
-  id: '/verify/$code',
-  path: '/verify/$code',
-  getParentRoute: () => rootRouteImport,
+  id: '/$code',
+  path: '/$code',
+  getParentRoute: () => VerifyRoute,
 } as any)
 const PaymentCallbackRoute = PaymentCallbackRouteImport.update({
   id: '/payment/callback',
@@ -246,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/products': typeof ProductsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
@@ -285,6 +292,7 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
@@ -325,6 +333,7 @@ export interface FileRoutesById {
   '/products': typeof ProductsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
@@ -366,6 +375,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/reset-password'
     | '/services'
+    | '/verify'
     | '/about/who-we-are'
     | '/admin/activities'
     | '/admin/applications'
@@ -405,6 +415,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/reset-password'
     | '/services'
+    | '/verify'
     | '/about/who-we-are'
     | '/admin/activities'
     | '/admin/applications'
@@ -444,6 +455,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/reset-password'
     | '/services'
+    | '/verify'
     | '/about/who-we-are'
     | '/admin/activities'
     | '/admin/applications'
@@ -484,17 +496,24 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
+  VerifyRoute: typeof VerifyRouteWithChildren
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
   ApplyTierRoute: typeof ApplyTierRoute
   CertificateIdRoute: typeof CertificateIdRoute
   PaymentCallbackRoute: typeof PaymentCallbackRoute
-  VerifyCodeRoute: typeof VerifyCodeRoute
   ApiPublicHubtelCallbackRoute: typeof ApiPublicHubtelCallbackRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify': {
+      id: '/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof VerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/services': {
       id: '/services'
       path: '/services'
@@ -574,10 +593,10 @@ declare module '@tanstack/react-router' {
     }
     '/verify/$code': {
       id: '/verify/$code'
-      path: '/verify/$code'
+      path: '/$code'
       fullPath: '/verify/$code'
       preLoaderRoute: typeof VerifyCodeRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof VerifyRoute
     }
     '/payment/callback': {
       id: '/payment/callback'
@@ -811,6 +830,17 @@ const NewsRouteChildren: NewsRouteChildren = {
 
 const NewsRouteWithChildren = NewsRoute._addFileChildren(NewsRouteChildren)
 
+interface VerifyRouteChildren {
+  VerifyCodeRoute: typeof VerifyCodeRoute
+}
+
+const VerifyRouteChildren: VerifyRouteChildren = {
+  VerifyCodeRoute: VerifyCodeRoute,
+}
+
+const VerifyRouteWithChildren =
+  VerifyRoute._addFileChildren(VerifyRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivitiesRoute: ActivitiesRoute,
@@ -823,14 +853,23 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
+  VerifyRoute: VerifyRouteWithChildren,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
   ApplyTierRoute: ApplyTierRoute,
   CertificateIdRoute: CertificateIdRoute,
   PaymentCallbackRoute: PaymentCallbackRoute,
-  VerifyCodeRoute: VerifyCodeRoute,
   ApiPublicHubtelCallbackRoute: ApiPublicHubtelCallbackRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

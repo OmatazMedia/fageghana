@@ -6,12 +6,15 @@ type Props = {
   suffix?: string;
   decimals?: number;
   label: string;
+  static?: boolean;
 };
 
-export function AnimatedStat({ value, prefix = "", suffix = "", decimals = 0, label }: Props) {
+export function AnimatedStat({ value, prefix = "", suffix = "", decimals = 0, label, static: isStatic = false }: Props) {
   const { ref, inView } = useInView<HTMLDivElement>();
-  const v = useCountUp(value, 1800, inView);
-  const formatted = decimals
+  const v = useCountUp(isStatic ? 0 : value, 1800, inView);
+  const formatted = isStatic
+    ? String(value)
+    : decimals
     ? v.toFixed(decimals)
     : Math.round(v).toLocaleString();
   return (

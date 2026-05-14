@@ -91,39 +91,53 @@ function Dashboard() {
 
   const sidebar = (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">F</div>
-        <div>
-          <div className="text-sm font-bold leading-tight">FAGE</div>
-          <div className="text-[11px] text-muted-foreground">Member Portal</div>
+      {/* Logo — matches admin */}
+      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+        <img
+          src="/images/logos/fage-logo-white.webp"
+          alt="FAGE"
+          className="h-8 w-auto object-contain"
+        />
+        <div className="leading-tight">
+          <div className="text-xs font-bold uppercase tracking-widest text-white/90">Member</div>
+          <div className="text-[10px] text-white/40">Portal</div>
         </div>
       </div>
-      <div className="mx-3 mb-3 rounded-xl bg-accent/40 p-3">
+      {/* Member card */}
+      <div className="mx-3 my-3 rounded-xl bg-white/5 p-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{initials}</div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">{profile.contact_name || "Member"}</div>
-            <div className="truncate text-[11px] text-muted-foreground">{profile.member_id ?? "ID pending"}</div>
+            <div className="truncate text-sm font-semibold text-white">{profile.contact_name || "Member"}</div>
+            <div className="truncate text-[11px] text-white/40">{profile.member_id ?? "ID pending"}</div>
           </div>
         </div>
       </div>
-      <nav className="flex-1 space-y-0.5 px-3">
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
         {tabs.map(t => (
           <button key={t.id} onClick={() => selectTab(t.id)}
-            className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition ${tab === t.id ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/80 hover:bg-accent"}`}>
-            <span className="flex items-center gap-3"><t.icon className="h-4 w-4" /> {t.label}</span>
+            className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+              tab === t.id
+                ? "bg-primary text-white shadow-sm shadow-primary/30"
+                : "text-white/60 hover:bg-white/8 hover:text-white"
+            }`}>
+            <span className="flex items-center gap-3"><t.icon className="h-4 w-4 shrink-0" /> {t.label}</span>
             {!!t.badge && t.badge > 0 && (
-              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${tab === t.id ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"}`}>{t.badge}</span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                tab === t.id ? "bg-white text-primary" : "bg-primary text-white"
+              }`}>{t.badge}</span>
             )}
           </button>
         ))}
       </nav>
-      <div className="border-t border-border p-3">
-        <Link to="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent">
-          <Home className="h-4 w-4" /> Back to website
+      {/* Footer */}
+      <div className="border-t border-white/10 p-3 space-y-0.5">
+        <Link to="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white transition-all">
+          <Home className="h-4 w-4" /> View site
         </Link>
         <button onClick={() => signOut().then(() => navigate({ to: "/" }))}
-          className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10">
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white transition-all">
           <LogOut className="h-4 w-4" /> Sign out
         </button>
       </div>
@@ -131,12 +145,13 @@ function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="flex h-screen overflow-hidden bg-[#f5f7f5]">
+      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-foreground/40" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-72 border-r border-border bg-card shadow-xl">
-            <button onClick={() => setSidebarOpen(false)} className="absolute right-3 top-3 rounded p-1 hover:bg-accent">
+          <aside className="absolute left-0 top-0 h-full w-64 bg-[#0f1a14] shadow-xl">
+            <button onClick={() => setSidebarOpen(false)} className="absolute right-3 top-3 rounded p-1 text-white/50 hover:bg-white/10">
               <X className="h-4 w-4" />
             </button>
             {sidebar}
@@ -144,20 +159,28 @@ function Dashboard() {
         </div>
       )}
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-card lg:block">
+      {/* Desktop sidebar */}
+      <aside className="hidden w-64 flex-shrink-0 flex-col bg-[#0f1a14] lg:flex h-screen sticky top-0">
         {sidebar}
       </aside>
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:px-8">
+      <div className="flex flex-1 flex-col overflow-hidden min-h-0">
+        <header className="flex h-14 items-center justify-between border-b border-border bg-white px-4 lg:px-6 shadow-sm">
           <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 hover:bg-accent lg:hidden">
             <Menu className="h-5 w-5" />
           </button>
-          <div className="hidden md:block">
-            <div className="text-sm font-semibold capitalize">{tab}</div>
-            <div className="text-xs text-muted-foreground">Welcome back, {profile.contact_name || profile.email}</div>
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <img src="/images/logos/fage-logo-main.webp" alt="FAGE" className="h-7 w-auto" />
+            <span className="font-bold text-sm">Member Portal</span>
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          {/* Desktop breadcrumb */}
+          <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">FAGE Member Portal</span>
+            <ChevronDown className="h-3.5 w-3.5 rotate-[-90deg]" />
+            <span className="capitalize text-foreground">{tab}</span>
+          </div>
+          <div className="ml-auto flex items-center gap-3">
             <button onClick={() => selectTab("notifications")} className="relative rounded-lg p-2 hover:bg-accent" aria-label="Notifications">
               <Bell className="h-5 w-5" />
               {unread > 0 && (
@@ -165,7 +188,6 @@ function Dashboard() {
               )}
             </button>
             <span className={`hidden rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${statusBadge.cls}`}>{statusBadge.label}</span>
-
             <div ref={menuRef} className="relative">
               <button onClick={() => setMenuOpen(o => !o)} className="flex items-center gap-2 rounded-full border border-border bg-background py-1 pl-1 pr-3 text-sm hover:bg-accent">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{initials}</span>
@@ -215,7 +237,7 @@ function Dashboard() {
           </div>
         </header>
 
-        <main className="p-4 lg:p-8">
+        <main className="flex-1 overflow-auto p-4 lg:p-8">
           {tab === "overview" && <OverviewTab profile={profile} userId={user!.id} />}
           {tab === "subscription" && <SubscriptionTab profile={profile} userId={user!.id} onChange={loadProfile} />}
           {tab === "certificate" && <CertificateTab userId={user!.id} />}

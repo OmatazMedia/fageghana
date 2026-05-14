@@ -57,7 +57,7 @@ function BackupPage() {
   async function refresh() {
     try {
       const r = await runList();
-      setBackups(r.backups);
+      setBackups(r.backups ?? []);
     } catch (e: any) {
       console.error(e);
     }
@@ -74,7 +74,7 @@ function BackupPage() {
     try {
       const r = await runBackup();
       setProgress(100);
-      setLog(r.log);
+      setLog(r.log ?? []);
       toast.success(`Backup ready (${fmtSize(r.sizeBytes)})`);
       if (r.url) await downloadFile(r.url, r.filename);
       await refresh();
@@ -136,7 +136,7 @@ function BackupPage() {
     try {
       const r = await runRestore({ data: { path: pendingPath, mode } });
       setProgress(100);
-      setLog(r.log);
+      setLog(r.log ?? []);
       if (!r.ok) {
         toast.error(r.error || "Restore failed — see log");
       } else if (r.summary.errors > 0) {

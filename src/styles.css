@@ -52,6 +52,7 @@
 
 :root {
   --radius: 0.75rem;
+  --header-h: 120px; /* top bar ~32px + main nav ~88px */
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.18 0.04 250);
@@ -150,33 +151,207 @@
   }
 }
 
-/* Scroll reveal animations */
-@keyframes reveal-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes reveal-left {
-  from { opacity: 0; transform: translateX(-24px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-@keyframes reveal-right {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
+/* ── Product showcase progress bar ──────────────────────────────────── */
+@keyframes progress-bar {
+  from { width: 0%; }
+  to   { width: 100%; }
 }
 
-.reveal {
+/* ── Scroll mouse animation ──────────────────────────────────────────── */
+
+.hero-mouse-dot {
+  animation: mousescroll 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  transform-origin: center;
+}
+
+@keyframes mousescroll {
+  0%   { transform: translateY(0);    opacity: 1; }
+  50%  { transform: translateY(14px); opacity: 0.3; }
+  51%  { transform: translateY(0);    opacity: 0; }
+  52%  { transform: translateY(0);    opacity: 1; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Let's Talk button animation ─────────────────────────────────────── */
+
+/*
+  Layout:  [ ●→ | Let's Talk ]
+  Default: circle LEFT (6px from left edge), text to the right of it
+  Hover:   circle slides RIGHT to mirror position (6px from right edge)
+           text animates behind the moving circle
+  Leave:   circle slides back LEFT, text zooms back in
+*/
+
+.lets-talk-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--color-primary);
+  border-radius: 9999px;
+  padding: 6px 20px 6px 6px;
+  overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
+  min-width: 140px;             /* flexible — grows with text */
+  height: 40px;
+}
+
+/* White circle — absolutely positioned so we can slide it precisely */
+.lets-talk-circle {
+  position: absolute;
+  z-index: 2;                 /* always above the text */
+  left: 6px;                  /* initial: 6px from left edge */
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: white;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  transition: left 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* Text — centered across the full button width, circle slides over it */
+.lets-talk-text {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── HOVER: circle slides to the RIGHT ── */
+.lets-talk-btn:hover .lets-talk-circle {
+  left: calc(100% - 6px - 28px);  /* 6px from right edge + 28px circle width */
+}
+
+/* Text types in as circle moves over it */
+.lets-talk-btn:hover .lets-talk-text {
+  animation: typeReveal 0.4s steps(8, end) 0.1s both;
+}
+
+/* ── LEAVE: circle slides back LEFT, text zooms in ── */
+.lets-talk-btn:not(:hover) .lets-talk-circle {
+  left: 6px;
+}
+
+.lets-talk-btn:not(:hover) .lets-talk-text {
+  animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes typeReveal {
+  0%   { clip-path: inset(0 100% 0 0); opacity: 0.2; }
+  100% { clip-path: inset(0 0% 0 0);   opacity: 1; }
+}
+
+@keyframes zoomIn {
+  0%   { transform: scale(0.75); opacity: 0.4; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes reveal-down {
+  from { opacity: 0; transform: translateY(-32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes reveal-left {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes reveal-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes reveal-scale {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes reveal-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Base hidden state */
+.reveal,
+.reveal-left,
+.reveal-right,
+.reveal-down,
+.reveal-scale,
+.reveal-fade {
   opacity: 0;
+  will-change: opacity, transform;
 }
-.reveal.in-view {
-  animation: reveal-up 0.7s ease-out forwards;
+
+/* Animate in when in view */
+.reveal.in-view        { animation: reveal-up    0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.reveal-left.in-view   { animation: reveal-left  0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.reveal-right.in-view  { animation: reveal-right 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.reveal-down.in-view   { animation: reveal-down  0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.reveal-scale.in-view  { animation: reveal-scale 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.reveal-fade.in-view   { animation: reveal-fade  0.6s ease forwards; }
+
+/* Reset when scrolled out — so animation replays on scroll back */
+.reveal:not(.in-view),
+.reveal-left:not(.in-view),
+.reveal-right:not(.in-view),
+.reveal-down:not(.in-view),
+.reveal-scale:not(.in-view),
+.reveal-fade:not(.in-view) {
+  opacity: 0;
+  animation: none;
 }
-.reveal-left.in-view {
-  animation: reveal-left 0.7s ease-out forwards;
+
+.reveal-delay-1 { animation-delay: 0.1s !important; }
+
+/* ── Partners marquee ────────────────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
-.reveal-right.in-view {
-  animation: reveal-right 0.7s ease-out forwards;
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
 }
-.reveal-delay-1.in-view { animation-delay: 0.1s; }
-.reveal-delay-2.in-view { animation-delay: 0.2s; }
-.reveal-delay-3.in-view { animation-delay: 0.3s; }
-.reveal-delay-4.in-view { animation-delay: 0.4s; }
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.marquee-wrap {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
+/* ── Shake animation for invalid login fields ───────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px); }
+  45%       { transform: translateX(-4px); }
+  60%       { transform: translateX(4px); }
+  75%       { transform: translateX(-2px); }
+  90%       { transform: translateX(2px); }
+}
+
+.field-shake {
+  animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+.reveal-delay-2 { animation-delay: 0.2s !important; }
+.reveal-delay-3 { animation-delay: 0.3s !important; }
+.reveal-delay-4 { animation-delay: 0.4s !important; }
+.reveal-delay-5 { animation-delay: 0.5s !important; }
+.reveal-delay-6 { animation-delay: 0.6s !important; }

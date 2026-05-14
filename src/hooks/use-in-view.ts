@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 export function useInView<T extends HTMLElement = HTMLDivElement>(
-  options: IntersectionObserverInit = { threshold: 0.15 },
+  options: IntersectionObserverInit = { threshold: 0.12 },
 ) {
   const ref = useRef<T | null>(null);
   const [inView, setInView] = useState(false);
@@ -12,13 +12,9 @@ export function useInView<T extends HTMLElement = HTMLDivElement>(
       setInView(true);
       return;
     }
+    // Keep observing so animation replays every time element enters/leaves viewport
     const obs = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) {
-          setInView(true);
-          obs.disconnect();
-        }
-      });
+      entries.forEach((e) => setInView(e.isIntersecting));
     }, options);
     obs.observe(node);
     return () => obs.disconnect();
