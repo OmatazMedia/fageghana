@@ -35,6 +35,7 @@ const benefits = [
 
 function MembershipPage() {
   const [plans, setPlans] = useState<any[]>([]);
+  const [modalPlan, setModalPlan] = useState<any | null>(null);
 
   useEffect(() => {
     void supabase.from("subscription_plans").select("*").order("amount").then(({ data }) => setPlans(data ?? []));
@@ -43,7 +44,7 @@ function MembershipPage() {
   async function handleDownload(plan: any) {
     if (!plan.application_form_pdf_url) return toast.error("No form available yet for this tier.");
     await downloadFile(plan.application_form_pdf_url, `FAGE-${plan.tier}-application.pdf`);
-    toast.message("Form downloaded", { description: plan.post_download_message ?? "", duration: 12000 });
+    setModalPlan(plan);
   }
 
   return (
