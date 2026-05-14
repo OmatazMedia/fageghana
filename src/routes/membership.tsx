@@ -118,6 +118,13 @@ function MembershipPage() {
           </div>
         </div>
       </section>
+
+      <PostDownloadModal
+        open={!!modalPlan}
+        onClose={() => setModalPlan(null)}
+        planName={modalPlan ? `${String(modalPlan.tier).charAt(0).toUpperCase()}${String(modalPlan.tier).slice(1)} Membership form` : ""}
+        message={modalPlan?.post_download_message ?? "Complete the form, attach your proof of payment, and email everything to membership@fageghana.org."}
+      />
     </SiteLayout>
   );
 }
