@@ -38,14 +38,14 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
 import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
+import { Route as AdminCertIssuedRouteImport } from './routes/admin.cert-issued'
+import { Route as AdminCertBatchRouteImport } from './routes/admin.cert-batch'
 import { Route as AdminBackupRouteImport } from './routes/admin.backup'
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
 import { Route as ApiPublicHubtelCallbackRouteImport } from './routes/api/public/hubtel-callback'
-import { Route as AdminCertificatesIssuedRouteImport } from './routes/admin.certificates.issued'
-import { Route as AdminCertificatesIssueRouteImport } from './routes/admin.certificates.issue'
 
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
@@ -192,6 +192,16 @@ const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
   path: '/certificates',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCertIssuedRoute = AdminCertIssuedRouteImport.update({
+  id: '/cert-issued',
+  path: '/cert-issued',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCertBatchRoute = AdminCertBatchRouteImport.update({
+  id: '/cert-batch',
+  path: '/cert-batch',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBackupRoute = AdminBackupRouteImport.update({
   id: '/backup',
   path: '/backup',
@@ -223,16 +233,6 @@ const ApiPublicHubtelCallbackRoute = ApiPublicHubtelCallbackRouteImport.update({
   path: '/api/public/hubtel-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminCertificatesIssuedRoute = AdminCertificatesIssuedRouteImport.update({
-  id: '/issued',
-  path: '/issued',
-  getParentRoute: () => AdminCertificatesRoute,
-} as any)
-const AdminCertificatesIssueRoute = AdminCertificatesIssueRouteImport.update({
-  id: '/issue',
-  path: '/issue',
-  getParentRoute: () => AdminCertificatesRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -250,7 +250,9 @@ export interface FileRoutesByFullPath {
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
-  '/admin/certificates': typeof AdminCertificatesRouteWithChildren
+  '/admin/cert-batch': typeof AdminCertBatchRoute
+  '/admin/cert-issued': typeof AdminCertIssuedRoute
+  '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
@@ -268,8 +270,6 @@ export interface FileRoutesByFullPath {
   '/news/$slug': typeof NewsSlugRoute
   '/payment/callback': typeof PaymentCallbackRoute
   '/verify/$code': typeof VerifyCodeRoute
-  '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
-  '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -289,7 +289,9 @@ export interface FileRoutesByTo {
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
-  '/admin/certificates': typeof AdminCertificatesRouteWithChildren
+  '/admin/cert-batch': typeof AdminCertBatchRoute
+  '/admin/cert-issued': typeof AdminCertIssuedRoute
+  '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
@@ -307,8 +309,6 @@ export interface FileRoutesByTo {
   '/news/$slug': typeof NewsSlugRoute
   '/payment/callback': typeof PaymentCallbackRoute
   '/verify/$code': typeof VerifyCodeRoute
-  '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
-  '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -329,7 +329,9 @@ export interface FileRoutesById {
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
-  '/admin/certificates': typeof AdminCertificatesRouteWithChildren
+  '/admin/cert-batch': typeof AdminCertBatchRoute
+  '/admin/cert-issued': typeof AdminCertIssuedRoute
+  '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
@@ -347,8 +349,6 @@ export interface FileRoutesById {
   '/news/$slug': typeof NewsSlugRoute
   '/payment/callback': typeof PaymentCallbackRoute
   '/verify/$code': typeof VerifyCodeRoute
-  '/admin/certificates/issue': typeof AdminCertificatesIssueRoute
-  '/admin/certificates/issued': typeof AdminCertificatesIssuedRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -370,6 +370,8 @@ export interface FileRouteTypes {
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/backup'
+    | '/admin/cert-batch'
+    | '/admin/cert-issued'
     | '/admin/certificates'
     | '/admin/forms'
     | '/admin/gateways'
@@ -388,8 +390,6 @@ export interface FileRouteTypes {
     | '/news/$slug'
     | '/payment/callback'
     | '/verify/$code'
-    | '/admin/certificates/issue'
-    | '/admin/certificates/issued'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -409,6 +409,8 @@ export interface FileRouteTypes {
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/backup'
+    | '/admin/cert-batch'
+    | '/admin/cert-issued'
     | '/admin/certificates'
     | '/admin/forms'
     | '/admin/gateways'
@@ -427,8 +429,6 @@ export interface FileRouteTypes {
     | '/news/$slug'
     | '/payment/callback'
     | '/verify/$code'
-    | '/admin/certificates/issue'
-    | '/admin/certificates/issued'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
   id:
@@ -448,6 +448,8 @@ export interface FileRouteTypes {
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/backup'
+    | '/admin/cert-batch'
+    | '/admin/cert-issued'
     | '/admin/certificates'
     | '/admin/forms'
     | '/admin/gateways'
@@ -466,8 +468,6 @@ export interface FileRouteTypes {
     | '/news/$slug'
     | '/payment/callback'
     | '/verify/$code'
-    | '/admin/certificates/issue'
-    | '/admin/certificates/issued'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
   fileRoutesById: FileRoutesById
@@ -698,6 +698,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCertificatesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cert-issued': {
+      id: '/admin/cert-issued'
+      path: '/cert-issued'
+      fullPath: '/admin/cert-issued'
+      preLoaderRoute: typeof AdminCertIssuedRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cert-batch': {
+      id: '/admin/cert-batch'
+      path: '/cert-batch'
+      fullPath: '/admin/cert-batch'
+      preLoaderRoute: typeof AdminCertBatchRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/backup': {
       id: '/admin/backup'
       path: '/backup'
@@ -740,41 +754,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHubtelCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/certificates/issued': {
-      id: '/admin/certificates/issued'
-      path: '/issued'
-      fullPath: '/admin/certificates/issued'
-      preLoaderRoute: typeof AdminCertificatesIssuedRouteImport
-      parentRoute: typeof AdminCertificatesRoute
-    }
-    '/admin/certificates/issue': {
-      id: '/admin/certificates/issue'
-      path: '/issue'
-      fullPath: '/admin/certificates/issue'
-      preLoaderRoute: typeof AdminCertificatesIssueRouteImport
-      parentRoute: typeof AdminCertificatesRoute
-    }
   }
 }
-
-interface AdminCertificatesRouteChildren {
-  AdminCertificatesIssueRoute: typeof AdminCertificatesIssueRoute
-  AdminCertificatesIssuedRoute: typeof AdminCertificatesIssuedRoute
-}
-
-const AdminCertificatesRouteChildren: AdminCertificatesRouteChildren = {
-  AdminCertificatesIssueRoute: AdminCertificatesIssueRoute,
-  AdminCertificatesIssuedRoute: AdminCertificatesIssuedRoute,
-}
-
-const AdminCertificatesRouteWithChildren =
-  AdminCertificatesRoute._addFileChildren(AdminCertificatesRouteChildren)
 
 interface AdminRouteChildren {
   AdminActivitiesRoute: typeof AdminActivitiesRoute
   AdminApplicationsRoute: typeof AdminApplicationsRoute
   AdminBackupRoute: typeof AdminBackupRoute
-  AdminCertificatesRoute: typeof AdminCertificatesRouteWithChildren
+  AdminCertBatchRoute: typeof AdminCertBatchRoute
+  AdminCertIssuedRoute: typeof AdminCertIssuedRoute
+  AdminCertificatesRoute: typeof AdminCertificatesRoute
   AdminFormsRoute: typeof AdminFormsRoute
   AdminGatewaysRoute: typeof AdminGatewaysRoute
   AdminLoginRoute: typeof AdminLoginRoute
@@ -793,7 +782,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminActivitiesRoute: AdminActivitiesRoute,
   AdminApplicationsRoute: AdminApplicationsRoute,
   AdminBackupRoute: AdminBackupRoute,
-  AdminCertificatesRoute: AdminCertificatesRouteWithChildren,
+  AdminCertBatchRoute: AdminCertBatchRoute,
+  AdminCertIssuedRoute: AdminCertIssuedRoute,
+  AdminCertificatesRoute: AdminCertificatesRoute,
   AdminFormsRoute: AdminFormsRoute,
   AdminGatewaysRoute: AdminGatewaysRoute,
   AdminLoginRoute: AdminLoginRoute,
