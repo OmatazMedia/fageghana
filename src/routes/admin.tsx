@@ -17,9 +17,9 @@ const sections: ReadonlyArray<{ to: string; label: string; icon: typeof Home; ex
   { to: "/admin/plans", label: "Plans & Forms", icon: Tag },
   { to: "/admin/forms", label: "Form Builder", icon: FormInput },
   { to: "/admin/gateways", label: "Gateways", icon: Settings },
-  { to: "/admin/certificates", label: "Cert Designer", icon: Award },
-  { to: "/admin/certificates/issue", label: "Batch Issue", icon: Layers },
-  { to: "/admin/certificates/issued", label: "Issued Certs", icon: ListChecks },
+  { to: "/admin/certificates", label: "Cert Designer", icon: Award, exact: true },
+  { to: "/admin/cert-batch", label: "Batch Issue", icon: Layers },
+  { to: "/admin/cert-issued", label: "Issued Certs", icon: ListChecks },
   { to: "/admin/news", label: "News", icon: Newspaper },
   { to: "/admin/products", label: "Products", icon: Package },
   { to: "/admin/activities", label: "Activities", icon: CalendarDays },
@@ -135,7 +135,7 @@ function AdminOverview() {
 
   const quickActions = [
     { to: "/admin/payments", label: "Review payments", icon: CreditCard },
-    { to: "/admin/certificates/issue", label: "Issue certificates", icon: Layers },
+    { to: "/admin/cert-batch", label: "Issue certificates", icon: Layers },
     { to: "/admin/certificates", label: "Design certificate", icon: Award },
     { to: "/admin/notifications", label: "Send announcement", icon: Bell },
     { to: "/admin/news", label: "Add news article", icon: Newspaper },

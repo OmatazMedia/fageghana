@@ -270,69 +270,127 @@ export const parseBackupManifest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { path: string }) => d)
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
-    const dl = await supabaseAdmin.storage.from("backups").download(data.path);
-    if (dl.error) throw new Error(dl.error.message);
-    const buf = await dl.data.arrayBuffer();
-    const zip = await JSZip.loadAsync(buf);
-    const mf = zip.file("manifest.json");
-    if (!mf) throw new Error("Invalid backup: manifest.json missing");
-    const manifest = JSON.parse(await mf.async("string"));
-    return { manifest };
+    try {
+      await assertAdmin(context.userId);
+      const dl = await supabaseAdmin.storage.from("backups").download(data.path);
+      if (dl.error) return { ok: false as const, error: `Download failed: ${dl.error.message}` };
+      const buf = await dl.data.arrayBuffer();
+      const zip = await JSZip.loadAsync(buf);
+      const mf = zip.file("manifest.json");
+      if (!mf) return { ok: false as const, error: "Invalid backup: manifest.json missing" };
+      const manifest = JSON.parse(await mf.async("string"));
+      return { ok: true as const, manifest };
+    } catch (e: any) {
+      return { ok: false as const, error: e?.message || String(e) };
+    }
   });
+
+// Split SQL while respecting dollar-quoted blocks ($$ ... $$).
+function splitSql(sql: string): string[] {
+  const stmts: string[] = [];
+  let buf = "";
+  let inDollar = false;
+  let i = 0;
+  while (i < sql.length) {
+    if (sql.slice(i, i + 2) === "$$") {
+      inDollar = !inDollar;
+      buf += "$$";
+      i += 2;
+      continue;
+    }
+    const ch = sql[i];
+    if (ch === ";" && !inDollar) {
+      const s = buf.trim();
+      if (s) stmts.push(s + ";");
+      buf = "";
+      i++;
+      continue;
+    }
+    buf += ch;
+    i++;
+  }
+  const tail = buf.trim();
+  if (tail) stmts.push(tail);
+  return stmts;
+}
 
 export const restoreBackup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { path: string; mode: "merge" | "overwrite" }) => d)
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
     const log: string[] = [];
     const summary = { tables: 0, rows: 0, files: 0, users: 0, errors: 0 };
+    const safeStep = async <T,>(label: string, fn: () => Promise<T>): Promise<T | null> => {
+      try {
+        return await fn();
+      } catch (e: any) {
+        summary.errors++;
+        log.push(`[ERROR] ${label}: ${e?.message || String(e)}`);
+        return null;
+      }
+    };
+
+    try {
+      await assertAdmin(context.userId);
+    } catch (e: any) {
+      return { ok: false as const, summary, log: [`[ERROR] Auth: ${e?.message || e}`], error: e?.message || String(e) };
+    }
 
     const dl = await supabaseAdmin.storage.from("backups").download(data.path);
-    if (dl.error) throw new Error(dl.error.message);
-    const zip = await JSZip.loadAsync(await dl.data.arrayBuffer());
+    if (dl.error) {
+      return { ok: false as const, summary, log: [`[ERROR] Download backup: ${dl.error.message}`], error: dl.error.message };
+    }
 
-    const manifest = JSON.parse(await zip.file("manifest.json")!.async("string"));
+    let zip: JSZip;
+    try {
+      zip = await JSZip.loadAsync(await dl.data.arrayBuffer());
+    } catch (e: any) {
+      return { ok: false as const, summary, log: [`[ERROR] Open ZIP: ${e?.message || e}`], error: e?.message || String(e) };
+    }
+
+    const mfFile = zip.file("manifest.json");
+    if (!mfFile) {
+      return { ok: false as const, summary, log: ["[ERROR] manifest.json missing in ZIP"], error: "manifest.json missing" };
+    }
+    const manifest = JSON.parse(await mfFile.async("string"));
     log.push(`Restoring backup from ${manifest.created_at} (mode: ${data.mode})`);
 
-    // 1. Schema preflight: enums, sequences, tables, functions, policies — only create if missing
     const schemaFiles = ["schema/enums.sql", "schema/sequences.sql", "schema/tables.sql", "schema/functions.sql", "schema/policies.sql"];
     for (const sf of schemaFiles) {
       const f = zip.file(sf);
       if (!f) continue;
       const sql = await f.async("string");
       if (!sql.trim()) continue;
-      const stmts = sql.split(/;\s*\n/).map((s) => s.trim()).filter(Boolean);
+      const stmts = splitSql(sql);
+      let okCount = 0;
+      let failCount = 0;
       for (const stmt of stmts) {
         try {
-          const { error } = await supabaseAdmin.rpc("admin_exec_sql", { sql: stmt + ";" });
-          if (error) {
-            // Many statements are idempotent / may fail on re-run; only log
-            log.push(`[schema] ${sf}: ${error.message.slice(0, 200)}`);
-          }
+          const { error } = await supabaseAdmin.rpc("admin_exec_sql", { sql: stmt });
+          if (error) { failCount++; log.push(`  [schema:${sf}] ${error.message.slice(0, 180)}`); }
+          else okCount++;
         } catch (e: any) {
-          log.push(`[schema] ${sf}: ${e.message?.slice(0, 200)}`);
+          failCount++;
+          log.push(`  [schema:${sf}] ${(e?.message || String(e)).slice(0, 180)}`);
         }
       }
-      log.push(`Schema applied: ${sf}`);
+      log.push(`Schema ${sf}: ${okCount} ok, ${failCount} skipped/failed`);
     }
 
-    // 2. Auth users
-    const usersFile = zip.file("auth/users.json");
-    if (usersFile) {
+    await safeStep("Restore auth users", async () => {
+      const usersFile = zip.file("auth/users.json");
+      if (!usersFile) { log.push("Auth: no users.json, skipped"); return; }
       const users = JSON.parse(await usersFile.async("string"));
       if (data.mode === "overwrite") {
         const { data: existing } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
         for (const u of existing?.users || []) {
-          if (u.id === context.userId) continue; // preserve current admin
+          if (u.id === context.userId) continue;
           await supabaseAdmin.auth.admin.deleteUser(u.id).catch(() => {});
         }
       }
       for (const u of users) {
         if (u.id === context.userId) continue;
         try {
-          // Try creating with original id
           const { error } = await supabaseAdmin.auth.admin.createUser({
             email: u.email,
             phone: u.phone || undefined,
@@ -343,88 +401,86 @@ export const restoreBackup = createServerFn({ method: "POST" })
           });
           if (error && !error.message.toLowerCase().includes("already")) {
             summary.errors++;
-            log.push(`auth ${u.email}: ${error.message}`);
+            log.push(`  auth ${u.email}: ${error.message}`);
           } else {
             summary.users++;
           }
         } catch (e: any) {
           summary.errors++;
-          log.push(`auth ${u.email}: ${e.message}`);
+          log.push(`  auth ${u.email}: ${e?.message || e}`);
         }
       }
       log.push(`Auth restored: ${summary.users} users`);
-    }
+    });
 
-    // 3. Data — preserve table order from manifest (insertion order)
     const tableNames = Object.keys(manifest.tables || {});
     if (data.mode === "overwrite") {
-      // truncate in reverse order with CASCADE
       for (const t of [...tableNames].reverse()) {
-        await supabaseAdmin.rpc("admin_exec_sql", {
-          sql: `TRUNCATE TABLE public.${quoteIdent(t)} RESTART IDENTITY CASCADE;`,
+        await safeStep(`Truncate ${t}`, async () => {
+          const { error } = await supabaseAdmin.rpc("admin_exec_sql", {
+            sql: `TRUNCATE TABLE public.${quoteIdent(t)} RESTART IDENTITY CASCADE;`,
+          });
+          if (error) throw new Error(error.message);
         });
       }
       log.push(`Truncated ${tableNames.length} tables`);
     }
 
     for (const t of tableNames) {
-      const f = zip.file(`data/${t}.jsonl`);
-      if (!f) continue;
-      const text = await f.async("string");
-      if (!text.trim()) continue;
-      const rows = text.split("\n").filter(Boolean).map((l) => JSON.parse(l));
-      // chunk
-      const CHUNK = 500;
-      let inserted = 0;
-      for (let i = 0; i < rows.length; i += CHUNK) {
-        const chunk = rows.slice(i, i + CHUNK);
-        const q = data.mode === "overwrite"
-          ? (supabaseAdmin as any).from(t).insert(chunk)
-          : (supabaseAdmin as any).from(t).upsert(chunk);
-        const { error } = await q;
-        if (error) {
-          summary.errors++;
-          log.push(`data ${t}: ${error.message.slice(0, 200)}`);
-        } else {
-          inserted += chunk.length;
+      await safeStep(`Restore table ${t}`, async () => {
+        const f = zip.file(`data/${t}.jsonl`);
+        if (!f) { log.push(`Data ${t}: no jsonl, skipped`); return; }
+        const text = await f.async("string");
+        if (!text.trim()) { log.push(`Data ${t}: empty`); return; }
+        const rows = text.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+        const CHUNK = 500;
+        let inserted = 0;
+        for (let i = 0; i < rows.length; i += CHUNK) {
+          const chunk = rows.slice(i, i + CHUNK);
+          const q = data.mode === "overwrite"
+            ? (supabaseAdmin as any).from(t).insert(chunk)
+            : (supabaseAdmin as any).from(t).upsert(chunk);
+          const { error } = await q;
+          if (error) { summary.errors++; log.push(`  data ${t}: ${error.message.slice(0, 220)}`); }
+          else inserted += chunk.length;
         }
-      }
-      summary.rows += inserted;
-      summary.tables++;
-      log.push(`Data: ${t} ← ${inserted}/${rows.length} rows`);
+        summary.rows += inserted;
+        summary.tables++;
+        log.push(`Data ${t}: ${inserted}/${rows.length} rows`);
+      });
     }
 
-    // 4. Storage
     const bucketsList = manifest.buckets || BUCKETS_TO_BACKUP;
     for (const bucket of bucketsList) {
-      // ensure bucket exists
-      const { data: b } = await supabaseAdmin.storage.getBucket(bucket);
-      if (!b) {
-        await supabaseAdmin.storage.createBucket(bucket, { public: bucket === "content" || bucket === "certificate-assets" });
-        log.push(`Created bucket ${bucket}`);
-      }
-      // walk zip entries under storage/<bucket>/
-      const prefix = `storage/${bucket}/`;
-      const entries: string[] = [];
-      zip.forEach((p) => {
-        if (p.startsWith(prefix) && !zip.file(p)?.dir) entries.push(p);
-      });
-      for (const entry of entries) {
-        const path = entry.slice(prefix.length);
-        const blob = await zip.file(entry)!.async("uint8array");
-        const { error } = await supabaseAdmin.storage.from(bucket).upload(path, blob, {
-          upsert: data.mode === "overwrite",
-        });
-        if (error && !error.message.toLowerCase().includes("exists")) {
-          summary.errors++;
-          log.push(`storage ${bucket}/${path}: ${error.message}`);
-        } else {
-          summary.files++;
+      await safeStep(`Restore bucket ${bucket}`, async () => {
+        const { data: b } = await supabaseAdmin.storage.getBucket(bucket);
+        if (!b) {
+          await supabaseAdmin.storage.createBucket(bucket, { public: bucket === "content" || bucket === "certificate-assets" });
+          log.push(`Created bucket ${bucket}`);
         }
-      }
-      log.push(`Storage: ${bucket} ← ${entries.length} files`);
+        const prefix = `storage/${bucket}/`;
+        const entries: string[] = [];
+        zip.forEach((p) => { if (p.startsWith(prefix) && !zip.file(p)?.dir) entries.push(p); });
+        let uploaded = 0;
+        for (const entry of entries) {
+          const path = entry.slice(prefix.length);
+          const blob = await zip.file(entry)!.async("uint8array");
+          const { error } = await supabaseAdmin.storage.from(bucket).upload(path, blob, {
+            upsert: data.mode === "overwrite",
+          });
+          if (error && !error.message.toLowerCase().includes("exists")) {
+            summary.errors++;
+            log.push(`  storage ${bucket}/${path}: ${error.message}`);
+          } else {
+            uploaded++;
+            summary.files++;
+          }
+        }
+        log.push(`Storage ${bucket}: ${uploaded}/${entries.length} files`);
+      });
     }
 
     log.push(`Done. ${summary.tables} tables, ${summary.rows} rows, ${summary.users} users, ${summary.files} files, ${summary.errors} errors`);
-    return { summary, log };
+    return { ok: true as const, summary, log };
   });
+

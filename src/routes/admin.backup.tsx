@@ -104,6 +104,11 @@ function BackupPage() {
       setBusy("parsing");
       setLog((l) => [...l, "Reading manifest…"]);
       const r = await runParse({ data: { path } });
+      if (!r.ok) {
+        toast.error(r.error);
+        setLog((l) => [...l, "Error: " + r.error]);
+        return;
+      }
       setManifest(r.manifest);
       setPendingPath(path);
       setShowConfirm(true);
@@ -132,12 +137,18 @@ function BackupPage() {
       const r = await runRestore({ data: { path: pendingPath, mode } });
       setProgress(100);
       setLog(r.log);
-      toast.success(
-        `Restore complete: ${r.summary.rows} rows, ${r.summary.files} files, ${r.summary.users} users (${r.summary.errors} errors)`
-      );
+      if (!r.ok) {
+        toast.error(r.error || "Restore failed — see log");
+      } else if (r.summary.errors > 0) {
+        toast.warning(`Restore finished with ${r.summary.errors} errors — see log`);
+      } else {
+        toast.success(
+          `Restore complete: ${r.summary.rows} rows, ${r.summary.files} files, ${r.summary.users} users`
+        );
+      }
     } catch (e: any) {
-      toast.error(e.message);
-      setLog((l) => [...l, "Error: " + e.message]);
+      toast.error(e?.message || "Restore failed");
+      setLog((l) => [...l, "Error: " + (e?.message || String(e))]);
     } finally {
       clearInterval(tick);
       setTimeout(() => setProgress(0), 1500);
