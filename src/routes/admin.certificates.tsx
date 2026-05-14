@@ -158,8 +158,8 @@ function DesignerPage() {
       description="Visually configure the certificate for each membership tier."
       action={
         <div className="flex gap-2">
-          <Link to="/admin/certificates/issue" className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-accent"><Layers className="h-4 w-4" /> Batch issue</Link>
-          <Link to="/admin/certificates/issued" className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-accent"><ListChecks className="h-4 w-4" /> Issued</Link>
+          <Link to="/admin/cert-batch" className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-accent"><Layers className="h-4 w-4" /> Batch issue</Link>
+          <Link to="/admin/cert-issued" className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-accent"><ListChecks className="h-4 w-4" /> Issued</Link>
         </div>
       }
     >

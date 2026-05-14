@@ -135,7 +135,7 @@ function AdminOverview() {
 
   const quickActions = [
     { to: "/admin/payments", label: "Review payments", icon: CreditCard },
-    { to: "/admin/certificates/issue", label: "Issue certificates", icon: Layers },
+    { to: "/admin/cert-batch", label: "Issue certificates", icon: Layers },
     { to: "/admin/certificates", label: "Design certificate", icon: Award },
     { to: "/admin/notifications", label: "Send announcement", icon: Bell },
     { to: "/admin/news", label: "Add news article", icon: Newspaper },
