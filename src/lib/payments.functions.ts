@@ -3,8 +3,7 @@ import { getRequestHost, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-type Tier = "associate" | "standard" | "corporate";
+import { finalizePaymentConfirmation } from "./membership.server";
 
 function siteOrigin() {
   const proto = (getRequestHeader("x-forwarded-proto") || "https").split(",")[0]!.trim();
@@ -12,171 +11,274 @@ function siteOrigin() {
   return `${proto}://${host}`;
 }
 
-const initSchema = z.object({
-  tier: z.enum(["associate", "standard", "corporate"]),
+function makeReference(tier: string) {
+  return `FAGE-${tier.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function loadGateway(gatewayId: string) {
+  const { data: gateway } = await supabaseAdmin.from("payment_gateways").select("*").eq("id", gatewayId).maybeSingle();
+  if (!gateway || !gateway.enabled) throw new Error("Gateway not available");
+  return gateway;
+}
+
+async function loadPlan(planId: string | null, tier: string | null) {
+  if (planId) {
+    const { data } = await supabaseAdmin.from("subscription_plans").select("*").eq("id", planId).maybeSingle();
+    if (data) return data;
+  }
+  if (tier) {
+    const { data } = await supabaseAdmin.from("subscription_plans").select("*").eq("tier", tier as any).maybeSingle();
+    if (data) return data;
+  }
+  throw new Error("Plan not found");
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Anonymous: initialize a payment for a pending application
+// ─────────────────────────────────────────────────────────────────────
+
+const initAnonSchema = z.object({
+  pending_application_id: z.string().uuid(),
   gateway_id: z.string().uuid(),
 });
 
-async function loadPlanAndGateway(tier: Tier, gatewayId: string) {
-  const [{ data: plan }, { data: gateway }] = await Promise.all([
-    supabaseAdmin.from("subscription_plans").select("*").eq("tier", tier).maybeSingle(),
-    supabaseAdmin.from("payment_gateways").select("*").eq("id", gatewayId).maybeSingle(),
-  ]);
-  if (!plan) throw new Error("Plan not found");
-  if (!gateway || !gateway.enabled) throw new Error("Gateway not available");
-  return { plan, gateway };
-}
+export const initApplicationPayment = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => initAnonSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { data: pending } = await supabaseAdmin
+      .from("pending_applications")
+      .select("*")
+      .eq("id", data.pending_application_id)
+      .maybeSingle();
+    if (!pending) throw new Error("Application not found");
+    if (pending.status === "claimed") throw new Error("This application has already been completed");
 
-/** Initialize Paystack — returns authorization_url to redirect to. */
-export const initPaystack = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => initSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY is not configured");
+    const gateway = await loadGateway(data.gateway_id);
+    const plan = await loadPlan(pending.plan_id, pending.tier);
 
-    const { plan, gateway } = await loadPlanAndGateway(data.tier, data.gateway_id);
-    if (gateway.provider !== "paystack") throw new Error("Gateway is not Paystack");
+    const reference = makeReference(plan.tier);
+    const origin = siteOrigin();
 
-    // Get user's email
-    const { data: profile } = await supabaseAdmin.from("member_profiles").select("email").eq("user_id", context.userId).maybeSingle();
-    const email = profile?.email || (context.claims as any)?.email;
-    if (!email) throw new Error("Member email missing — update your profile first");
-
-    const reference = `FAGE-${data.tier.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const callback_url = `${siteOrigin()}/payment/callback`;
-
-    // Create pending submission
-    const { data: sub, error: subErr } = await supabaseAdmin.from("payment_submissions").insert({
-      user_id: context.userId,
-      gateway_id: gateway.id,
-      method: "paystack",
-      amount: plan.amount,
-      currency: plan.currency,
-      duration_months: plan.duration_months,
-      status: "pending",
-      reference,
-      member_message: `tier:${data.tier}`,
-    }).select("*").single();
+    // Insert pending payment_submissions row tied to the pending_application
+    const { data: sub, error: subErr } = await supabaseAdmin
+      .from("payment_submissions")
+      .insert({
+        user_id: pending.user_id, // may be null until account is created
+        gateway_id: gateway.id,
+        method: gateway.provider,
+        amount: plan.amount,
+        currency: plan.currency,
+        duration_months: plan.duration_months,
+        status: "pending",
+        reference,
+        kind: "new",
+        pending_application_id: pending.id,
+        member_message: `tier:${plan.tier}`,
+      } as any)
+      .select("*")
+      .single();
     if (subErr) throw new Error(subErr.message);
 
-    const res = await fetch("https://api.paystack.co/transaction/initialize", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        amount: Math.round(Number(plan.amount) * 100), // pesewas
-        currency: plan.currency || "GHS",
-        reference,
-        callback_url,
-        metadata: { user_id: context.userId, tier: data.tier, submission_id: sub.id },
-      }),
-    });
-    const json: any = await res.json();
-    if (!res.ok || !json?.status) {
-      await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${json?.message ?? res.status}` }).eq("id", sub.id);
-      throw new Error(`Paystack init failed: ${json?.message ?? res.status}`);
+    if (gateway.provider === "paystack") {
+      const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+      if (!PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured");
+      const res = await fetch("https://api.paystack.co/transaction/initialize", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: pending.email,
+          amount: Math.round(Number(plan.amount) * 100),
+          currency: plan.currency || "GHS",
+          reference,
+          callback_url: `${origin}/payment/callback?token=${pending.claim_token}`,
+          metadata: { pending_application_id: pending.id, tier: plan.tier, submission_id: sub.id },
+        }),
+      });
+      const json: any = await res.json();
+      if (!res.ok || !json?.status) {
+        await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${json?.message ?? res.status}` }).eq("id", sub.id);
+        throw new Error(`Paystack init failed: ${json?.message ?? res.status}`);
+      }
+      return { redirect_url: json.data.authorization_url as string, reference };
     }
-    return { authorization_url: json.data.authorization_url as string, reference };
+
+    if (gateway.provider === "hubtel") {
+      const CLIENT_ID = process.env.HUBTEL_CLIENT_ID;
+      const CLIENT_SECRET = process.env.HUBTEL_CLIENT_SECRET;
+      const MERCHANT = process.env.HUBTEL_MERCHANT_ACCOUNT;
+      if (!CLIENT_ID || !CLIENT_SECRET || !MERCHANT) throw new Error("Hubtel is not configured");
+      const auth = "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
+      const res = await fetch("https://payproxyapi.hubtel.com/items/initiate", {
+        method: "POST",
+        headers: { Authorization: auth, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          totalAmount: Number(plan.amount),
+          description: `FAGE ${plan.tier} membership`,
+          callbackUrl: `${origin}/api/public/hubtel-callback`,
+          returnUrl: `${origin}/payment/callback?reference=${reference}&provider=hubtel&token=${pending.claim_token}`,
+          cancellationUrl: `${origin}/membership`,
+          merchantAccountNumber: MERCHANT,
+          clientReference: reference,
+          payeeName: pending.full_name,
+          payeeEmail: pending.email,
+          payeeMobileNumber: pending.phone,
+        }),
+      });
+      const json: any = await res.json();
+      const checkoutUrl: string | undefined = json?.data?.checkoutUrl ?? json?.data?.checkoutDirectUrl;
+      if (!res.ok || !checkoutUrl) {
+        await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${JSON.stringify(json).slice(0, 300)}` }).eq("id", sub.id);
+        throw new Error(`Hubtel init failed: ${json?.message ?? res.status}`);
+      }
+      return { redirect_url: checkoutUrl, reference };
+    }
+
+    throw new Error(`Online payments not supported for provider: ${gateway.provider}`);
   });
 
-/** Initialize Hubtel checkout — returns checkoutUrl. */
-export const initHubtel = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => initSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const CLIENT_ID = process.env.HUBTEL_CLIENT_ID;
-    const CLIENT_SECRET = process.env.HUBTEL_CLIENT_SECRET;
-    const MERCHANT = process.env.HUBTEL_MERCHANT_ACCOUNT;
-    if (!CLIENT_ID || !CLIENT_SECRET || !MERCHANT) throw new Error("Hubtel env vars are not configured");
+// ─────────────────────────────────────────────────────────────────────
+// Authenticated: initialize a renewal payment
+// ─────────────────────────────────────────────────────────────────────
 
-    const { plan, gateway } = await loadPlanAndGateway(data.tier, data.gateway_id);
-    if (gateway.provider !== "hubtel") throw new Error("Gateway is not Hubtel");
+const initRenewalSchema = z.object({
+  plan_id: z.string().uuid(),
+  gateway_id: z.string().uuid(),
+});
+
+export const initRenewalPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => initRenewalSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const gateway = await loadGateway(data.gateway_id);
+    const plan = await loadPlan(data.plan_id, null);
+    if (plan.active === false) throw new Error("Plan unavailable");
 
     const { data: profile } = await supabaseAdmin.from("member_profiles").select("email,contact_name,phone").eq("user_id", context.userId).maybeSingle();
     const email = profile?.email || (context.claims as any)?.email;
+    if (!email) throw new Error("Email missing on profile");
 
-    const reference = `FAGE-${data.tier.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const reference = makeReference(plan.tier);
     const origin = siteOrigin();
 
-    const { data: sub, error: subErr } = await supabaseAdmin.from("payment_submissions").insert({
-      user_id: context.userId,
-      gateway_id: gateway.id,
-      method: "hubtel",
-      amount: plan.amount,
-      currency: plan.currency,
-      duration_months: plan.duration_months,
-      status: "pending",
-      reference,
-      member_message: `tier:${data.tier}`,
-    }).select("*").single();
+    const { data: sub, error: subErr } = await supabaseAdmin
+      .from("payment_submissions")
+      .insert({
+        user_id: context.userId,
+        gateway_id: gateway.id,
+        method: gateway.provider,
+        amount: plan.amount,
+        currency: plan.currency,
+        duration_months: plan.duration_months,
+        status: "pending",
+        reference,
+        kind: "renew",
+        member_message: `tier:${plan.tier}|renew:${plan.id}`,
+      })
+      .select("*")
+      .single();
     if (subErr) throw new Error(subErr.message);
 
-    const auth = "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
-    const res = await fetch("https://payproxyapi.hubtel.com/items/initiate", {
-      method: "POST",
-      headers: { Authorization: auth, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        totalAmount: Number(plan.amount),
-        description: `FAGE ${data.tier} membership`,
-        callbackUrl: `${origin}/api/public/hubtel-callback`,
-        returnUrl: `${origin}/payment/callback?reference=${reference}&provider=hubtel`,
-        cancellationUrl: `${origin}/membership`,
-        merchantAccountNumber: MERCHANT,
-        clientReference: reference,
-        payeeName: profile?.contact_name ?? undefined,
-        payeeEmail: email ?? undefined,
-        payeeMobileNumber: profile?.phone ?? undefined,
-      }),
-    });
-    const json: any = await res.json();
-    const checkoutUrl: string | undefined = json?.data?.checkoutUrl ?? json?.data?.checkoutDirectUrl;
-    if (!res.ok || !checkoutUrl) {
-      await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${JSON.stringify(json).slice(0,300)}` }).eq("id", sub.id);
-      throw new Error(`Hubtel init failed: ${json?.message ?? json?.responseText ?? res.status}`);
-    }
-    return { checkoutUrl, reference };
-  });
-
-/** Verify a payment by reference; idempotent — confirms the submission if successful. */
-export const verifyPayment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ reference: z.string().min(1) }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { data: sub } = await supabaseAdmin.from("payment_submissions").select("*").eq("reference", data.reference).maybeSingle();
-    if (!sub) throw new Error("Payment not found");
-    if (sub.user_id !== context.userId) throw new Error("Forbidden");
-    if (sub.status === "confirmed") return { status: "confirmed" as const, submission: sub };
-
-    if (sub.method === "paystack") {
+    if (gateway.provider === "paystack") {
       const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
-      const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(data.reference)}`, {
-        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+      const res = await fetch("https://api.paystack.co/transaction/initialize", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          amount: Math.round(Number(plan.amount) * 100),
+          currency: plan.currency || "GHS",
+          reference,
+          callback_url: `${origin}/payment/callback`,
+          metadata: { user_id: context.userId, tier: plan.tier, kind: "renew", submission_id: sub.id },
+        }),
       });
       const json: any = await res.json();
-      const ok = res.ok && json?.status && json?.data?.status === "success" && Number(json.data.amount) >= Math.round(Number(sub.amount) * 100);
-      if (!ok) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
-      const { data: updated } = await supabaseAdmin.from("payment_submissions").update({
-        status: "confirmed", confirmed_at: new Date().toISOString(),
-      }).eq("id", sub.id).select("*").single();
-      return { status: "confirmed" as const, submission: updated };
+      if (!res.ok || !json?.status) {
+        await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${json?.message ?? res.status}` }).eq("id", sub.id);
+        throw new Error(`Paystack init failed: ${json?.message ?? res.status}`);
+      }
+      return { redirect_url: json.data.authorization_url as string, reference };
     }
 
-    if (sub.method === "hubtel") {
+    if (gateway.provider === "hubtel") {
       const CLIENT_ID = process.env.HUBTEL_CLIENT_ID!;
       const CLIENT_SECRET = process.env.HUBTEL_CLIENT_SECRET!;
       const MERCHANT = process.env.HUBTEL_MERCHANT_ACCOUNT!;
       const auth = "Basic " + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
-      const url = `https://api-txnstatus.hubtel.com/transactions/${MERCHANT}/status?clientReference=${encodeURIComponent(data.reference)}`;
-      const res = await fetch(url, { headers: { Authorization: auth } });
+      const res = await fetch("https://payproxyapi.hubtel.com/items/initiate", {
+        method: "POST",
+        headers: { Authorization: auth, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          totalAmount: Number(plan.amount),
+          description: `FAGE ${plan.tier} renewal`,
+          callbackUrl: `${origin}/api/public/hubtel-callback`,
+          returnUrl: `${origin}/payment/callback?reference=${reference}&provider=hubtel`,
+          cancellationUrl: `${origin}/dashboard`,
+          merchantAccountNumber: MERCHANT,
+          clientReference: reference,
+          payeeName: profile?.contact_name ?? undefined,
+          payeeEmail: email,
+          payeeMobileNumber: profile?.phone ?? undefined,
+        }),
+      });
       const json: any = await res.json();
-      const status = json?.data?.status;
-      if (status !== "Paid") return { status: "pending" as const, submission: sub, raw: status };
-      const { data: updated } = await supabaseAdmin.from("payment_submissions").update({
-        status: "confirmed", confirmed_at: new Date().toISOString(),
-      }).eq("id", sub.id).select("*").single();
-      return { status: "confirmed" as const, submission: updated };
+      const checkoutUrl: string | undefined = json?.data?.checkoutUrl ?? json?.data?.checkoutDirectUrl;
+      if (!res.ok || !checkoutUrl) {
+        await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${JSON.stringify(json).slice(0, 300)}` }).eq("id", sub.id);
+        throw new Error(`Hubtel init failed: ${json?.message ?? res.status}`);
+      }
+      return { redirect_url: checkoutUrl, reference };
     }
 
-    throw new Error(`Unsupported method: ${sub.method}`);
+    throw new Error(`Renewal not supported for provider: ${gateway.provider}`);
+  });
+
+// ─────────────────────────────────────────────────────────────────────
+// Anonymous-friendly verify by reference (reference is itself the secret)
+// ─────────────────────────────────────────────────────────────────────
+
+export const verifyPayment = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ reference: z.string().min(8).max(120) }).parse(d))
+  .handler(async ({ data }) => {
+    const { data: sub } = await supabaseAdmin.from("payment_submissions").select("*").eq("reference", data.reference).maybeSingle();
+    if (!sub) throw new Error("Payment not found");
+    if (sub.status === "confirmed") {
+      return { status: "confirmed" as const, submission: sub };
+    }
+
+    let confirmed = false;
+    if (sub.method === "paystack") {
+      const key = process.env.PAYSTACK_SECRET_KEY!;
+      const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(data.reference)}`, {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const json: any = await res.json();
+      confirmed = !!(res.ok && json?.status && json?.data?.status === "success" && Number(json.data.amount) >= Math.round(Number(sub.amount) * 100));
+      if (!confirmed) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
+    } else if (sub.method === "hubtel") {
+      const id = process.env.HUBTEL_CLIENT_ID!;
+      const secret = process.env.HUBTEL_CLIENT_SECRET!;
+      const merchant = process.env.HUBTEL_MERCHANT_ACCOUNT!;
+      const auth = "Basic " + Buffer.from(`${id}:${secret}`).toString("base64");
+      const res = await fetch(`https://api-txnstatus.hubtel.com/transactions/${merchant}/status?clientReference=${encodeURIComponent(data.reference)}`, { headers: { Authorization: auth } });
+      const json: any = await res.json();
+      confirmed = json?.data?.status === "Paid";
+      if (!confirmed) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
+    } else {
+      throw new Error(`Unsupported method: ${sub.method}`);
+    }
+
+    const { data: updated } = await supabaseAdmin
+      .from("payment_submissions")
+      .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
+      .eq("id", sub.id)
+      .select("*")
+      .single();
+
+    try {
+      await finalizePaymentConfirmation(sub.id);
+    } catch (e: any) {
+      console.error("finalizePaymentConfirmation failed:", e?.message ?? e);
+    }
+    return { status: "confirmed" as const, submission: updated };
   });
