@@ -3,6 +3,7 @@ import { getRequestHost, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { finalizePaymentConfirmation } from "./membership.server";
 
 type Tier = "associate" | "standard" | "corporate";
 
@@ -14,6 +15,13 @@ function siteOrigin() {
 
 const initSchema = z.object({
   tier: z.enum(["associate", "standard", "corporate"]),
+  gateway_id: z.string().uuid(),
+  pending_application_id: z.string().uuid().optional(),
+  kind: z.enum(["new", "renew"]).optional().default("new"),
+});
+
+const initAnonSchema = z.object({
+  pending_application_id: z.string().uuid(),
   gateway_id: z.string().uuid(),
 });
 
