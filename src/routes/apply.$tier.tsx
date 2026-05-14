@@ -9,6 +9,7 @@ import { DynamicForm, type FormField } from "@/components/forms/DynamicForm";
 import { initApplicationPayment } from "@/lib/payments.functions";
 import { createPendingApplication } from "@/lib/onboarding.functions";
 import { downloadFile } from "@/lib/forceDownload";
+import { PostDownloadModal } from "@/components/membership/PostDownloadModal";
 
 export const Route = createFileRoute("/apply/$tier")({
   head: () => ({ meta: [{ title: "Apply for Membership — FAGE Ghana" }] }),
@@ -27,8 +28,13 @@ function ApplyPage() {
   const [pending, setPending] = useState<any | null>(null);
   const [step, setStep] = useState<"loading" | "contact" | "pay" | "manual" | "form">("loading");
   const [contact, setContact] = useState({ full_name: "", email: "", phone: "", company_name: "" });
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const initPay = useServerFn(initApplicationPayment);
   const createPending = useServerFn(createPendingApplication);
+
+  const onlineGateways = gateways.filter((g) => g.provider !== "manual_bank");
+  const manualGateways = gateways.filter((g) => g.provider === "manual_bank");
+  const singleOnlineGateway = onlineGateways.length === 1 ? onlineGateways[0] : null;
 
   useEffect(() => {
     (async () => {
@@ -59,19 +65,29 @@ function ApplyPage() {
     setBusy(true);
     try {
       const res = await createPending({ data: { plan_id: plan.id, ...contact } });
-      setPending({ id: res.id, claim_token: res.claim_token, tier: res.tier });
+      const newPending = { id: res.id, claim_token: res.claim_token, tier: res.tier };
+      setPending(newPending);
+      // If exactly one online gateway and no manual option, skip the picker entirely.
+      if (singleOnlineGateway && manualGateways.length === 0) {
+        await payOnlineWith(newPending, singleOnlineGateway);
+        return;
+      }
       setStep("pay");
     } catch (e: any) { toast.error(e?.message ?? "Could not save details"); }
     finally { setBusy(false); }
   }
 
-  async function payOnline(g: any) {
-    if (!pending) return toast.error("Missing application");
+  async function payOnlineWith(p: { id: string }, g: any) {
     setBusy(true);
     try {
-      const { redirect_url } = await initPay({ data: { pending_application_id: pending.id, gateway_id: g.id } });
+      const { redirect_url } = await initPay({ data: { pending_application_id: p.id, gateway_id: g.id } });
       window.location.href = redirect_url;
     } catch (e: any) { toast.error(e?.message ?? "Could not start payment"); setBusy(false); }
+  }
+
+  async function payOnline(g: any) {
+    if (!pending) return toast.error("Missing application");
+    await payOnlineWith(pending, g);
   }
 
   async function submitForm(answers: Record<string, any>) {
@@ -93,6 +109,7 @@ function ApplyPage() {
   async function downloadPdf() {
     if (!plan.application_form_pdf_url) return toast.error("No form PDF available yet.");
     await downloadFile(plan.application_form_pdf_url, `FAGE-${tier}-application.pdf`);
+    setShowDownloadModal(true);
   }
 
   return (
@@ -132,22 +149,49 @@ function ApplyPage() {
           {step === "pay" && (
             <div className="space-y-4">
               <div className="rounded-2xl border border-border bg-card p-6">
-                <h2 className="mb-3 text-lg font-bold">Choose how to pay</h2>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {gateways.filter(g => g.provider !== "manual_bank").map(g => (
-                    <button key={g.id} disabled={busy} onClick={() => payOnline(g)} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary disabled:opacity-60">
-                      <CreditCard className="h-5 w-5 text-primary" />
-                      <div><div className="font-semibold">{g.name}</div><div className="text-xs capitalize text-muted-foreground">Pay online via {g.provider}</div></div>
+                {singleOnlineGateway ? (
+                  <>
+                    <h2 className="mb-1 text-lg font-bold">Pay {plan.currency} {Number(plan.amount).toLocaleString()}</h2>
+                    <p className="mb-4 text-sm text-muted-foreground">You'll be redirected to {singleOnlineGateway.name} to complete payment securely.</p>
+                    <button
+                      disabled={busy}
+                      onClick={() => payOnline(singleOnlineGateway)}
+                      className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      {busy ? "Redirecting…" : `Proceed to payment with ${singleOnlineGateway.name}`}
                     </button>
-                  ))}
-                  {gateways.some(g => g.provider === "manual_bank") && (
-                    <button onClick={() => setStep("manual")} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary">
-                      <Banknote className="h-5 w-5 text-primary" />
-                      <div><div className="font-semibold">Manual bank deposit</div><div className="text-xs text-muted-foreground">Pay into a FAGE bank account, then upload proof.</div></div>
-                    </button>
-                  )}
-                  {gateways.length === 0 && <p className="text-sm text-muted-foreground md:col-span-2">No payment methods configured yet. Please contact admin.</p>}
-                </div>
+                    {manualGateways.length > 0 && (
+                      <button onClick={() => setStep("manual")} className="ml-3 text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline">
+                        Or pay by bank deposit
+                      </button>
+                    )}
+                  </>
+                ) : onlineGateways.length > 1 ? (
+                  <>
+                    <h2 className="mb-3 text-lg font-bold">Choose how to pay</h2>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {onlineGateways.map(g => (
+                        <button key={g.id} disabled={busy} onClick={() => payOnline(g)} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary disabled:opacity-60">
+                          <CreditCard className="h-5 w-5 text-primary" />
+                          <div><div className="font-semibold">{g.name}</div><div className="text-xs capitalize text-muted-foreground">Pay online via {g.provider}</div></div>
+                        </button>
+                      ))}
+                      {manualGateways.length > 0 && (
+                        <button onClick={() => setStep("manual")} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary">
+                          <Banknote className="h-5 w-5 text-primary" />
+                          <div><div className="font-semibold">Manual bank deposit</div><div className="text-xs text-muted-foreground">Pay into a FAGE bank account, then upload proof.</div></div>
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : manualGateways.length > 0 ? (
+                  <button onClick={() => setStep("manual")} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
+                    <Banknote className="h-4 w-4" /> Continue with bank deposit
+                  </button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No payment methods configured yet. Please contact admin.</p>
+                )}
               </div>
               <div className="rounded-2xl border border-border bg-card p-6">
                 <div className="mb-2 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /><h3 className="text-lg font-bold">Need the printable form?</h3></div>
@@ -181,6 +225,13 @@ function ApplyPage() {
           )}
         </div>
       </section>
+
+      <PostDownloadModal
+        open={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        planName={`${String(tier).charAt(0).toUpperCase()}${String(tier).slice(1)} Membership form`}
+        message={plan.post_download_message ?? "Complete the form, attach your proof of payment, and email everything to membership@fageghana.org."}
+      />
     </SiteLayout>
   );
 }

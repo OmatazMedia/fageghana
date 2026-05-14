@@ -6,6 +6,7 @@ import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadFile } from "@/lib/forceDownload";
+import { PostDownloadModal } from "@/components/membership/PostDownloadModal";
 
 export const Route = createFileRoute("/membership")({
   head: () => ({
@@ -34,6 +35,7 @@ const benefits = [
 
 function MembershipPage() {
   const [plans, setPlans] = useState<any[]>([]);
+  const [modalPlan, setModalPlan] = useState<any | null>(null);
 
   useEffect(() => {
     void supabase.from("subscription_plans").select("*").order("amount").then(({ data }) => setPlans(data ?? []));
@@ -42,7 +44,7 @@ function MembershipPage() {
   async function handleDownload(plan: any) {
     if (!plan.application_form_pdf_url) return toast.error("No form available yet for this tier.");
     await downloadFile(plan.application_form_pdf_url, `FAGE-${plan.tier}-application.pdf`);
-    toast.message("Form downloaded", { description: plan.post_download_message ?? "", duration: 12000 });
+    setModalPlan(plan);
   }
 
   return (
@@ -116,6 +118,13 @@ function MembershipPage() {
           </div>
         </div>
       </section>
+
+      <PostDownloadModal
+        open={!!modalPlan}
+        onClose={() => setModalPlan(null)}
+        planName={modalPlan ? `${String(modalPlan.tier).charAt(0).toUpperCase()}${String(modalPlan.tier).slice(1)} Membership form` : ""}
+        message={modalPlan?.post_download_message ?? "Complete the form, attach your proof of payment, and email everything to membership@fageghana.org."}
+      />
     </SiteLayout>
   );
 }
