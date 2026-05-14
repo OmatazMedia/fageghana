@@ -27,7 +27,7 @@ async function loadPlan(planId: string | null, tier: string | null) {
     if (data) return data;
   }
   if (tier) {
-    const { data } = await supabaseAdmin.from("subscription_plans").select("*").eq("tier", tier).maybeSingle();
+    const { data } = await supabaseAdmin.from("subscription_plans").select("*").eq("tier", tier as any).maybeSingle();
     if (data) return data;
   }
   throw new Error("Plan not found");
