@@ -60,6 +60,7 @@ const PARTNERS = [
 
 
 type News = { id: string; title: string; slug: string; excerpt: string | null; cover_image_url: string | null; published_at: string };
+type Product = { id: string; name: string; image_url: string | null };
 
 /* ── Static product showcase data ─────────────────────────────────────── */
 const SHOWCASE_PRODUCTS = [
