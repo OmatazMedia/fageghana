@@ -28,8 +28,13 @@ function ApplyPage() {
   const [pending, setPending] = useState<any | null>(null);
   const [step, setStep] = useState<"loading" | "contact" | "pay" | "manual" | "form">("loading");
   const [contact, setContact] = useState({ full_name: "", email: "", phone: "", company_name: "" });
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const initPay = useServerFn(initApplicationPayment);
   const createPending = useServerFn(createPendingApplication);
+
+  const onlineGateways = gateways.filter((g) => g.provider !== "manual_bank");
+  const manualGateways = gateways.filter((g) => g.provider === "manual_bank");
+  const singleOnlineGateway = onlineGateways.length === 1 ? onlineGateways[0] : null;
 
   useEffect(() => {
     (async () => {
