@@ -118,7 +118,7 @@ function AdminLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        <nav className="flex-1 overflow-y-hidden px-3 py-4 space-y-5">
           {navSections.map((section) => (
             <div key={section.label}>
               <div className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">
