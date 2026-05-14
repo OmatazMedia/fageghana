@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell } from "@/components/admin/AdminShell";
 
-export const Route = createFileRoute("/admin/certificates/issued")({
+export const Route = createFileRoute("/admin/cert-issued")({
   head: () => ({ meta: [{ title: "Issued Certificates — Admin" }] }),
   component: Issued,
 });

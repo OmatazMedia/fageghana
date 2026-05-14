@@ -5,7 +5,7 @@ import { ArrowLeft, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell } from "@/components/admin/AdminShell";
 
-export const Route = createFileRoute("/admin/certificates/issue")({
+export const Route = createFileRoute("/admin/cert-batch")({
   head: () => ({ meta: [{ title: "Batch Issue Certificates — Admin" }] }),
   component: BatchIssue,
 });
