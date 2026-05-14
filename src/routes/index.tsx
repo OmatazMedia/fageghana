@@ -420,7 +420,7 @@ function HomePage() {
             </p>
           </Reveal>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <AnimatedStat value={1992} label="Operational Since" static />
+            <AnimatedStat value={1992} label="Operational Since" noSeparator />
             <AnimatedStat value={2800} suffix="+" label="Members Added" />
             <AnimatedStat value={4.8} decimals={1} prefix="$" suffix="B" label="Export Value Enabled" />
           </div>

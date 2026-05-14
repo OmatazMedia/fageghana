@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
+import { AnimatedStat } from "@/components/site/AnimatedStat";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/about/who-we-are")({
@@ -197,18 +198,9 @@ function WhoWeArePage() {
             </p>
           </Reveal>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            {[
-              { num: "1992", label: "Operational Since" },
-              { num: "2,800+", label: "Members Added" },
-              { num: "$4.8B", label: "Export Value Enabled" },
-            ].map((n, i) => (
-              <Reveal key={n.label} variant="scale" delay={(i + 1) as 1 | 2 | 3}>
-                <div className="rounded-2xl bg-card p-10 shadow-sm">
-                  <div className="text-5xl font-bold text-primary">{n.num}</div>
-                  <div className="mt-3 text-sm uppercase tracking-wider text-muted-foreground">{n.label}</div>
-                </div>
-              </Reveal>
-            ))}
+            <AnimatedStat value={1992} label="Operational Since" noSeparator />
+            <AnimatedStat value={2800} suffix="+" label="Members Added" />
+            <AnimatedStat value={4.8} decimals={1} prefix="$" suffix="B" label="Export Value Enabled" />
           </div>
         </div>
       </section>
