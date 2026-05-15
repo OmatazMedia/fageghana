@@ -22,6 +22,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
+import { Route as ReceiptIdRouteImport } from './routes/receipt.$id'
 import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
@@ -44,6 +45,7 @@ import { Route as AdminCertBatchRouteImport } from './routes/admin.cert-batch'
 import { Route as AdminBackupRouteImport } from './routes/admin.backup'
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
+import { Route as AccountChangePasswordRouteImport } from './routes/account.change-password'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
 import { Route as ApiPublicHubtelCallbackRouteImport } from './routes/api/public/hubtel-callback'
@@ -112,6 +114,11 @@ const VerifyCodeRoute = VerifyCodeRouteImport.update({
   id: '/$code',
   path: '/$code',
   getParentRoute: () => VerifyRoute,
+} as any)
+const ReceiptIdRoute = ReceiptIdRouteImport.update({
+  id: '/receipt/$id',
+  path: '/receipt/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PaymentCallbackRoute = PaymentCallbackRouteImport.update({
   id: '/payment/callback',
@@ -223,6 +230,11 @@ const AdminActivitiesRoute = AdminActivitiesRouteImport.update({
   path: '/activities',
   getParentRoute: () => AdminRoute,
 } as any)
+const AccountChangePasswordRoute = AccountChangePasswordRouteImport.update({
+  id: '/account/change-password',
+  path: '/account/change-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
   id: '/about/who-we-are',
   path: '/about/who-we-are',
@@ -254,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/services': typeof ServicesRoute
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/account/change-password': typeof AccountChangePasswordRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
@@ -276,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/payment/callback': typeof PaymentCallbackRoute
+  '/receipt/$id': typeof ReceiptIdRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
@@ -294,6 +308,7 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesRoute
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/account/change-password': typeof AccountChangePasswordRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
@@ -316,6 +331,7 @@ export interface FileRoutesByTo {
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/payment/callback': typeof PaymentCallbackRoute
+  '/receipt/$id': typeof ReceiptIdRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
@@ -335,6 +351,7 @@ export interface FileRoutesById {
   '/services': typeof ServicesRoute
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
+  '/account/change-password': typeof AccountChangePasswordRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
@@ -357,6 +374,7 @@ export interface FileRoutesById {
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/payment/callback': typeof PaymentCallbackRoute
+  '/receipt/$id': typeof ReceiptIdRoute
   '/verify/$code': typeof VerifyCodeRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
@@ -377,6 +395,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/verify'
     | '/about/who-we-are'
+    | '/account/change-password'
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/backup'
@@ -399,6 +418,7 @@ export interface FileRouteTypes {
     | '/certificate/$id'
     | '/news/$slug'
     | '/payment/callback'
+    | '/receipt/$id'
     | '/verify/$code'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
@@ -417,6 +437,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/verify'
     | '/about/who-we-are'
+    | '/account/change-password'
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/backup'
@@ -439,6 +460,7 @@ export interface FileRouteTypes {
     | '/certificate/$id'
     | '/news/$slug'
     | '/payment/callback'
+    | '/receipt/$id'
     | '/verify/$code'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
@@ -457,6 +479,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/verify'
     | '/about/who-we-are'
+    | '/account/change-password'
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/backup'
@@ -479,6 +502,7 @@ export interface FileRouteTypes {
     | '/certificate/$id'
     | '/news/$slug'
     | '/payment/callback'
+    | '/receipt/$id'
     | '/verify/$code'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
@@ -498,9 +522,11 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   VerifyRoute: typeof VerifyRouteWithChildren
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
+  AccountChangePasswordRoute: typeof AccountChangePasswordRoute
   ApplyTierRoute: typeof ApplyTierRoute
   CertificateIdRoute: typeof CertificateIdRoute
   PaymentCallbackRoute: typeof PaymentCallbackRoute
+  ReceiptIdRoute: typeof ReceiptIdRoute
   ApiPublicHubtelCallbackRoute: typeof ApiPublicHubtelCallbackRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
 }
@@ -597,6 +623,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/verify/$code'
       preLoaderRoute: typeof VerifyCodeRouteImport
       parentRoute: typeof VerifyRoute
+    }
+    '/receipt/$id': {
+      id: '/receipt/$id'
+      path: '/receipt/$id'
+      fullPath: '/receipt/$id'
+      preLoaderRoute: typeof ReceiptIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/payment/callback': {
       id: '/payment/callback'
@@ -752,6 +785,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminActivitiesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/account/change-password': {
+      id: '/account/change-password'
+      path: '/account/change-password'
+      fullPath: '/account/change-password'
+      preLoaderRoute: typeof AccountChangePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about/who-we-are': {
       id: '/about/who-we-are'
       path: '/about/who-we-are'
@@ -855,21 +895,14 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   VerifyRoute: VerifyRouteWithChildren,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
+  AccountChangePasswordRoute: AccountChangePasswordRoute,
   ApplyTierRoute: ApplyTierRoute,
   CertificateIdRoute: CertificateIdRoute,
   PaymentCallbackRoute: PaymentCallbackRoute,
+  ReceiptIdRoute: ReceiptIdRoute,
   ApiPublicHubtelCallbackRoute: ApiPublicHubtelCallbackRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
