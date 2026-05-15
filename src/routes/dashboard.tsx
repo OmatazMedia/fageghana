@@ -334,16 +334,15 @@ function SubscriptionTab({ profile, userId, onChange }: { profile: any; userId: 
   const [plans, setPlans] = useState<any[]>([]);
   const [gateways, setGateways] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [selectedGateway, setSelectedGateway] = useState<string>("");
-  const [reference, setReference] = useState("");
-  const [memberMessage, setMemberMessage] = useState("");
-  const [proofFile, setProofFile] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [renewOpen, setRenewOpen] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [pickGatewayFor, setPickGatewayFor] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const initRenew = useServerFn(initRenewalPayment);
 
   const refresh = useCallback(async () => {
     const [p, g, s] = await Promise.all([
-      supabase.from("subscription_plans").select("*"),
+      supabase.from("subscription_plans").select("*").eq("active", true).order("display_order"),
       supabase.from("payment_gateways").select("*").eq("enabled", true).order("display_order"),
       supabase.from("payment_submissions").select("*, payment_gateways(name,provider)").eq("user_id", userId).order("created_at", { ascending: false }),
     ]);
@@ -355,112 +354,63 @@ function SubscriptionTab({ profile, userId, onChange }: { profile: any; userId: 
   useEffect(() => { void refresh(); }, [refresh]);
 
   const myPlan = plans.find(p => p.tier === profile.tier);
-  const selected = gateways.find(g => g.id === selectedGateway);
+  const onlineGateways = gateways.filter(g => g.provider !== "manual_bank");
+  const manualGateways = gateways.filter(g => g.provider === "manual_bank");
+  const singleOnline = onlineGateways.length === 1 ? onlineGateways[0] : null;
 
-  async function submitPayment(e: React.FormEvent) {
-    e.preventDefault();
-    if (!myPlan || !selected) return toast.error("Select a payment method");
-    setSubmitting(true);
+  const expiry = profile.subscription_expiry ? new Date(profile.subscription_expiry) : null;
+  const expired = expiry ? expiry.getTime() < Date.now() : true;
+  const daysLeft = expiry ? Math.ceil((expiry.getTime() - Date.now()) / 86400000) : null;
+
+  async function payWithGateway(planId: string, gatewayId: string) {
+    setBusy(true);
     try {
-      let proofUrl: string | null = null;
-      if (proofFile && selected.provider === "manual_bank") {
-        const path = `${userId}/${Date.now()}-${proofFile.name}`;
-        const { error: upErr } = await supabase.storage.from("payment-proofs").upload(path, proofFile);
-        if (upErr) throw upErr;
-        proofUrl = path;
-      }
-      const { error } = await supabase.from("payment_submissions").insert({
-        user_id: userId,
-        gateway_id: selected.id,
-        method: selected.provider === "manual_bank" ? "manual_bank" : "online",
-        amount: myPlan.amount,
-        currency: myPlan.currency,
-        duration_months: myPlan.duration_months,
-        reference: reference || null,
-        proof_url: proofUrl,
-        member_message: memberMessage || null,
-      });
-      if (error) throw error;
-      toast.success("Payment submitted. Admin will confirm shortly.");
-      setShowForm(false); setReference(""); setMemberMessage(""); setProofFile(null); setSelectedGateway("");
-      await refresh();
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to submit");
-    } finally {
-      setSubmitting(false);
+      const { redirect_url } = await initRenew({ data: { plan_id: planId, gateway_id: gatewayId } });
+      window.location.href = redirect_url;
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not start payment");
+      setBusy(false);
     }
+  }
+
+  function choosePlan(planId: string) {
+    setSelectedPlanId(planId);
+    if (singleOnline && manualGateways.length === 0) {
+      void payWithGateway(planId, singleOnline.id);
+      return;
+    }
+    setPickGatewayFor(planId);
   }
 
   return (
     <div className="space-y-6">
+      {/* Active subscription card */}
       <div className="rounded-2xl bg-card p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold">Your subscription</h2>
-            <p className="text-sm text-muted-foreground">
-              Plan: <span className="font-semibold capitalize">{profile.tier}</span>
-              {myPlan && <> · {myPlan.currency} {Number(myPlan.amount).toLocaleString()} / {myPlan.duration_months} months</>}
-            </p>
-            <p className="mt-1 text-sm">Expires: <span className="font-semibold">{profile.subscription_expiry ? new Date(profile.subscription_expiry).toLocaleDateString() : "—"}</span></p>
+            <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
+              <div><div className="text-xs text-muted-foreground">Member ID</div><div className="font-semibold">{profile.member_id ?? "Pending"}</div></div>
+              <div><div className="text-xs text-muted-foreground">Tier</div><div className="font-semibold capitalize">{profile.tier}</div></div>
+              <div><div className="text-xs text-muted-foreground">Plan</div><div className="font-semibold">{myPlan ? `${myPlan.currency} ${Number(myPlan.amount).toLocaleString()}` : "—"}</div></div>
+              <div><div className="text-xs text-muted-foreground">Status</div>
+                <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${!expiry || expired ? "bg-destructive/10 text-destructive" : "bg-emerald-100 text-emerald-700"}`}>
+                  {!expiry ? "Inactive" : expired ? "Expired" : "Active"}
+                </span>
+              </div>
+              <div><div className="text-xs text-muted-foreground">Started</div><div className="font-semibold">{profile.subscription_start ? new Date(profile.subscription_start).toLocaleDateString() : "—"}</div></div>
+              <div><div className="text-xs text-muted-foreground">Expires</div><div className="font-semibold">{expiry ? expiry.toLocaleDateString() : "—"}</div></div>
+              <div><div className="text-xs text-muted-foreground">Days left</div><div className="font-semibold">{daysLeft === null ? "—" : daysLeft < 0 ? "Expired" : `${daysLeft}`}</div></div>
+              <div><div className="text-xs text-muted-foreground">Duration</div><div className="font-semibold">{myPlan ? `${myPlan.duration_months} months` : "—"}</div></div>
+            </div>
           </div>
-          <button onClick={() => setShowForm(s => !s)} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
-            {showForm ? "Cancel" : profile.subscription_expiry ? "Renew now" : "Pay now"}
+          <button onClick={() => setRenewOpen(true)} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
+            {profile.subscription_expiry ? "Renew membership" : "Activate membership"}
           </button>
         </div>
-
-        {showForm && (
-          <form onSubmit={submitPayment} className="mt-6 space-y-4 border-t border-border pt-6">
-            <div>
-              <label className="mb-2 block text-sm font-medium">Payment method</label>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {gateways.length === 0 && <p className="text-sm text-muted-foreground">No payment methods configured yet. Please contact admin.</p>}
-                {gateways.map(g => (
-                  <label key={g.id} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 ${selectedGateway === g.id ? "border-primary bg-primary/5" : "border-border"}`}>
-                    <input type="radio" name="gw" value={g.id} checked={selectedGateway === g.id} onChange={() => setSelectedGateway(g.id)} />
-                    <div>
-                      <div className="font-medium">{g.name}</div>
-                      <div className="text-xs text-muted-foreground capitalize">{g.provider.replace("_", " ")}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {selected?.provider === "manual_bank" && selected.bank_details && (
-              <div className="rounded-lg bg-muted/40 p-4 text-sm">
-                <div className="mb-2 font-semibold">Bank details</div>
-                {Object.entries(selected.bank_details as Record<string, string>).map(([k, v]) => (
-                  <div key={k} className="flex justify-between"><span className="text-muted-foreground capitalize">{k.replace(/_/g, " ")}</span><span className="font-medium">{v}</span></div>
-                ))}
-                <p className="mt-3 text-xs text-muted-foreground">After making the deposit, upload your proof and reference below.</p>
-              </div>
-            )}
-
-            {selected && (
-              <>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">Payment reference / transaction ID</label>
-                  <input className={inputCls} value={reference} onChange={e => setReference(e.target.value)} placeholder="e.g. TXN12345" />
-                </div>
-                {selected.provider === "manual_bank" && (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium">Upload payment proof</label>
-                    <input type="file" accept="image/*,application/pdf" onChange={e => setProofFile(e.target.files?.[0] ?? null)} className={inputCls} />
-                  </div>
-                )}
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">Message to admin (optional)</label>
-                  <textarea className={inputCls} rows={2} value={memberMessage} onChange={e => setMemberMessage(e.target.value)} />
-                </div>
-                <button type="submit" disabled={submitting} className="rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
-                  {submitting ? "Submitting…" : "Submit payment"}
-                </button>
-              </>
-            )}
-          </form>
-        )}
       </div>
 
+      {/* Payment history */}
       <div className="rounded-2xl bg-card p-6 shadow-sm">
         <h3 className="mb-4 text-base font-bold">Payment history</h3>
         {submissions.length === 0 ? (
@@ -468,17 +418,93 @@ function SubscriptionTab({ profile, userId, onChange }: { profile: any; userId: 
         ) : (
           <div className="space-y-3">
             {submissions.map(s => (
-              <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+              <div key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm">
                 <div>
                   <div className="font-semibold">{s.currency} {Number(s.amount).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">via {s.payment_gateways?.name ?? s.method}</span></div>
                   <div className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString()} · Ref: {s.reference || "—"}</div>
                   {s.admin_notes && <div className="mt-1 text-xs"><span className="font-semibold">Admin:</span> {s.admin_notes}</div>}
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-xs capitalize ${s.status === "confirmed" ? "bg-emerald-100 text-emerald-700" : s.status === "rejected" ? "bg-destructive/10 text-destructive" : "bg-amber-100 text-amber-700"}`}>{s.status}</span>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-xs capitalize ${s.status === "confirmed" ? "bg-emerald-100 text-emerald-700" : s.status === "rejected" ? "bg-destructive/10 text-destructive" : "bg-amber-100 text-amber-700"}`}>{s.status}</span>
+                  {s.status === "confirmed" && (
+                    <Link to="/receipt/$id" params={{ id: s.id }} className="inline-flex items-center gap-1 rounded-full border border-primary px-3 py-1 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground">
+                      <Receipt className="h-3 w-3" /> Receipt
+                    </Link>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         )}
+      </div>
+
+      {/* Renew modal — pick a plan */}
+      {renewOpen && !pickGatewayFor && (
+        <Modal onClose={() => setRenewOpen(false)} title="Choose a membership plan">
+          <p className="mb-4 text-sm text-muted-foreground">
+            Renew on your current plan to extend your expiry, or upgrade/downgrade — your member ID will update to match the new plan.
+          </p>
+          <div className="space-y-3">
+            {plans.length === 0 && <p className="text-sm text-muted-foreground">No plans available right now.</p>}
+            {plans.map(p => {
+              const isCurrent = p.tier === profile.tier;
+              return (
+                <button
+                  key={p.id}
+                  disabled={busy}
+                  onClick={() => choosePlan(p.id)}
+                  className={`flex w-full items-start justify-between gap-3 rounded-xl border p-4 text-left transition hover:border-primary disabled:opacity-60 ${isCurrent ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold capitalize">{p.name ?? p.tier}</div>
+                      {isCurrent && <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">Your current plan</span>}
+                    </div>
+                    {p.description && <div className="mt-1 text-xs text-muted-foreground">{p.description}</div>}
+                    <div className="mt-1 text-xs text-muted-foreground">{p.duration_months} months</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold">{p.currency} {Number(p.amount).toLocaleString()}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </Modal>
+      )}
+
+      {/* Gateway picker (only when more than one gateway exists) */}
+      {pickGatewayFor && (
+        <Modal onClose={() => { setPickGatewayFor(null); setRenewOpen(true); }} title="Choose payment method">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {onlineGateways.map(g => (
+              <button key={g.id} disabled={busy} onClick={() => payWithGateway(pickGatewayFor, g.id)} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary disabled:opacity-60">
+                <CreditCard className="h-5 w-5 text-primary" />
+                <div><div className="font-semibold">{g.name}</div><div className="text-xs capitalize text-muted-foreground">Pay online via {g.provider}</div></div>
+              </button>
+            ))}
+            {manualGateways.map(g => (
+              <button key={g.id} disabled={busy} onClick={() => payWithGateway(pickGatewayFor, g.id)} className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-left hover:border-primary disabled:opacity-60">
+                <Banknote className="h-5 w-5 text-primary" />
+                <div><div className="font-semibold">{g.name}</div><div className="text-xs text-muted-foreground">Manual bank deposit</div></div>
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-2xl rounded-2xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold">{title}</h2>
+          <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-accent"><X className="h-4 w-4" /></button>
+        </div>
+        {children}
       </div>
     </div>
   );
