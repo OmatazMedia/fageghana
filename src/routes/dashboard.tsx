@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import {
   LogOut, Loader2, BadgeCheck, Calendar, CreditCard, FileDown, Bell, MessageCircle,
-  Building2, Mail, Phone, MapPin, Briefcase, Upload, Send, X, Menu, ChevronDown, User as UserIcon, Home, Settings, Check, Receipt, Banknote
+  Building2, Mail, Phone, MapPin, Briefcase, Upload, Send, X, Menu, ChevronDown, User as UserIcon, Home, Settings, Receipt, Banknote
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
