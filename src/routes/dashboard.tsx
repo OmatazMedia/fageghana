@@ -3,10 +3,12 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import {
   LogOut, Loader2, BadgeCheck, Calendar, CreditCard, FileDown, Bell, MessageCircle,
-  Building2, Mail, Phone, MapPin, Briefcase, Upload, Send, X, Menu, ChevronDown, User as UserIcon, Home, Settings
+  Building2, Mail, Phone, MapPin, Briefcase, Upload, Send, X, Menu, ChevronDown, User as UserIcon, Home, Settings, Check, Receipt, Banknote
 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { initRenewalPayment } from "@/lib/payments.functions";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Member Dashboard — FAGE Ghana" }] }),
@@ -29,7 +31,11 @@ function Dashboard() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
+    if (loading) return;
+    if (!user) { navigate({ to: "/login" }); return; }
+    if ((user.user_metadata as any)?.must_change_password) {
+      navigate({ to: "/account/change-password" });
+    }
   }, [loading, user, navigate]);
 
   const loadProfile = useCallback(async () => {
