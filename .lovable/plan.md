@@ -1,43 +1,68 @@
-## Plan: Associate form PDF + centered download modal + single-gateway flow
+## 1. Payment gateway — skip picker when only one is enabled
 
-### 1. Add the Associate membership PDF
-- Copy uploaded `FAGE-Membership-Form-ASSOC.pdf` to `public/forms/FAGE-Membership-Form-ASSOC.pdf`.
-- Upload it to the `content` storage bucket via `supabase--storage_upload` so it has a public URL.
-- Update `subscription_plans` row for `tier='associate'` → set `application_form_pdf_url` to the public URL (insert tool, no schema change).
-- (Standard tier keeps current behaviour — corporate PDF already wired.)
+**Public application funnel (`/apply/$tier`)** already auto-skips when exactly one online gateway exists and no manual_bank — keep as is.
 
-### 2. Seed Associate dynamic form (19 fields from the PDF)
-Insert/upsert into `application_forms` (tier=`associate`, published=true) a JSON schema mirroring the PDF:
-1. Date • 2. Association Name • 3. Address • 4. Telephone • 5. Fax • 6. Email • 7. Website
-8. Bankers (repeatable: name + address, up to 3) • 9. Auditors (name + address)
-10. Legal Status (radio: Ltd / Partnership / Sole Prop / Ltd by Guarantee / Cooperative / Branch of Foreign / Agent of Foreign / Other)
-11. Type of Activity (checkboxes: Producer-Manufacturer / Producer-Exporter / Manufacturer-Exporter / Exporter / Other)
-12. Products • 13. % Exported per Annum
-14. Executives (repeatable: name + designation, up to 4)
-15. Contact Person / CEO • 16. Location • 17. Postal Address
-18. Cert. of Incorporation No + Date • 19. Cert. to Commence Business No + Date
-20. No. of Management • No. of Workers
-21. File upload: company profile (1 page) — optional
+**Member dashboard → Subscription tab** currently has its own manual form that just `INSERT`s a `payment_submissions` row (no real checkout redirect). Replace it with the same logic:
+- 1 enabled online gateway → single "Pay {amount} with {Gateway}" button → calls `initRenewalPayment` → redirects to provider
+- multiple → grid of gateway cards
+- include manual_bank as a secondary option (upload proof) when configured
 
-### 3. Centered post-download modal (replace toast)
-New component `src/components/membership/PostDownloadModal.tsx`:
-- Fixed overlay, dialog centered on screen (`fixed inset-0 grid place-items-center z-50`).
-- Shows plan name, the `post_download_message` from DB, an "I've got it" close button, and a small countdown ("Closes automatically in 40s").
-- Auto-dismisses after 40 000 ms via `setTimeout` (cleared on manual close/unmount). No outside-click dismiss so users can read it.
-- Used in both `src/routes/membership.tsx` and `src/routes/apply.$tier.tsx` (replace current `toast.message(...)` calls).
+## 2. Deterministic temporary password + forced reset
 
-### 4. Single payment gateway — skip the picker
-In `src/routes/apply.$tier.tsx`:
-- When only one online (non-`manual_bank`) gateway is enabled, the `pay` step renders a single "Proceed to payment with {gateway.name}" button (one click → `payOnline(g)`), no card grid.
-- If `manual_bank` is also enabled, show it as a secondary "Or pay by bank deposit" link below.
-- If multiple online gateways exist, keep current grid (future-proof).
-- Same simplification applied at the contact-step submit: if exactly one online gateway exists and no manual_bank, auto-advance straight from contact submission into `payOnline()` (skip `pay` step entirely).
+In `src/lib/membership.server.ts → ensureUserForEmail`, replace `randomPassword()` with:
 
-### Files touched
-- new: `public/forms/FAGE-Membership-Form-ASSOC.pdf`
-- new: `src/components/membership/PostDownloadModal.tsx`
-- edit: `src/routes/membership.tsx`, `src/routes/apply.$tier.tsx`
-- data: storage upload + `subscription_plans` UPDATE + `application_forms` UPSERT (no migrations)
+```
+tempPassword = `${firstName}@${lastPhone2}`   // e.g. "Kwame@47"
+```
 
-### Out of scope
-Per-field admin toggles, signature slots, welcome modal/confetti, backup-restore work — tracked from earlier turns, not touched here.
+- `firstName` = first whitespace-separated token of `full_name`, capitalised, stripped of non-alphanumerics, fallback `Member`
+- `lastPhone2` = last 2 digits of `phone`, fallback `00`
+- still set `user_metadata.must_change_password: true`
+- still pass `tempPassword` to the welcome notification body
+
+**Forced password change**:
+- Add `src/routes/account.change-password.tsx` — guarded route that reads `user.user_metadata.must_change_password`, shows a single "New password / Confirm" form, calls `supabase.auth.updateUser({ password, data: { must_change_password: false } })`, then redirects to `/dashboard`.
+- In `src/components/auth/AuthProvider.tsx` (or `src/routes/dashboard.tsx` guard), if `must_change_password === true`, redirect to `/account/change-password` and block dashboard access until cleared.
+
+## 3. Welcome email with login details
+
+The project does not yet have an email domain configured. To actually send branded emails we need to set one up first — see question below. While that's pending, the existing in-app notification (already inserted in `finalizePaymentConfirmation`) will continue to carry the temp password + login link so nothing is lost.
+
+Once the domain is set up, scaffold transactional emails and add a `sendWelcomeEmail(email, fullName, tempPassword, loginLink)` call inside `finalizePaymentConfirmation` right after the notification insert.
+
+## 4. Subscription tab — active details, renew flow, receipt
+
+Rewrite `SubscriptionTab` in `src/routes/dashboard.tsx`:
+
+**When active subscription exists** — show a card with: Member ID, tier, plan name, amount, start, expiry, days remaining, and a "Renew membership" button.
+
+**Renew modal** — opens a dialog listing every active `subscription_plans` row (current plan visually marked "Your current plan"). User picks a plan, then picks a gateway (skipped if only one online gateway), then is redirected via `initRenewalPayment({ plan_id, gateway_id })`.
+
+Server side (already implemented in `membership.server.ts → finalizePaymentConfirmation`):
+- same plan → extend `subscription_expiry` by `duration_months`, keep `member_id`
+- different plan → regenerate `member_id` via `generate_member_id(_tier)`, reset `subscription_start = now`, set new expiry
+
+**Receipt** — for each row in payment history, when `status = 'confirmed'`, add a "Download receipt" button that opens a printable HTML receipt page (`/receipt/$id`) showing FAGE logo, member name + ID, plan, amount, currency, reference, gateway, paid date, expiry — with a print stylesheet so the user can print to PDF / save.
+
+## 5. Blog post template
+
+`src/routes/news.$slug.tsx` already exists and renders: hero cover, category badge, title, author/date/category meta, excerpt blockquote, HTML/plain-text body, prev/next nav, related articles, and a sticky sidebar (recent posts + CTA). All `Link to="/news/$slug"` from `news.tsx` route here. **No changes needed** unless you want a styling refresh — flag if so.
+
+## Technical notes
+
+- `initRenewalPayment` already exists and accepts `{ plan_id, gateway_id }`; reuse it rather than building a new endpoint.
+- Receipt route is read-only (member RLS on `payment_submissions` already restricts to `auth.uid() = user_id`).
+- No new DB migrations required.
+- `must_change_password` is read from `auth.users.user_metadata` client-side via `supabase.auth.getUser()`; no schema change.
+
+## Out of scope
+
+- Admin gateway CRUD (already works at `/admin/gateways`).
+- Backup/restore.
+- Public site redesign.
+
+## One question before I build
+
+Email delivery requires a verified sender domain. Do you want me to:
+**(a)** set up an email domain now (you'll need access to your domain's DNS), so the welcome email + temp password can actually be sent, **or**
+**(b)** ship just the in-app notification for now (already shows temp password + login link) and add email later?
