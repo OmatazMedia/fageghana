@@ -5,11 +5,13 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type Tier = "associate" | "standard" | "corporate";
 
-function randomPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let out = "";
-  for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out + "!7";
+function deterministicPassword(fullName: string, phone: string): string {
+  const firstRaw = (fullName || "").trim().split(/\s+/)[0] || "Member";
+  const cleaned = firstRaw.replace(/[^A-Za-z0-9]/g, "") || "Member";
+  const first = cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+  const digits = (phone || "").replace(/\D/g, "");
+  const last2 = digits.length >= 2 ? digits.slice(-2) : (digits + "00").slice(0, 2);
+  return `${first}@${last2}`;
 }
 
 function siteOriginFromEnv(): string {
@@ -17,7 +19,7 @@ function siteOriginFromEnv(): string {
   return base.replace(/\/+$/, "");
 }
 
-async function ensureUserForEmail(email: string, fullName: string): Promise<{ userId: string; created: boolean; tempPassword?: string }> {
+async function ensureUserForEmail(email: string, fullName: string, phone: string): Promise<{ userId: string; created: boolean; tempPassword?: string }> {
   // Try to find existing user by paginating admin.listUsers
   let page = 1;
   while (true) {
@@ -29,7 +31,7 @@ async function ensureUserForEmail(email: string, fullName: string): Promise<{ us
     page += 1;
     if (page > 25) break; // safety
   }
-  const tempPassword = randomPassword();
+  const tempPassword = deterministicPassword(fullName, phone);
   const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: tempPassword,
@@ -80,7 +82,7 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
       .eq("id", sub.pending_application_id)
       .maybeSingle();
     if (pending) {
-      const { userId: uid, created, tempPassword } = await ensureUserForEmail(pending.email, pending.full_name);
+      const { userId: uid, created, tempPassword } = await ensureUserForEmail(pending.email, pending.full_name, pending.phone ?? "");
       userId = uid;
 
       // Link submission to user
