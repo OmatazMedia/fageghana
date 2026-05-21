@@ -2,6 +2,7 @@
 // Not a *.functions.ts file — only imported by server fns and server routes.
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendTemplate } from "@/lib/email/send.server";
 
 type Tier = "associate" | "standard" | "corporate";
 
