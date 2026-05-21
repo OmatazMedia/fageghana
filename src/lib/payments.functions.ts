@@ -249,7 +249,13 @@ export const verifyPayment = createServerFn({ method: "POST" })
 
     let confirmed = false;
     if (sub.method === "paystack") {
-      const key = process.env.PAYSTACK_SECRET_KEY!;
+      let key = process.env.PAYSTACK_SECRET_KEY;
+      if (sub.gateway_id) {
+        const { data: gw } = await supabaseAdmin.from("payment_gateways").select("config").eq("id", sub.gateway_id).maybeSingle();
+        const fromRow = (gw?.config as any)?.secret_key as string | undefined;
+        if (fromRow) key = fromRow;
+      }
+      if (!key) throw new Error("Paystack secret key not configured");
       const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(data.reference)}`, {
         headers: { Authorization: `Bearer ${key}` },
       });
