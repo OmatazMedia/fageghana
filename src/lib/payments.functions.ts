@@ -80,8 +80,8 @@ export const initApplicationPayment = createServerFn({ method: "POST" })
     if (subErr) throw new Error(subErr.message);
 
     if (gateway.provider === "paystack") {
-      const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-      if (!PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured");
+      const PAYSTACK_SECRET_KEY = (gateway.config?.secret_key as string) || process.env.PAYSTACK_SECRET_KEY;
+      if (!PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured — add a secret key in Admin → Gateways");
       const res = await fetch("https://api.paystack.co/transaction/initialize", {
         method: "POST",
         headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
