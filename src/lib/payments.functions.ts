@@ -80,8 +80,8 @@ export const initApplicationPayment = createServerFn({ method: "POST" })
     if (subErr) throw new Error(subErr.message);
 
     if (gateway.provider === "paystack") {
-      const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-      if (!PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured");
+      const PAYSTACK_SECRET_KEY = ((gateway.config as any)?.secret_key as string) || process.env.PAYSTACK_SECRET_KEY;
+      if (!PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured — add a secret key in Admin → Gateways");
       const res = await fetch("https://api.paystack.co/transaction/initialize", {
         method: "POST",
         headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
@@ -179,7 +179,8 @@ export const initRenewalPayment = createServerFn({ method: "POST" })
     if (subErr) throw new Error(subErr.message);
 
     if (gateway.provider === "paystack") {
-      const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
+      const PAYSTACK_SECRET_KEY = ((gateway.config as any)?.secret_key as string) || process.env.PAYSTACK_SECRET_KEY;
+      if (!PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured — add a secret key in Admin → Gateways");
       const res = await fetch("https://api.paystack.co/transaction/initialize", {
         method: "POST",
         headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
@@ -248,7 +249,13 @@ export const verifyPayment = createServerFn({ method: "POST" })
 
     let confirmed = false;
     if (sub.method === "paystack") {
-      const key = process.env.PAYSTACK_SECRET_KEY!;
+      let key = process.env.PAYSTACK_SECRET_KEY;
+      if (sub.gateway_id) {
+        const { data: gw } = await supabaseAdmin.from("payment_gateways").select("config").eq("id", sub.gateway_id).maybeSingle();
+        const fromRow = (gw?.config as any)?.secret_key as string | undefined;
+        if (fromRow) key = fromRow;
+      }
+      if (!key) throw new Error("Paystack secret key not configured");
       const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(data.reference)}`, {
         headers: { Authorization: `Bearer ${key}` },
       });

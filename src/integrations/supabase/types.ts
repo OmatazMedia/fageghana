@@ -208,6 +208,126 @@ export type Database = {
           },
         ]
       }
+      email_log: {
+        Row: {
+          created_at: string
+          error: string | null
+          fallback_used: boolean
+          id: string
+          provider: string
+          status: string
+          subject: string
+          template_key: string | null
+          to_email: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          fallback_used?: boolean
+          id?: string
+          provider: string
+          status: string
+          subject?: string
+          template_key?: string | null
+          to_email: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          fallback_used?: boolean
+          id?: string
+          provider?: string
+          status?: string
+          subject?: string
+          template_key?: string | null
+          to_email?: string
+        }
+        Relationships: []
+      }
+      email_settings: {
+        Row: {
+          id: string
+          primary_provider: string
+          resend_api_key: string | null
+          resend_enabled: boolean
+          resend_from: string | null
+          singleton: boolean
+          smtp_enabled: boolean
+          smtp_from: string | null
+          smtp_host: string | null
+          smtp_password: string | null
+          smtp_port: number | null
+          smtp_secure: boolean
+          smtp_user: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          primary_provider?: string
+          resend_api_key?: string | null
+          resend_enabled?: boolean
+          resend_from?: string | null
+          singleton?: boolean
+          smtp_enabled?: boolean
+          smtp_from?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_secure?: boolean
+          smtp_user?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          primary_provider?: string
+          resend_api_key?: string | null
+          resend_enabled?: boolean
+          resend_from?: string | null
+          singleton?: boolean
+          smtp_enabled?: boolean
+          smtp_from?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_secure?: boolean
+          smtp_user?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          blocks: Json
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          name: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          name: string
+          subject?: string
+          updated_at?: string
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          name?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       media: {
         Row: {
           category: string

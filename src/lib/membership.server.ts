@@ -2,6 +2,7 @@
 // Not a *.functions.ts file — only imported by server fns and server routes.
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendTemplate } from "@/lib/email/send.server";
 
 type Tier = "associate" | "standard" | "corporate";
 
@@ -104,6 +105,16 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
         body,
         link: loginLink ?? "/dashboard",
       });
+      // Send welcome email (best-effort)
+      try {
+        await sendTemplate("welcome", pending.email, {
+          name: pending.full_name,
+          tier: tier ?? pending.tier,
+          temp_password: tempPassword ?? "(use your existing password)",
+          member_id: "(set after activation)",
+          login_url: loginLink ?? `${siteOriginFromEnv()}/dashboard`,
+        });
+      } catch (e: any) { console.error("welcome email failed:", e?.message ?? e); }
     }
   }
 
