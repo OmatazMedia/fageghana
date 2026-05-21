@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { finalizePaymentConfirmation } from "@/lib/membership.server";
 
 export const Route = createFileRoute("/api/public/paystack-webhook")({
   server: {
