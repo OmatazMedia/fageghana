@@ -33,8 +33,8 @@ export const saveEmailSettings = createServerFn({ method: "POST" })
     const { data: existing } = await supabaseAdmin.from("email_settings").select("id, resend_api_key, smtp_password").limit(1).maybeSingle();
     // If a secret field is sent empty, keep the existing one
     const merged: any = { ...data };
-    if (!merged.resend_api_key && existing?.resend_api_key) merged.resend_api_key = existing.resend_api_key;
-    if (!merged.smtp_password && existing?.smtp_password) merged.smtp_password = existing.smtp_password;
+    if ((!merged.resend_api_key || String(merged.resend_api_key).startsWith("••••")) && existing?.resend_api_key) merged.resend_api_key = existing.resend_api_key;
+    if ((!merged.smtp_password || String(merged.smtp_password).startsWith("••••")) && existing?.smtp_password) merged.smtp_password = existing.smtp_password;
     if (existing?.id) {
       const { error } = await supabaseAdmin.from("email_settings").update(merged).eq("id", existing.id);
       if (error) throw new Error(error.message);
