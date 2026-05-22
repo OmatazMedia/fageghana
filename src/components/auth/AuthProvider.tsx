@@ -30,36 +30,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
 
+    // Helper to check admin role and update loading state
+    const checkAndLoadSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      if (data.session?.user) {
+        const admin = await checkAdminRoleSync(data.session.user.id);
+        if (!cancelled) setIsAdmin(admin);
+      }
+      if (!cancelled) setLoading(false);
+    };
+
     // Subscribe FIRST, then load existing session
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (cancelled) return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
-        setTimeout(() => {
-          void checkAdminRole(newSession.user.id);
-        }, 0);
+        void checkAdminRoleSync(newSession.user.id).then(admin => {
+          if (!cancelled) setIsAdmin(admin);
+        });
       } else {
         setIsAdmin(false);
       }
     });
 
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (cancelled) return;
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
-        if (data.session?.user) {
-          void checkAdminRole(data.session.user.id);
-        }
-      })
-      .catch((e) => {
-        console.error("[auth] getSession failed", e);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    void checkAndLoadSession();
 
     return () => {
       cancelled = true;
@@ -67,15 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function checkAdminRole(userId: string) {
+  async function checkAdminRoleSync(userId: string): Promise<boolean> {
     const { data, error } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
-    if (!error && data) setIsAdmin(true);
-    else setIsAdmin(false);
+    return !error && !!data;
   }
 
   async function signIn(email: string, password: string) {

@@ -32,10 +32,9 @@ function Dashboard() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) { navigate({ to: "/login" }); return; }
-    if ((user.user_metadata as any)?.must_change_password) {
-      navigate({ to: "/account/change-password" });
+    if (!loading && !user) navigate({ to: "/login", replace: true });
+    else if (!loading && user && (user.user_metadata as any)?.must_change_password) {
+      navigate({ to: "/account/change-password", replace: true });
     }
   }, [loading, user, navigate]);
 

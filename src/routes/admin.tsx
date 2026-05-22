@@ -82,7 +82,8 @@ function AdminLayout() {
 
   useEffect(() => {
     if (isLoginRoute) return;
-    if (!loading && (!user || !isAdmin)) navigate({ to: "/" });
+    if (!loading && !user) navigate({ to: "/", replace: true });
+    else if (!loading && user && !isAdmin) navigate({ to: "/", replace: true });
   }, [loading, user, isAdmin, navigate, isLoginRoute]);
 
   if (isLoginRoute) return <Outlet />;
