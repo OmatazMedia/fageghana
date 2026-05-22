@@ -322,3 +322,27 @@ export const verifyPayment = createServerFn({ method: "POST" })
     }
     return { status: "confirmed" as const, submission: updated };
   });
+
+export const testPaymentGateway = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ gateway_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: role } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
+    if (!role) throw new Error("Admin only");
+    const gateway = await loadGateway(data.gateway_id);
+    if (gateway.provider !== "paystack") return { ok: false, message: `Testing is not available for ${gateway.provider}` };
+    const secret = paystackSecret(gateway);
+    const publicKey = paystackPublicKey(gateway);
+    if (!secret || !publicKey) return { ok: false, message: "Add both Paystack public and secret keys first." };
+    const res = await fetch("https://api.paystack.co/bank?currency=GHS", {
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+    const json: any = await res.json().catch(() => ({}));
+    if (!res.ok || !json?.status) return { ok: false, message: json?.message ?? `Paystack returned ${res.status}` };
+    return {
+      ok: true,
+      message: "Paystack keys are valid and can reach the gateway.",
+      callback_url: `${siteOrigin()}/payment/callback`,
+      webhook_url: `${siteOrigin()}/api/public/paystack-webhook`,
+    };
+  });
