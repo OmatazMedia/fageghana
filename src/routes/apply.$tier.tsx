@@ -82,7 +82,7 @@ function ApplyPage() {
     setBusy(true);
     try {
       const payment = await initPay({ data: { pending_application_id: p.id, gateway_id: g.id } });
-      if (payment.mode === "paystack_inline") {
+      if ("mode" in payment && payment.mode === "paystack_inline") {
         await openPaystackInline(payment, () => setBusy(false));
         return;
       }
