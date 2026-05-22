@@ -59,6 +59,15 @@ export const getEmailSettings = createServerFn({ method: "POST" })
     };
   });
 
+export const listEmailTemplates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin.from("email_templates").select("*").order("name");
+    if (error) throw new Error(error.message);
+    return { templates: data ?? [] };
+  });
+
 export const sendTestEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ to: z.string().email(), provider: z.enum(["resend", "smtp", "auto"]).default("auto") }).parse(d))
