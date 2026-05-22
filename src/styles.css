@@ -390,3 +390,21 @@
 .reveal-delay-4 { animation-delay: 0.4s !important; }
 .reveal-delay-5 { animation-delay: 0.5s !important; }
 .reveal-delay-6 { animation-delay: 0.6s !important; }
+
+/* ── Scrollbar hiding utilities ─────────────────────────────────────── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

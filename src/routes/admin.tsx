@@ -120,7 +120,7 @@ function AdminLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-hidden px-3 py-4 space-y-5">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 scrollbar-hide">
           {navSections.map((section) => (
             <div key={section.label}>
               <div className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">
@@ -154,6 +154,8 @@ function AdminLayout() {
         <div className="border-t border-white/10 p-3 space-y-0.5">
           <Link
             to="/"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white transition-all"
           >
             <ExternalLink className="h-4 w-4" /> View site
