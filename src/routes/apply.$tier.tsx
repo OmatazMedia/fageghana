@@ -10,6 +10,7 @@ import { initApplicationPayment } from "@/lib/payments.functions";
 import { createPendingApplication } from "@/lib/onboarding.functions";
 import { downloadFile } from "@/lib/forceDownload";
 import { PostDownloadModal } from "@/components/membership/PostDownloadModal";
+import { openPaystackInline } from "@/lib/paystackInline";
 
 export const Route = createFileRoute("/apply/$tier")({
   head: () => ({ meta: [{ title: "Apply for Membership — FAGE Ghana" }] }),
@@ -80,8 +81,12 @@ function ApplyPage() {
   async function payOnlineWith(p: { id: string }, g: any) {
     setBusy(true);
     try {
-      const { redirect_url } = await initPay({ data: { pending_application_id: p.id, gateway_id: g.id } });
-      window.location.href = redirect_url;
+      const payment = await initPay({ data: { pending_application_id: p.id, gateway_id: g.id } });
+      if (payment.mode === "paystack_inline") {
+        await openPaystackInline(payment, () => setBusy(false));
+        return;
+      }
+      window.location.href = payment.redirect_url;
     } catch (e: any) { toast.error(e?.message ?? "Could not start payment"); setBusy(false); }
   }
 
@@ -152,14 +157,14 @@ function ApplyPage() {
                 {singleOnlineGateway ? (
                   <>
                     <h2 className="mb-1 text-lg font-bold">Pay {plan.currency} {Number(plan.amount).toLocaleString()}</h2>
-                    <p className="mb-4 text-sm text-muted-foreground">You'll be redirected to {singleOnlineGateway.name} to complete payment securely.</p>
+                    <p className="mb-4 text-sm text-muted-foreground">{singleOnlineGateway.provider === "paystack" ? "A secure Paystack checkout will open here." : `You'll be redirected to ${singleOnlineGateway.name} to complete payment securely.`}</p>
                     <button
                       disabled={busy}
                       onClick={() => payOnline(singleOnlineGateway)}
                       className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
                     >
                       <CreditCard className="h-4 w-4" />
-                      {busy ? "Redirecting…" : `Proceed to payment with ${singleOnlineGateway.name}`}
+                      {busy ? "Opening checkout…" : `Proceed to payment with ${singleOnlineGateway.name}`}
                     </button>
                     {manualGateways.length > 0 && (
                       <button onClick={() => setStep("manual")} className="ml-3 text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline">
