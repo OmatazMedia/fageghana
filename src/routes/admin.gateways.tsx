@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
+import { testPaymentGateway } from "@/lib/payments.functions";
 
 export const Route = createFileRoute("/admin/gateways")({
   head: () => ({ meta: [{ title: "Payment Gateways — Admin" }] }),
@@ -12,6 +14,8 @@ export const Route = createFileRoute("/admin/gateways")({
 function GatewaysPage() {
   const [items, setItems] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const testGateway = useServerFn(testPaymentGateway);
 
   async function load() {
     const { data } = await supabase.from("payment_gateways").select("*").order("display_order");
@@ -48,6 +52,19 @@ function GatewaysPage() {
     await load();
   }
 
+  async function runGatewayTest(g: any) {
+    setTestingId(g.id);
+    try {
+      const res = await testGateway({ data: { gateway_id: g.id } });
+      if (res.ok) toast.success(res.message);
+      else toast.error(res.message);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Gateway test failed");
+    } finally {
+      setTestingId(null);
+    }
+  }
+
   return (
     <AdminShell title="Payment Gateways" description="Configure Paystack, Hubtel, Flutterwave, or manual bank deposit options."
       action={<button onClick={() => setEditing({})} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Add gateway</button>}>
@@ -57,8 +74,14 @@ function GatewaysPage() {
             <div>
               <div className="font-semibold">{g.name} <span className="ml-2 text-xs text-muted-foreground capitalize">{g.provider.replace("_"," ")}</span></div>
               <div className="text-xs text-muted-foreground">Order {g.display_order}</div>
+              {g.provider === "paystack" && <div className="mt-1 text-xs text-muted-foreground">Webhook: /api/public/paystack-webhook · Callback: /payment/callback</div>}
             </div>
             <div className="flex items-center gap-2">
+              {g.provider === "paystack" && (
+                <button disabled={testingId === g.id} onClick={() => runGatewayTest(g)} className="rounded-full border border-primary px-3 py-1 text-xs font-semibold text-primary disabled:opacity-60">
+                  {testingId === g.id ? "Testing…" : "Test connection"}
+                </button>
+              )}
               <button onClick={() => toggle(g)} className={`rounded-full px-3 py-1 text-xs ${g.enabled ? "bg-emerald-100 text-emerald-700" : "bg-muted"}`}>{g.enabled ? "Enabled" : "Disabled"}</button>
               <button onClick={() => setEditing(g)} className="text-sm text-primary">Edit</button>
               <button onClick={() => remove(g.id)} className="text-sm text-destructive">Delete</button>

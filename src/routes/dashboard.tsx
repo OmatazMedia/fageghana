@@ -9,6 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { initRenewalPayment } from "@/lib/payments.functions";
+import { openPaystackInline } from "@/lib/paystackInline";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Member Dashboard — FAGE Ghana" }] }),
@@ -365,8 +366,12 @@ function SubscriptionTab({ profile, userId, onChange }: { profile: any; userId: 
   async function payWithGateway(planId: string, gatewayId: string) {
     setBusy(true);
     try {
-      const { redirect_url } = await initRenew({ data: { plan_id: planId, gateway_id: gatewayId } });
-      window.location.href = redirect_url;
+      const payment = await initRenew({ data: { plan_id: planId, gateway_id: gatewayId } });
+      if ("mode" in payment && payment.mode === "paystack_inline") {
+        await openPaystackInline(payment, () => setBusy(false));
+        return;
+      }
+      window.location.href = payment.redirect_url;
     } catch (e: any) {
       toast.error(e?.message ?? "Could not start payment");
       setBusy(false);

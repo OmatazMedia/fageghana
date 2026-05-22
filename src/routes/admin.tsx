@@ -4,7 +4,7 @@ import type React from "react";
 import {
   Newspaper, Package, CalendarDays, Image as ImageIcon, Users, LogOut, Home,
   CreditCard, Award, Bell, MessageCircle, Settings, BarChart3, Layers,
-  ListChecks, AlertCircle, FormInput, Tag, UserPlus, DatabaseBackup,
+  ListChecks, AlertCircle, FormInput, Tag, UserPlus, DatabaseBackup, Mail, FileText,
   ChevronRight, ExternalLink, TrendingUp, TrendingDown,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -65,6 +65,8 @@ const navSections: NavSection[] = [
       { to: "/admin/plans", label: "Plans & Forms", icon: Tag },
       { to: "/admin/forms", label: "Form Builder", icon: FormInput },
       { to: "/admin/gateways", label: "Gateways", icon: Settings },
+      { to: "/admin/email-settings", label: "Email Settings", icon: Mail },
+      { to: "/admin/email-templates", label: "Email Templates", icon: FileText },
       { to: "/admin/reports", label: "Reports", icon: BarChart3 },
       { to: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup },
     ],

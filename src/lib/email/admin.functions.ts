@@ -33,8 +33,8 @@ export const saveEmailSettings = createServerFn({ method: "POST" })
     const { data: existing } = await supabaseAdmin.from("email_settings").select("id, resend_api_key, smtp_password").limit(1).maybeSingle();
     // If a secret field is sent empty, keep the existing one
     const merged: any = { ...data };
-    if (!merged.resend_api_key && existing?.resend_api_key) merged.resend_api_key = existing.resend_api_key;
-    if (!merged.smtp_password && existing?.smtp_password) merged.smtp_password = existing.smtp_password;
+    if ((!merged.resend_api_key || String(merged.resend_api_key).startsWith("••••")) && existing?.resend_api_key) merged.resend_api_key = existing.resend_api_key;
+    if ((!merged.smtp_password || String(merged.smtp_password).startsWith("••••")) && existing?.smtp_password) merged.smtp_password = existing.smtp_password;
     if (existing?.id) {
       const { error } = await supabaseAdmin.from("email_settings").update(merged).eq("id", existing.id);
       if (error) throw new Error(error.message);
@@ -57,6 +57,15 @@ export const getEmailSettings = createServerFn({ method: "POST" })
       resend_api_key: data.resend_api_key ? "••••••••" + (data.resend_api_key as string).slice(-4) : "",
       smtp_password: data.smtp_password ? "••••••••" : "",
     };
+  });
+
+export const listEmailTemplates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin.from("email_templates").select("*").order("name");
+    if (error) throw new Error(error.message);
+    return { templates: data ?? [] };
   });
 
 export const sendTestEmail = createServerFn({ method: "POST" })

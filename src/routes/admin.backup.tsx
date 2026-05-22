@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { supabase } from "@/integrations/supabase/client";
-import { downloadFile } from "@/lib/forceDownload";
 import {
   createBackup,
   listBackups,
@@ -54,6 +53,22 @@ function BackupPage() {
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  async function downloadBackup(path: string, filename = path) {
+    const { data, error } = await supabase.storage.from("backups").download(path);
+    if (error || !data) {
+      toast.error(error?.message ?? "Could not download backup");
+      return;
+    }
+    const blobUrl = URL.createObjectURL(new Blob([data], { type: "application/zip" }));
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename.endsWith(".zip") ? filename : `${filename}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  }
+
   async function refresh() {
     try {
       const r = await runList();
@@ -76,7 +91,7 @@ function BackupPage() {
       setProgress(100);
       setLog(r.log ?? []);
       toast.success(`Backup ready (${fmtSize(r.sizeBytes)})`);
-      if (r.url) await downloadFile(r.url, r.filename);
+      await downloadBackup(r.path, r.filename);
       await refresh();
     } catch (e: any) {
       toast.error(e.message);
@@ -299,7 +314,7 @@ function BackupPage() {
                   <td className="px-2 py-2">{b.created_at ? new Date(b.created_at).toLocaleString() : "—"}</td>
                   <td className="px-2 py-2 text-right">
                     {b.url && (
-                      <button onClick={() => downloadFile(b.url, b.name)} className="mr-2 text-primary hover:underline">Download</button>
+                      <button onClick={() => downloadBackup(b.name, b.name)} className="mr-2 text-primary hover:underline">Download</button>
                     )}
                     <button onClick={() => deleteBackup(b.name)} className="text-destructive hover:underline">
                       <Trash2 className="inline h-3.5 w-3.5" />

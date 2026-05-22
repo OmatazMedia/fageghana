@@ -11,12 +11,13 @@ export const Route = createFileRoute("/payment/callback")({
   validateSearch: (s: Record<string, unknown>) => ({
     reference: (s.reference as string) || (s.trxref as string) || "",
     provider: (s.provider as string) || "",
+    token: (s.token as string) || "",
   }),
   component: PaymentCallback,
 });
 
 function PaymentCallback() {
-  const { reference } = Route.useSearch();
+  const { reference, token } = Route.useSearch();
   const navigate = useNavigate();
   const verify = useServerFn(verifyPayment);
   const [state, setState] = useState<"verifying" | "ok" | "pending" | "error">("verifying");
@@ -32,11 +33,15 @@ function PaymentCallback() {
         if (cancelled) return;
         if (res.status === "confirmed") {
           setState("ok");
-          setMessage("Payment confirmed! Redirecting to your application…");
-          // Re-issue cert if member already exists; route into apply form using tier from member_message
-          const { data: sub } = await supabase.from("payment_submissions").select("member_message").eq("reference", reference).maybeSingle();
-          const tier = sub?.member_message?.replace("tier:", "") || "standard";
-          setTimeout(() => navigate({ to: "/apply/$tier", params: { tier } }), 1200);
+          const { data: sub } = await supabase.from("payment_submissions").select("kind,member_message").eq("reference", reference).maybeSingle();
+          const tier = (/tier:([a-z0-9_-]+)/i.exec(sub?.member_message ?? "")?.[1]) || "standard";
+          if (sub?.kind === "renew") {
+            setMessage("Payment confirmed! Redirecting to your dashboard…");
+            setTimeout(() => navigate({ to: "/dashboard" }), 1200);
+          } else {
+            setMessage("Payment confirmed! Redirecting to your application…");
+            setTimeout(() => navigate({ to: "/apply/$tier", params: { tier }, search: { token } }), 1200);
+          }
         } else if (attempts < 8) {
           attempts++;
           setTimeout(run, 2000);
@@ -52,7 +57,7 @@ function PaymentCallback() {
     }
     void run();
     return () => { cancelled = true; };
-  }, [reference, verify, navigate]);
+  }, [reference, token, verify, navigate]);
 
   return (
     <SiteLayout>
