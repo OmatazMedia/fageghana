@@ -21,6 +21,59 @@ async function loadGateway(gatewayId: string) {
   return gateway;
 }
 
+function paystackSecret(gateway: any) {
+  return (((gateway.config as any)?.secret_key as string | undefined) || process.env.PAYSTACK_SECRET_KEY || "").trim();
+}
+
+function paystackPublicKey(gateway: any) {
+  return (((gateway.config as any)?.public_key as string | undefined) || process.env.PAYSTACK_PUBLIC_KEY || "").trim();
+}
+
+async function initializePaystack(input: {
+  gateway: any;
+  email: string;
+  amount: number;
+  currency: string;
+  reference: string;
+  callbackUrl: string;
+  metadata: Record<string, any>;
+  submissionId: string;
+}) {
+  const secret = paystackSecret(input.gateway);
+  const publicKey = paystackPublicKey(input.gateway);
+  if (!secret) throw new Error("Paystack is not configured — add a secret key in Admin → Gateways");
+  if (!publicKey) throw new Error("Paystack is not configured — add a public key in Admin → Gateways");
+  const res = await fetch("https://api.paystack.co/transaction/initialize", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: input.email,
+      amount: Math.round(Number(input.amount) * 100),
+      currency: input.currency || "GHS",
+      reference: input.reference,
+      callback_url: input.callbackUrl,
+      metadata: input.metadata,
+    }),
+  });
+  const json: any = await res.json().catch(() => ({}));
+  if (!res.ok || !json?.status) {
+    await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${json?.message ?? res.status}` }).eq("id", input.submissionId);
+    throw new Error(`Paystack init failed: ${json?.message ?? res.status}`);
+  }
+  return {
+    mode: "paystack_inline" as const,
+    redirect_url: json.data.authorization_url as string,
+    authorization_url: json.data.authorization_url as string,
+    access_code: json.data.access_code as string | undefined,
+    public_key: publicKey,
+    email: input.email,
+    amount: Math.round(Number(input.amount) * 100),
+    currency: input.currency || "GHS",
+    reference: input.reference,
+    callback_url: input.callbackUrl,
+  };
+}
+
 async function loadPlan(planId: string | null, tier: string | null) {
   if (planId) {
     const { data } = await supabaseAdmin.from("subscription_plans").select("*").eq("id", planId).maybeSingle();
@@ -80,26 +133,16 @@ export const initApplicationPayment = createServerFn({ method: "POST" })
     if (subErr) throw new Error(subErr.message);
 
     if (gateway.provider === "paystack") {
-      const PAYSTACK_SECRET_KEY = ((gateway.config as any)?.secret_key as string) || process.env.PAYSTACK_SECRET_KEY;
-      if (!PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured — add a secret key in Admin → Gateways");
-      const res = await fetch("https://api.paystack.co/transaction/initialize", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: pending.email,
-          amount: Math.round(Number(plan.amount) * 100),
-          currency: plan.currency || "GHS",
-          reference,
-          callback_url: `${origin}/payment/callback?token=${pending.claim_token}`,
-          metadata: { pending_application_id: pending.id, tier: plan.tier, submission_id: sub.id },
-        }),
+      return initializePaystack({
+        gateway,
+        email: pending.email,
+        amount: Number(plan.amount),
+        currency: plan.currency || "GHS",
+        reference,
+        callbackUrl: `${origin}/payment/callback?token=${pending.claim_token}`,
+        metadata: { pending_application_id: pending.id, tier: plan.tier, submission_id: sub.id },
+        submissionId: sub.id,
       });
-      const json: any = await res.json();
-      if (!res.ok || !json?.status) {
-        await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${json?.message ?? res.status}` }).eq("id", sub.id);
-        throw new Error(`Paystack init failed: ${json?.message ?? res.status}`);
-      }
-      return { redirect_url: json.data.authorization_url as string, reference };
     }
 
     if (gateway.provider === "hubtel") {
@@ -179,26 +222,16 @@ export const initRenewalPayment = createServerFn({ method: "POST" })
     if (subErr) throw new Error(subErr.message);
 
     if (gateway.provider === "paystack") {
-      const PAYSTACK_SECRET_KEY = ((gateway.config as any)?.secret_key as string) || process.env.PAYSTACK_SECRET_KEY;
-      if (!PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured — add a secret key in Admin → Gateways");
-      const res = await fetch("https://api.paystack.co/transaction/initialize", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          amount: Math.round(Number(plan.amount) * 100),
-          currency: plan.currency || "GHS",
-          reference,
-          callback_url: `${origin}/payment/callback`,
-          metadata: { user_id: context.userId, tier: plan.tier, kind: "renew", submission_id: sub.id },
-        }),
+      return initializePaystack({
+        gateway,
+        email,
+        amount: Number(plan.amount),
+        currency: plan.currency || "GHS",
+        reference,
+        callbackUrl: `${origin}/payment/callback`,
+        metadata: { user_id: context.userId, tier: plan.tier, kind: "renew", submission_id: sub.id },
+        submissionId: sub.id,
       });
-      const json: any = await res.json();
-      if (!res.ok || !json?.status) {
-        await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${json?.message ?? res.status}` }).eq("id", sub.id);
-        throw new Error(`Paystack init failed: ${json?.message ?? res.status}`);
-      }
-      return { redirect_url: json.data.authorization_url as string, reference };
     }
 
     if (gateway.provider === "hubtel") {
