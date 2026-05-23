@@ -11,6 +11,7 @@ import { createPendingApplication } from "@/lib/onboarding.functions";
 import { downloadFile } from "@/lib/forceDownload";
 import { PostDownloadModal } from "@/components/membership/PostDownloadModal";
 import { openPaystackInline } from "@/lib/paystackInline";
+import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 
 export const Route = createFileRoute("/apply/$tier")({
   head: () => ({ meta: [{ title: "Apply for Membership — FAGE Ghana" }] }),
@@ -87,6 +88,10 @@ function ApplyPage() {
       const payment = await initPay({ data: { pending_application_id: p.id, gateway_id: g.id } });
       if ("mode" in payment && payment.mode === "paystack_inline") {
         await openPaystackInline(payment, () => setBusy(false));
+        return;
+      }
+      if ("mode" in payment && payment.mode === "flutterwave_inline") {
+        await openFlutterwaveInline(payment, () => setBusy(false));
         return;
       }
       window.location.href = payment.redirect_url;

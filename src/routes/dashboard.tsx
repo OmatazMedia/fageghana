@@ -10,6 +10,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { initRenewalPayment } from "@/lib/payments.functions";
 import { openPaystackInline } from "@/lib/paystackInline";
+import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Member Dashboard — FAGE Ghana" }] }),
@@ -245,7 +246,7 @@ function Dashboard() {
         </header>
 
         <main className="flex-1 overflow-auto p-4 lg:p-8">
-          {tab === "overview" && <OverviewTab profile={profile} userId={user!.id} />}
+          {tab === "overview" && <OverviewTab profile={profile} userId={user!.id} onRenew={() => setTab("subscription")} />}
           {tab === "subscription" && <SubscriptionTab profile={profile} userId={user!.id} onChange={loadProfile} />}
           {tab === "certificate" && <CertificateTab userId={user!.id} />}
           {tab === "notifications" && <NotificationsTab userId={user!.id} />}
@@ -270,7 +271,7 @@ function StatCard({ icon, label, value, hint }: any) {
   );
 }
 
-function OverviewTab({ profile, userId }: { profile: any; userId: string }) {
+function OverviewTab({ profile, userId, onRenew }: { profile: any; userId: string; onRenew: () => void }) {
   const [counts, setCounts] = useState({ apps: 0, payments: 0, certs: 0, notif: 0, tickets: 0 });
   useEffect(() => {
     void (async () => {
@@ -300,7 +301,7 @@ function OverviewTab({ profile, userId }: { profile: any; userId: string }) {
             <p className="font-semibold">{expired ? "Your membership has expired" : daysLeft === null ? "Activate your membership" : `Your membership expires in ${daysLeft} days`}</p>
             <p className="text-sm opacity-80">{expired ? "Renew now to restore your benefits and certificate." : "Renew now to keep your member ID, certificate and benefits active."}</p>
           </div>
-          <a href={profile.tier ? `/apply/${profile.tier}` : "/membership"} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Renew membership</a>
+          <button onClick={onRenew} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Renew membership</button>
         </div>
       )}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -375,6 +376,10 @@ function SubscriptionTab({ profile, userId, onChange }: { profile: any; userId: 
       const payment = await initRenew({ data: { plan_id: planId, gateway_id: gatewayId } });
       if ("mode" in payment && payment.mode === "paystack_inline") {
         await openPaystackInline(payment, () => setBusy(false));
+        return;
+      }
+      if ("mode" in payment && payment.mode === "flutterwave_inline") {
+        await openFlutterwaveInline(payment, () => setBusy(false));
         return;
       }
       window.location.href = payment.redirect_url;
