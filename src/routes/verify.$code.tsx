@@ -17,7 +17,8 @@ function VerifyPage() {
 
   useEffect(() => {
     void (async () => {
-      const { data } = await supabase.from("certificates").select("*").eq("verification_code", code).maybeSingle();
+      const { data: rows } = await supabase.rpc("verify_certificate" as any, { _code: code });
+      const data = Array.isArray(rows) ? rows[0] : rows;
       setCert(data);
       if (data?.template_id) {
         const { data: t } = await supabase.from("certificate_templates").select("*").eq("id", data.template_id).maybeSingle();

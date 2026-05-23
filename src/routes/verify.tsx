@@ -68,11 +68,8 @@ function VerifyMemberPage() {
     setSearched(false);
     setCertResult(null);
 
-    const { data } = await supabase
-      .from("certificates")
-      .select("full_name, member_id, tier, issued_at, expires_at, revoked, verification_code")
-      .eq("verification_code", query.trim())
-      .maybeSingle();
+    const { data: rows } = await supabase.rpc("verify_certificate" as any, { _code: query.trim() });
+    const data = Array.isArray(rows) ? rows[0] : rows;
 
     setCertResult(data ?? "not_found");
     setSearched(true);
