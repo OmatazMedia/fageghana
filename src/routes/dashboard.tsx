@@ -300,7 +300,7 @@ function OverviewTab({ profile, userId }: { profile: any; userId: string }) {
             <p className="font-semibold">{expired ? "Your membership has expired" : daysLeft === null ? "Activate your membership" : `Your membership expires in ${daysLeft} days`}</p>
             <p className="text-sm opacity-80">{expired ? "Renew now to restore your benefits and certificate." : "Renew now to keep your member ID, certificate and benefits active."}</p>
           </div>
-          <a href={profile.tier ? `/apply/${profile.tier}` : "/membership"} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Renew membership</a>
+          <button onClick={() => onChange()} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Renew membership</button>
         </div>
       )}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
