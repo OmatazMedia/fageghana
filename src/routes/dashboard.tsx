@@ -10,6 +10,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { initRenewalPayment } from "@/lib/payments.functions";
 import { openPaystackInline } from "@/lib/paystackInline";
+import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Member Dashboard — FAGE Ghana" }] }),
@@ -375,6 +376,10 @@ function SubscriptionTab({ profile, userId, onChange }: { profile: any; userId: 
       const payment = await initRenew({ data: { plan_id: planId, gateway_id: gatewayId } });
       if ("mode" in payment && payment.mode === "paystack_inline") {
         await openPaystackInline(payment, () => setBusy(false));
+        return;
+      }
+      if ("mode" in payment && payment.mode === "flutterwave_inline") {
+        await openFlutterwaveInline(payment, () => setBusy(false));
         return;
       }
       window.location.href = payment.redirect_url;

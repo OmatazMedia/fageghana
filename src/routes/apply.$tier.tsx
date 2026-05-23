@@ -11,6 +11,7 @@ import { createPendingApplication } from "@/lib/onboarding.functions";
 import { downloadFile } from "@/lib/forceDownload";
 import { PostDownloadModal } from "@/components/membership/PostDownloadModal";
 import { openPaystackInline } from "@/lib/paystackInline";
+import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 
 export const Route = createFileRoute("/apply/$tier")({
   head: () => ({ meta: [{ title: "Apply for Membership — FAGE Ghana" }] }),
