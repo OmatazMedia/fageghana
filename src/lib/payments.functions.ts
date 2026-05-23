@@ -239,6 +239,21 @@ export const initApplicationPayment = createServerFn({ method: "POST" })
       return { redirect_url: checkoutUrl, reference };
     }
 
+    if (gateway.provider === "flutterwave") {
+      return initializeFlutterwave({
+        gateway,
+        email: pending.email,
+        name: pending.full_name,
+        phone: pending.phone,
+        amount: Number(plan.amount),
+        currency: plan.currency || "GHS",
+        reference,
+        callbackUrl: `${origin}/payment/callback?token=${pending.claim_token}`,
+        metadata: { pending_application_id: pending.id, tier: plan.tier, submission_id: sub.id },
+        submissionId: sub.id,
+      });
+    }
+
     throw new Error(`Online payments not supported for provider: ${gateway.provider}`);
   });
 
