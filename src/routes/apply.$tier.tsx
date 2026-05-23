@@ -41,14 +41,17 @@ function ApplyPage() {
     (async () => {
       const [{ data: p }, { data: g }, { data: form }] = await Promise.all([
         supabase.from("subscription_plans").select("*").eq("tier", tier as any).eq("active", true).maybeSingle(),
-        supabase.from("payment_gateways").select("*").eq("enabled", true).order("display_order"),
+        supabase.rpc("list_enabled_gateways" as any),
         supabase.from("application_forms").select("schema").eq("tier", tier as any).maybeSingle(),
       ]);
-      setPlan(p); setGateways(g ?? []); setFormSchema((form?.schema as any) ?? []);
+      // Shape gateway rows to include config.public_key for compatibility
+      const gateways = (g ?? []).map((row: any) => ({ ...row, config: { public_key: row.public_key } }));
+      setPlan(p); setGateways(gateways); setFormSchema((form?.schema as any) ?? []);
 
       if (token) {
         // Returning from payment with claim token — load pending + check submission
-        const { data: pa } = await supabase.from("pending_applications").select("*").eq("claim_token", token).maybeSingle();
+        const { data: paRows } = await supabase.rpc("get_pending_application" as any, { _token: token });
+        const pa = Array.isArray(paRows) ? paRows[0] : paRows;
         if (pa) {
           setPending(pa);
           if (pa.status === "paid" || pa.status === "claimed") { setStep("form"); return; }
