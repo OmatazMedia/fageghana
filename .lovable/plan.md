@@ -1,94 +1,84 @@
-# Plan: Paystack + Dual Email System + Template Builder
+## Goal
 
-## 1. Paystack — verify & wire to membership payments
+1. Keep renewals entirely inside the member dashboard (no redirect to `/apply/{tier}`).
+2. Open a modal that lists all plans, marks the member's **current** plan, lets them pick the same plan (extends expiry, same member ID) or a different one (new member ID for that tier — already handled server-side).
+3. Add **Flutterwave** as a first-class gateway alongside Paystack/Hubtel/Manual Bank, configurable from Admin → Gateways. The gateway the user picks at checkout is what processes the payment.
+4. Make sure receipts are downloadable from the dashboard (already wired — verify and surface clearly).
 
-**Current state:** `payment_gateways` row exists with `provider='paystack'` and `config.public_key/secret_key`. `paystack-webhook` server route reads `PAYSTACK_SECRET_KEY` env var. Gap: the admin-entered keys in DB are not used by `initApplicationPayment` / `initRenewalPayment`, and the webhook only checks env secret.
+The renewal flow logic on the server already handles "same tier → extend expiry, keep member_id" vs "different tier → mint new member_id" in `finalizePaymentConfirmation`, so this work is mostly wiring and adding the Flutterwave provider.
 
-**Fix:**
+---
 
-- `src/lib/payments.functions.ts`: when initiating a Paystack charge, read `secret_key` from the selected gateway row (fallback to `process.env.PAYSTACK_SECRET_KEY`). Build a real `POST https://api.paystack.co/transaction/initialize` call with `email`, `amount` (kobo), `reference`, `callback_url=/payment/callback?ref=…&pid=…`. Persist returned `authorization_url` and redirect the user there.
-- `payment.callback.tsx`: after Paystack redirects back, call a new `verifyPaystackPayment` server fn that hits `GET /transaction/verify/:reference` with the gateway's secret, marks `payment_submissions.status='confirmed'`, then runs the existing `finalizePaymentConfirmation` (creates user, member_id, sends welcome notification + email).
-- `paystack-webhook.ts`: also accept the gateway row's `secret_key` (lookup by reference → gateway_id) so admin-entered keys work without a Lovable secret.
-- Add a tiny "Test connection" button on `/admin/gateways` that calls Paystack `/bank` with the saved secret to confirm keys are valid.
+## Changes
 
-## 2. Email system — Resend (primary) + SMTP (fallback)
+### 1. Dashboard renewal banner — open modal instead of redirecting
 
-**New table `email_settings**` (single-row, admin-only RLS):
+File: `src/routes/dashboard.tsx`
 
-- `resend_api_key text`, `resend_from text`, `resend_enabled bool`
-- `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_secure bool`, `smtp_enabled bool`
-- `primary_provider text default 'resend'` (resend|smtp)
+- Replace the `<a href="/apply/{tier}">Renew membership</a>` banner CTA with a button that calls `setRenewOpen(true)`, so the existing plan-picker + gateway-picker modal flow handles everything in-dashboard.
+- The plan modal already badges the current plan ("Your current plan") — keep that.
+- Payment history already renders a "Receipt" link to `/receipt/$id` for each `payment_submissions` row. Add a small "Download" hint and ensure confirmed rows show it. (No business-logic change.)
 
-Secrets are stored in DB (admin convenience as chosen). RLS: only admins can select/update; service role reads it from server functions.
+### 2. Add Flutterwave to the payment server functions
 
-**New admin page `/admin/email-settings`:**
+File: `src/lib/payments.functions.ts`
 
-- Two cards (Resend / SMTP) with form fields, "Save" and "Send test email" buttons.
-- "Send test" calls `sendTestEmail` server fn for that provider and shows pass/fail + error.
+- Add `initializeFlutterwave({ gateway, email, name, phone, amount, currency, reference, callbackUrl, metadata, submissionId })` that POSTs to `https://api.flutterwave.com/v3/payments` with the gateway's `secret_key` and returns either:
+  - `{ mode: "flutterwave_inline", public_key, tx_ref, amount, currency, email, name, phone, callback_url }` for inline modal, or
+  - `{ redirect_url }` using the `data.link` from the API as a fallback.
+- In both `initApplicationPayment` and `initRenewalPayment`, add an `else if (gateway.provider === "flutterwave")` branch that calls `initializeFlutterwave`.
+- Extend `verifyPayment` with a `flutterwave` branch: call `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=<ref>` with the gateway's secret key and confirm `status === "successful"` and amount ≥ plan amount.
+- Extend `testPaymentGateway` to support Flutterwave by hitting `https://api.flutterwave.com/v3/banks/NG` (or `/GH`) with the secret key for a cheap auth probe.
 
-**New server module `src/lib/email/send.server.ts`:**
+### 3. Flutterwave inline modal loader
 
-- `sendEmail({ to, subject, html, text })` reads `email_settings`, tries `primary_provider` first, on any error/timeout (8s) falls back to the other if enabled, logs every attempt to a new `email_log` table (`provider`, `status`, `error`, `to`, `subject`, `template_id`, `created_at`).
-- Resend path: `fetch('https://api.resend.com/emails', Authorization: Bearer <key>)`.
-- SMTP path: use `nodemailer` (works under nodejs_compat). `bun add nodemailer @types/nodemailer`.
+New file: `src/lib/flutterwaveInline.ts`
 
-**Wire into existing flows:**
+- Mirror `paystackInline.ts`: load `https://checkout.flutterwave.com/v3.js`, call `window.FlutterwaveCheckout({...})` with `public_key`, `tx_ref`, `amount`, `currency`, `customer`, `callback`, `onclose`. On `callback`, redirect to `/payment/callback?reference=<tx_ref>&provider=flutterwave` so the existing callback page can verify.
+- Update `src/routes/dashboard.tsx` and `src/routes/apply.$tier.tsx` so that when `payment.mode === "flutterwave_inline"` they call `openFlutterwaveInline(payment)`.
 
-- `finalizePaymentConfirmation` → send "Welcome + temp password" email.
-- Renewal confirmation → send "Renewal receipt" email.
-- Password change / reset → use existing Supabase auth (unchanged).
-- Application form submitted → "Application received" email.
+### 4. Flutterwave webhook route
 
-## 3. Block-based drag-and-drop template editor
+New file: `src/routes/api/public/flutterwave-webhook.ts`
 
-**New tables:**
+- POST handler. Verify `verif-hash` header equals the gateway's stored `webhook_secret` (added below). On `event === "charge.completed"` and `data.status === "successful"`, look up `payment_submissions` by `tx_ref` (stored as `reference`), mark `status: "confirmed"`, and call `finalizePaymentConfirmation(sub.id)`.
 
-- `email_templates(id, key text unique, name, subject, blocks jsonb, updated_at)` — `key` is the system slug (e.g. `welcome`, `receipt`, `renewal`, `application_received`).
-- Seed 4 rows for the triggers above (defaults rendered from site theme).
+### 5. Admin → Gateways: Flutterwave config
 
-**New admin page `/admin/email-templates`:**
+File: `src/routes/admin.gateways.tsx`
 
-- Left: list of templates. Right: editor.
-- Editor uses `@dnd-kit/core` (already common; install if missing) with a palette of block types: **Heading, Text, Image, Button, Divider, Spacer, Two-column**.
-- Each block has an inline settings popover (text content, alignment, link URL, image upload via existing `uploadImage`).
-- Live preview pane on the right rendering the same HTML the mailer will send.
-- "Variables" chip list (e.g. `{{name}}`, `{{member_id}}`, `{{amount}}`, `{{temp_password}}`) inserts merge tags.
-- Subject field at the top.
+- The provider dropdown already lists Flutterwave. Add a Flutterwave-only optional field `webhook_secret` that is stored in `config.webhook_secret` (used by the webhook above). No schema change needed (`payment_gateways.config` is jsonb).
+- Surface the Flutterwave webhook URL (`/api/public/flutterwave-webhook`) and callback URL (`/payment/callback`) under the row, like Paystack already does.
+- Allow "Test connection" for Flutterwave the same way Paystack works.
 
-**Renderer `src/lib/email/render.ts`:**
+### 6. Payment callback page
 
-- `renderBlocks(blocks, variables)` returns `{html, text}`.
-- Wraps content in a responsive table layout themed with the site's tokens (primary color = FAGE green, brand font stack, logo header, footer with org address). Theme values are read from a small `email_theme.ts` constants file mirroring `src/styles.css` brand colors so emails match the website look.
+File: `src/routes/payment.callback.tsx`
 
-**Trigger code calls:**
+- Already calls `verifyPayment` with a reference. Confirm it accepts a `?reference=...&provider=flutterwave` query (it should, since verify dispatches by `payment_submissions.method`). No business logic change — just verify.
 
-```ts
-const tpl = await loadTemplate('welcome');
-const { html, text } = renderBlocks(tpl.blocks, { name, temp_password, member_id });
-await sendEmail({ to, subject: interpolate(tpl.subject, vars), html, text });
-```
+### 7. No DB migration required
+
+- `payment_gateways.config` is `jsonb` and already holds `public_key`/`secret_key`; adding `webhook_secret` is just another key in the same blob.
+- `payment_submissions.method` is text and will accept `"flutterwave"`.
+- `payment_submissions.reference` already holds the unique tx ref used as Flutterwave's `tx_ref`.
+
+---
 
 ## Technical notes
 
-- All admin pages gated by existing `has_role(auth.uid(),'admin')`.
-- `email_settings`, `email_templates`, `email_log` use admin-only RLS; nothing exposed publicly.
-- `nodemailer` is Worker-safe under nodejs_compat (uses `net`/`tls` which are supported).
-- Resend keys stored encrypted-at-rest by Supabase; never sent to client (admin page fetches via server fn that masks the key after save).
-- No changes to Lovable Cloud built-in email; this is a parallel, fully self-managed system per your spec.
+- Flutterwave amounts are sent as decimal (e.g. `120.00`), unlike Paystack's kobo/pesewa. Send `Number(plan.amount)` directly, not multiplied by 100.
+- Flutterwave currency must match the gateway's account country (GHS for Ghana accounts, NGN for Nigerian). The same friendly error wrapper used for Paystack ("change plan currency or contact support") should apply.
+- Inline modal flow: Flutterwave's `callback` fires before redirect, so we close the modal then `window.location.href = /payment/callback?reference=<tx_ref>&provider=flutterwave` to let the existing verify+redirect logic kick in.
+- Webhook signature: Flutterwave sends `verif-hash` as a plain string equal to the secret configured in their dashboard — direct string compare against `config.webhook_secret`.
+- No secret env vars need to be added; Flutterwave keys live in the `payment_gateways` row (same pattern as Paystack).
 
-## Out of scope (ask later if needed)
+---
 
-- Welcome email language/copy beyond a sensible default (you can edit in the builder).
-- Marketing/bulk sends — this stays transactional.
+## After implementation, the user must
 
-## Open questions before build
-
-1. **Templates to seed**: I'll start with Welcome + Temp Password, Payment Receipt, Renewal Receipt, Application Received. Add/remove any?
-2. **SMTP "secure" default**: assume TLS on port 465, STARTTLS on 587 — OK?  
+1. In Admin → Gateways, add a Flutterwave row with their public key, secret key, and (optional) webhook secret, then enable it.
+2. In the Flutterwave dashboard, set the webhook URL to `https://<your-domain>/api/public/flutterwave-webhook` and paste the same webhook secret.
+3. Test the connection from Admin → Gateways. Then renew from the dashboard to confirm end-to-end.  
   
-answer to questions:  
-1. yea  
-2. yea  
-  
-  
-alsways let me those that has been done and what is remaining
+add call back and webhook url where necssary to avoid network error during transaction
