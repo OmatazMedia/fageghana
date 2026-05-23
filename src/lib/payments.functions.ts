@@ -342,6 +342,21 @@ export const initRenewalPayment = createServerFn({ method: "POST" })
       return { redirect_url: checkoutUrl, reference };
     }
 
+    if (gateway.provider === "flutterwave") {
+      return initializeFlutterwave({
+        gateway,
+        email,
+        name: profile?.contact_name ?? undefined,
+        phone: profile?.phone ?? undefined,
+        amount: Number(plan.amount),
+        currency: plan.currency || "GHS",
+        reference,
+        callbackUrl: `${origin}/payment/callback`,
+        metadata: { user_id: context.userId, tier: plan.tier, kind: "renew", submission_id: sub.id },
+        submissionId: sub.id,
+      });
+    }
+
     throw new Error(`Renewal not supported for provider: ${gateway.provider}`);
   });
 
