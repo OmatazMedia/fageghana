@@ -57,8 +57,12 @@ async function initializePaystack(input: {
   });
   const json: any = await res.json().catch(() => ({}));
   if (!res.ok || !json?.status) {
-    await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${json?.message ?? res.status}` }).eq("id", input.submissionId);
-    throw new Error(`Paystack init failed: ${json?.message ?? res.status}`);
+    const msg = json?.message ?? `HTTP ${res.status}`;
+    const friendly = /currency not supported/i.test(msg)
+      ? `Paystack rejected currency "${input.currency}". Your Paystack account is registered in a different country/currency. Either change the plan currency in Admin → Plans to match your Paystack account (e.g. NGN for a Nigerian account, GHS for a Ghanaian account), or contact Paystack Support to enable multi-currency on your account.`
+      : `Paystack init failed: ${msg}`;
+    await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: friendly }).eq("id", input.submissionId);
+    throw new Error(friendly);
   }
   return {
     mode: "paystack_inline" as const,
