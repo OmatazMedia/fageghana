@@ -27,12 +27,19 @@ function GatewaysPage() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const provider = String(fd.get("provider"));
+    const isOnline = provider !== "manual_bank";
     const payload: any = {
       name: String(fd.get("name")),
       provider,
       enabled: fd.get("enabled") === "on",
       display_order: Number(fd.get("display_order") ?? 0),
-      config: provider === "manual_bank" ? {} : { public_key: String(fd.get("public_key") ?? ""), secret_key: String(fd.get("secret_key") ?? "") },
+      config: isOnline
+        ? {
+            public_key: String(fd.get("public_key") ?? ""),
+            secret_key: String(fd.get("secret_key") ?? ""),
+            webhook_secret: String(fd.get("webhook_secret") ?? ""),
+          }
+        : {},
       bank_details: provider === "manual_bank" ? { bank: String(fd.get("bank") ?? ""), account_name: String(fd.get("account_name") ?? ""), account_number: String(fd.get("account_number") ?? ""), branch: String(fd.get("branch") ?? "") } : null,
     };
     const { error } = editing?.id
@@ -75,9 +82,10 @@ function GatewaysPage() {
               <div className="font-semibold">{g.name} <span className="ml-2 text-xs text-muted-foreground capitalize">{g.provider.replace("_"," ")}</span></div>
               <div className="text-xs text-muted-foreground">Order {g.display_order}</div>
               {g.provider === "paystack" && <div className="mt-1 text-xs text-muted-foreground">Webhook: /api/public/paystack-webhook · Callback: /payment/callback</div>}
+              {g.provider === "flutterwave" && <div className="mt-1 text-xs text-muted-foreground">Webhook: /api/public/flutterwave-webhook · Callback: /payment/callback</div>}
             </div>
             <div className="flex items-center gap-2">
-              {g.provider === "paystack" && (
+              {(g.provider === "paystack" || g.provider === "flutterwave") && (
                 <button disabled={testingId === g.id} onClick={() => runGatewayTest(g)} className="rounded-full border border-primary px-3 py-1 text-xs font-semibold text-primary disabled:opacity-60">
                   {testingId === g.id ? "Testing…" : "Test connection"}
                 </button>
@@ -110,6 +118,7 @@ function GatewaysPage() {
               <summary className="cursor-pointer text-sm font-medium">Online provider keys</summary>
               <FormField label="Public key"><input name="public_key" className={inputCls} defaultValue={editing.config?.public_key ?? ""} /></FormField>
               <FormField label="Secret key"><input name="secret_key" type="password" className={inputCls} defaultValue={editing.config?.secret_key ?? ""} /></FormField>
+              <FormField label="Webhook secret (Flutterwave verif-hash, optional for Paystack)"><input name="webhook_secret" type="password" className={inputCls} defaultValue={editing.config?.webhook_secret ?? ""} /></FormField>
             </details>
             <details className="rounded-lg bg-muted/30 p-3">
               <summary className="cursor-pointer text-sm font-medium">Manual bank details</summary>
