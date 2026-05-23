@@ -397,6 +397,19 @@ export const verifyPayment = createServerFn({ method: "POST" })
       const json: any = await res.json();
       confirmed = json?.data?.status === "Paid";
       if (!confirmed) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
+    } else if (sub.method === "flutterwave") {
+      let key = "";
+      if (sub.gateway_id) {
+        const { data: gw } = await supabaseAdmin.from("payment_gateways").select("config").eq("id", sub.gateway_id).maybeSingle();
+        key = ((gw?.config as any)?.secret_key as string | undefined) ?? "";
+      }
+      if (!key) throw new Error("Flutterwave secret key not configured");
+      const res = await fetch(`https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(data.reference)}`, {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const json: any = await res.json().catch(() => ({}));
+      confirmed = !!(res.ok && json?.status === "success" && json?.data?.status === "successful" && Number(json.data.amount) >= Number(sub.amount));
+      if (!confirmed) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
     } else {
       throw new Error(`Unsupported method: ${sub.method}`);
     }
