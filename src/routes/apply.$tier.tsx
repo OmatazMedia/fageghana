@@ -90,6 +90,10 @@ function ApplyPage() {
         await openPaystackInline(payment, () => setBusy(false));
         return;
       }
+      if ("mode" in payment && payment.mode === "flutterwave_inline") {
+        await openFlutterwaveInline(payment, () => setBusy(false));
+        return;
+      }
       window.location.href = payment.redirect_url;
     } catch (e: any) { toast.error(e?.message ?? "Could not start payment"); setBusy(false); }
   }
