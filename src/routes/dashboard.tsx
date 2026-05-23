@@ -344,12 +344,18 @@ function SubscriptionTab({ profile, userId, onChange }: { profile: any; userId: 
   const refresh = useCallback(async () => {
     const [p, g, s] = await Promise.all([
       supabase.from("subscription_plans").select("*").eq("active", true).order("display_order"),
-      supabase.from("payment_gateways").select("*").eq("enabled", true).order("display_order"),
-      supabase.from("payment_submissions").select("*, payment_gateways(name,provider)").eq("user_id", userId).order("created_at", { ascending: false }),
+      supabase.rpc("list_enabled_gateways" as any),
+      supabase.from("payment_submissions").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
     ]);
+    const gateways = (g.data ?? []).map((row: any) => ({ ...row, config: { public_key: row.public_key } }));
+    const gwMap = new Map(gateways.map((gw: any) => [gw.id, gw]));
+    const submissions = (s.data ?? []).map((sub: any) => ({
+      ...sub,
+      payment_gateways: sub.gateway_id ? (gwMap.get(sub.gateway_id) ?? null) : null,
+    }));
     setPlans(p.data ?? []);
-    setGateways(g.data ?? []);
-    setSubmissions(s.data ?? []);
+    setGateways(gateways);
+    setSubmissions(submissions);
   }, [userId]);
 
   useEffect(() => { void refresh(); }, [refresh]);
