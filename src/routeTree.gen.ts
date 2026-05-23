@@ -51,6 +51,7 @@ import { Route as AccountChangePasswordRouteImport } from './routes/account.chan
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
 import { Route as ApiPublicHubtelCallbackRouteImport } from './routes/api/public/hubtel-callback'
+import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
 
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
@@ -263,6 +264,12 @@ const ApiPublicHubtelCallbackRoute = ApiPublicHubtelCallbackRouteImport.update({
   path: '/api/public/hubtel-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFlutterwaveWebhookRoute =
+  ApiPublicFlutterwaveWebhookRouteImport.update({
+    id: '/api/public/flutterwave-webhook',
+    path: '/api/public/flutterwave-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/payment/callback': typeof PaymentCallbackRoute
   '/receipt/$id': typeof ReceiptIdRoute
   '/verify/$code': typeof VerifyCodeRoute
+  '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -349,6 +357,7 @@ export interface FileRoutesByTo {
   '/payment/callback': typeof PaymentCallbackRoute
   '/receipt/$id': typeof ReceiptIdRoute
   '/verify/$code': typeof VerifyCodeRoute
+  '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -394,6 +403,7 @@ export interface FileRoutesById {
   '/payment/callback': typeof PaymentCallbackRoute
   '/receipt/$id': typeof ReceiptIdRoute
   '/verify/$code': typeof VerifyCodeRoute
+  '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
@@ -440,6 +450,7 @@ export interface FileRouteTypes {
     | '/payment/callback'
     | '/receipt/$id'
     | '/verify/$code'
+    | '/api/public/flutterwave-webhook'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -484,6 +495,7 @@ export interface FileRouteTypes {
     | '/payment/callback'
     | '/receipt/$id'
     | '/verify/$code'
+    | '/api/public/flutterwave-webhook'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
   id:
@@ -528,6 +540,7 @@ export interface FileRouteTypes {
     | '/payment/callback'
     | '/receipt/$id'
     | '/verify/$code'
+    | '/api/public/flutterwave-webhook'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
   fileRoutesById: FileRoutesById
@@ -551,6 +564,7 @@ export interface RootRouteChildren {
   CertificateIdRoute: typeof CertificateIdRoute
   PaymentCallbackRoute: typeof PaymentCallbackRoute
   ReceiptIdRoute: typeof ReceiptIdRoute
+  ApiPublicFlutterwaveWebhookRoute: typeof ApiPublicFlutterwaveWebhookRoute
   ApiPublicHubtelCallbackRoute: typeof ApiPublicHubtelCallbackRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
 }
@@ -851,6 +865,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHubtelCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/flutterwave-webhook': {
+      id: '/api/public/flutterwave-webhook'
+      path: '/api/public/flutterwave-webhook'
+      fullPath: '/api/public/flutterwave-webhook'
+      preLoaderRoute: typeof ApiPublicFlutterwaveWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -942,6 +963,7 @@ const rootRouteChildren: RootRouteChildren = {
   CertificateIdRoute: CertificateIdRoute,
   PaymentCallbackRoute: PaymentCallbackRoute,
   ReceiptIdRoute: ReceiptIdRoute,
+  ApiPublicFlutterwaveWebhookRoute: ApiPublicFlutterwaveWebhookRoute,
   ApiPublicHubtelCallbackRoute: ApiPublicHubtelCallbackRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
 }

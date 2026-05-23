@@ -78,6 +78,65 @@ async function initializePaystack(input: {
   };
 }
 
+function flutterwaveSecret(gateway: any) {
+  return (((gateway.config as any)?.secret_key as string | undefined) || "").trim();
+}
+function flutterwavePublicKey(gateway: any) {
+  return (((gateway.config as any)?.public_key as string | undefined) || "").trim();
+}
+
+async function initializeFlutterwave(input: {
+  gateway: any;
+  email: string;
+  name?: string;
+  phone?: string;
+  amount: number;
+  currency: string;
+  reference: string;
+  callbackUrl: string;
+  metadata: Record<string, any>;
+  submissionId: string;
+}) {
+  const secret = flutterwaveSecret(input.gateway);
+  const publicKey = flutterwavePublicKey(input.gateway);
+  if (!secret) throw new Error("Flutterwave is not configured — add a secret key in Admin → Gateways");
+  if (!publicKey) throw new Error("Flutterwave is not configured — add a public key in Admin → Gateways");
+  const res = await fetch("https://api.flutterwave.com/v3/payments", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tx_ref: input.reference,
+      amount: Number(input.amount),
+      currency: input.currency || "GHS",
+      redirect_url: input.callbackUrl,
+      customer: { email: input.email, name: input.name || input.email, phonenumber: input.phone || "" },
+      customizations: { title: "FAGE Ghana Membership", description: "Membership payment" },
+      meta: input.metadata,
+    }),
+  });
+  const json: any = await res.json().catch(() => ({}));
+  if (!res.ok || json?.status !== "success") {
+    const msg = json?.message ?? `HTTP ${res.status}`;
+    const friendly = /currency/i.test(msg)
+      ? `Flutterwave rejected currency "${input.currency}". Either change the plan currency in Admin → Plans to one your Flutterwave account supports, or enable that currency in your Flutterwave dashboard.`
+      : `Flutterwave init failed: ${msg}`;
+    await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: friendly }).eq("id", input.submissionId);
+    throw new Error(friendly);
+  }
+  return {
+    mode: "flutterwave_inline" as const,
+    redirect_url: json.data?.link as string,
+    public_key: publicKey,
+    tx_ref: input.reference,
+    amount: Number(input.amount),
+    currency: input.currency || "GHS",
+    email: input.email,
+    name: input.name,
+    phone: input.phone,
+    callback_url: input.callbackUrl,
+  };
+}
+
 async function loadPlan(planId: string | null, tier: string | null) {
   if (planId) {
     const { data } = await supabaseAdmin.from("subscription_plans").select("*").eq("id", planId).maybeSingle();
