@@ -36,7 +36,7 @@ export function SiteHeader() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
+    <header className="sticky top-0 z-50 w-full bg-background/50 backdrop-blur-md supports-[backdrop-filter]:bg-background/40 border-b border-border/50">
       {/* Top utility bar — hides while scrolled, shows at top */}
       <div
         className="bg-primary text-primary-foreground text-xs overflow-hidden transition-all duration-300 ease-in-out"
