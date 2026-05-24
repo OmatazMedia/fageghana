@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Megaphone, Handshake, Briefcase, BookOpen, Check } from "lucide-react";
+import { Megaphone, Handshake, Briefcase, BookOpen, GraduationCap } from "lucide-react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 
@@ -17,10 +17,11 @@ export const Route = createFileRoute("/services")({
 });
 
 const serviceList = [
-  { icon: Megaphone, title: "Advocacy", text: "We represent the interests of our members at the highest levels of government and international trade organizations.", bullets: ["Policy development and reform advocacy", "Trade barrier reduction initiatives", "Government and stakeholder engagement"] },
-  { icon: Handshake, title: "Matchmaking", text: "Our matchmaking services connect Ghanaian exporters with international buyers, distributors, and trade partners.", bullets: ["Buyer-seller connection programs", "Trade missions and exhibitions", "B2B meeting facilitation"] },
-  { icon: Briefcase, title: "Trade Support", text: "We provide comprehensive trade support services including capacity building, technical assistance, and access to export financing.", bullets: ["Export training and capacity building", "Trade finance facilitation", "Technical assistance programs"] },
-  { icon: BookOpen, title: "Research", text: "Our research division produces market intelligence, business directories, export standards documentation, and policy briefs.", bullets: ["Market intelligence reports", "Export standards documentation", "Industry research publications"] },
+  { icon: BookOpen, title: "Research", text: "Technical materials, business directories, export standards, policies" },
+  { icon: Handshake, title: "Matchmaking", text: "Trade Inquiries, Networking International business partnering" },
+  { icon: Briefcase, title: "Trade Support", text: "Dynamic Trade Fairs & Comprehensive Export Insurance Solutions", link: "https://www.modernghana.com/news/1315897/horticulture-in-ghana-to-increase-food-production.html" },
+  { icon: Megaphone, title: "Advocacy", text: "Comprehensive Policy Framework & Strategic Business Development Initiatives" },
+  { icon: GraduationCap, title: "Seminars", text: "Global G.A.P., Export Management, Marketing, Training" },
 ];
 
 function ServicesPage() {
@@ -39,20 +40,19 @@ function ServicesPage() {
       <section className="bg-muted/40 py-20">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 md:grid-cols-2">
           {serviceList.map((s, i) => (
-            <Reveal key={s.title} variant={i % 2 === 0 ? "left" : "right"} delay={(Math.min(i + 1, 4)) as 1|2|3|4}>
+            <Reveal key={s.title} variant={i % 2 === 0 ? "left" : "right"} delay={(Math.min(i + 1, 5)) as 1|2|3|4|5}>
               <div className="rounded-2xl bg-card p-8 shadow-sm h-full">
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-accent">
                   <s.icon className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="mb-3 text-2xl font-bold">{s.title}</h3>
-                <p className="mb-5 text-muted-foreground leading-relaxed">{s.text}</p>
-                <ul className="space-y-2">
-                  {s.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" /><span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
+                {s.link ? (
+                  <p className="mb-5 text-muted-foreground leading-relaxed">
+                    <a href={s.link} className="text-primary hover:text-primary/80" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>Dynamic Trade Fairs</a> & Comprehensive Export Insurance Solutions
+                  </p>
+                ) : (
+                  <p className="mb-5 text-muted-foreground leading-relaxed">{s.text}</p>
+                )}
               </div>
             </Reveal>
           ))}

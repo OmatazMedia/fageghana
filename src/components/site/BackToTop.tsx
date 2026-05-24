@@ -22,7 +22,7 @@ export function BackToTop({ onVisibilityChange }: { onVisibilityChange?: (v: boo
       type="button"
       aria-label="Back to top"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className={`fixed right-6 bottom-6 z-[98] flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-all duration-300 hover:scale-110 hover:bg-primary ${
+      className={`fixed right-6 bottom-6 z-[98] flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-300 hover:scale-110 hover:bg-primary/90 ${
         visible
           ? "opacity-100 pointer-events-auto translate-y-0"
           : "opacity-0 pointer-events-none translate-y-4"
