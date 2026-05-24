@@ -1,84 +1,131 @@
-## Goal
 
-1. Keep renewals entirely inside the member dashboard (no redirect to `/apply/{tier}`).
-2. Open a modal that lists all plans, marks the member's **current** plan, lets them pick the same plan (extends expiry, same member ID) or a different one (new member ID for that tier — already handled server-side).
-3. Add **Flutterwave** as a first-class gateway alongside Paystack/Hubtel/Manual Bank, configurable from Admin → Gateways. The gateway the user picks at checkout is what processes the payment.
-4. Make sure receipts are downloadable from the dashboard (already wired — verify and surface clearly).
+## Scope
 
-The renewal flow logic on the server already handles "same tier → extend expiry, keep member_id" vs "different tier → mint new member_id" in `finalizePaymentConfirmation`, so this work is mostly wiring and adding the Flutterwave provider.
+Four additions to the public site:
+
+1. **Contact page** (`/contact`) — sourced from fageghana.com/contact
+2. **Single-blog upgrades** — share, reactions, sidebar (prev/next already exists)
+3. **Site-wide search overlay** — triggered from the navbar search icon
+4. **Chat widget + Back-to-top button** — bot simulation, WhatsApp handoff, offline message form
 
 ---
 
-## Changes
+## 1. Contact page — `src/routes/contact.tsx`
 
-### 1. Dashboard renewal banner — open modal instead of redirecting
+New route, premium layout, real info from fageghana.com/contact:
 
-File: `src/routes/dashboard.tsx`
+- **Hero** — "Contact Us" with eyebrow "Get In Touch"
+- **Two-column section**
+  - Left: contact form (Name, Email, Subject, Message) → saves to a new `contact_messages` table and shows a success toast
+  - Right: info cards
+    - **Phone**: +233 (0) 53 517 0780 | +233 (0) 53 522 4555
+    - **Email**: info@fageghana.com
+    - **Location**: Number 22, Nii Tsatse Dzani Street, Adjiringanor, Accra (kept from footer — current accurate address; the old fageghana.com address is outdated)
+- **Embedded Google Map** (iframe) for the Accra office
+- **Social row** reusing footer socials
+- Add **Contact** link to `SiteHeader` nav and mobile menu
 
-- Replace the `<a href="/apply/{tier}">Renew membership</a>` banner CTA with a button that calls `setRenewOpen(true)`, so the existing plan-picker + gateway-picker modal flow handles everything in-dashboard.
-- The plan modal already badges the current plan ("Your current plan") — keep that.
-- Payment history already renders a "Receipt" link to `/receipt/$id` for each `payment_submissions` row. Add a small "Download" hint and ensure confirmed rows show it. (No business-logic change.)
+DB: new `contact_messages` table (name, email, subject, message, created_at) with RLS — anyone can insert, admins can read.
 
-### 2. Add Flutterwave to the payment server functions
+`head()` SEO with title/description/og.
 
-File: `src/lib/payments.functions.ts`
+---
 
-- Add `initializeFlutterwave({ gateway, email, name, phone, amount, currency, reference, callbackUrl, metadata, submissionId })` that POSTs to `https://api.flutterwave.com/v3/payments` with the gateway's `secret_key` and returns either:
-  - `{ mode: "flutterwave_inline", public_key, tx_ref, amount, currency, email, name, phone, callback_url }` for inline modal, or
-  - `{ redirect_url }` using the `data.link` from the API as a fallback.
-- In both `initApplicationPayment` and `initRenewalPayment`, add an `else if (gateway.provider === "flutterwave")` branch that calls `initializeFlutterwave`.
-- Extend `verifyPayment` with a `flutterwave` branch: call `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=<ref>` with the gateway's secret key and confirm `status === "successful"` and amount ≥ plan amount.
-- Extend `testPaymentGateway` to support Flutterwave by hitting `https://api.flutterwave.com/v3/banks/NG` (or `/GH`) with the secret key for a cheap auth probe.
+## 2. Single blog enhancements — `src/routes/news.$slug.tsx`
 
-### 3. Flutterwave inline modal loader
+Already has prev/next, related posts, recent posts sidebar. Add:
 
-New file: `src/lib/flutterwaveInline.ts`
+- **Share bar** at end of article — Facebook, X/Twitter, LinkedIn, WhatsApp, Copy link buttons (use `window.location.href` + share intents)
+- **Reactions bar** — 5 emoji reactions (👍 ❤️ 🎉 😮 👏) with counts. Stored in new `blog_reactions` table (`news_id`, `emoji`, `session_id`, `created_at`). One reaction per browser per post (localStorage `session_id`). Public insert/select RLS.
+- **Sidebar already exists** with recent posts + CTA — keep as-is.
 
-- Mirror `paystackInline.ts`: load `https://checkout.flutterwave.com/v3.js`, call `window.FlutterwaveCheckout({...})` with `public_key`, `tx_ref`, `amount`, `currency`, `customer`, `callback`, `onclose`. On `callback`, redirect to `/payment/callback?reference=<tx_ref>&provider=flutterwave` so the existing callback page can verify.
-- Update `src/routes/dashboard.tsx` and `src/routes/apply.$tier.tsx` so that when `payment.mode === "flutterwave_inline"` they call `openFlutterwaveInline(payment)`.
+---
 
-### 4. Flutterwave webhook route
+## 3. Site-wide search overlay
 
-New file: `src/routes/api/public/flutterwave-webhook.ts`
+New component `src/components/site/SearchOverlay.tsx`:
 
-- POST handler. Verify `verif-hash` header equals the gateway's stored `webhook_secret` (added below). On `event === "charge.completed"` and `data.status === "successful"`, look up `payment_submissions` by `tx_ref` (stored as `reference`), mark `status: "confirmed"`, and call `finalizePaymentConfirmation(sub.id)`.
+- Triggered by Search icon in `SiteHeader` (and a mobile entry)
+- Full-screen dark overlay (`bg-background/95 backdrop-blur`), large input at top, ESC + click-outside to close
+- Debounced query (250 ms) runs parallel Supabase queries across:
+  - `news` (title, excerpt) → link `/news/$slug`
+  - `products` (name, description) → link `/products`
+  - `activities` (title, description) → link `/activities`
+  - `media` (title) → link `/media`
+  - Static routes registry (About, Services, Membership, Contact, Verify) — client-side title match
+- Grouped results with category headers; "No results found for '<query>'" empty state
+- Hooked into the existing navbar Search button
 
-### 5. Admin → Gateways: Flutterwave config
+---
 
-File: `src/routes/admin.gateways.tsx`
+## 4. Chat widget + Back-to-top — `src/components/site/ChatWidget.tsx` + `BackToTop.tsx`
 
-- The provider dropdown already lists Flutterwave. Add a Flutterwave-only optional field `webhook_secret` that is stored in `config.webhook_secret` (used by the webhook above). No schema change needed (`payment_gateways.config` is jsonb).
-- Surface the Flutterwave webhook URL (`/api/public/flutterwave-webhook`) and callback URL (`/payment/callback`) under the row, like Paystack already does.
-- Allow "Test connection" for Flutterwave the same way Paystack works.
+Fixed bottom-right. Stack: Chat bubble (bottom), Back-to-top above it. When scroll > 400 px, Back-to-top fades in and chat bubble slides up to make room; when it disappears, chat returns to the original position.
 
-### 6. Payment callback page
+**Onboarding**: 10 s after page load, play a soft "ding" (a small mp3/data-URI in `/public/sounds/`) and show a tooltip near the bubble: "Hi! We're here to help 👋" — auto-dismiss after 5 s.
 
-File: `src/routes/payment.callback.tsx`
+**Bot persona**: "Ama" — clearly introduces itself as a bot, greets with Ghana-time-aware greeting (`Intl.DateTimeFormat('en-GH', { timeZone: 'Africa/Accra' })`).
 
-- Already calls `verifyPayment` with a reference. Confirm it accepts a `?reference=...&provider=flutterwave` query (it should, since verify dispatches by `payment_submissions.method`). No business logic change — just verify.
+**Online vs offline**: Office hours = Mon–Fri 08:00–17:00 Accra time. Outside that → "We're currently offline" banner, but quick replies still work.
 
-### 7. No DB migration required
+**Quick-reply menu** (chips, bot-driven; selecting one shows reply with optional link):
+- About FAGE → `/about/who-we-are`
+- Services → `/services`
+- Products → `/products`
+- Membership registration → message explains both options:
+  - **Online**: link to `/membership`
+  - **Manual**: download form + email proof of payment to `membership@fageghana.org`
+- Activities/Events → `/activities`
+- News → `/news`
+- Contact details → shows phone/email/address inline
+- Verify a member → `/verify`
+- Talk to a real person → WhatsApp handoff (see below)
+- Leave a message → offline form (see below)
 
-- `payment_gateways.config` is `jsonb` and already holds `public_key`/`secret_key`; adding `webhook_secret` is just another key in the same blob.
-- `payment_submissions.method` is text and will accept `"flutterwave"`.
-- `payment_submissions.reference` already holds the unique tx ref used as Flutterwave's `tx_ref`.
+After any reply, wait ~4 s then prompt: "Anything else? Pick an option or type 'menu'." Typing `menu` or clicking **Back to menu** returns to quick replies.
+
+**WhatsApp handoff**:
+1. User clicks "Chat with a real person"
+2. Bot asks: "Please type your request — I'll forward it to our team."
+3. After they reply, bot shows "Transferring you now…" for ~5 s
+4. Build a transcript: `[FAGE Chat Transcript]\nAma (bot): ...\nYou: ...\n\nMy request: <last message>`
+5. Open `https://wa.me/233535170780?text=<encoded transcript>` in a new tab
+
+**Offline "Leave a message" flow**:
+1. Ask Name → Phone → Email (validated with regex) → Message
+2. Save to `contact_messages` table (same one used by Contact page, with `source = 'chat'`)
+3. Show "Sending…" spinner for ~5 s mock, then "Your message has been sent — we'll reach out within working days."
+
+State stored in component state + localStorage so the conversation persists across pages.
 
 ---
 
 ## Technical notes
 
-- Flutterwave amounts are sent as decimal (e.g. `120.00`), unlike Paystack's kobo/pesewa. Send `Number(plan.amount)` directly, not multiplied by 100.
-- Flutterwave currency must match the gateway's account country (GHS for Ghana accounts, NGN for Nigerian). The same friendly error wrapper used for Paystack ("change plan currency or contact support") should apply.
-- Inline modal flow: Flutterwave's `callback` fires before redirect, so we close the modal then `window.location.href = /payment/callback?reference=<tx_ref>&provider=flutterwave` to let the existing verify+redirect logic kick in.
-- Webhook signature: Flutterwave sends `verif-hash` as a plain string equal to the secret configured in their dashboard — direct string compare against `config.webhook_secret`.
-- No secret env vars need to be added; Flutterwave keys live in the `payment_gateways` row (same pattern as Paystack).
+- All new client UI in `src/components/site/` and `src/routes/contact.tsx`
+- New tables migration: `contact_messages` (public insert, admin select) and `blog_reactions` (public insert/select, dedup by `(news_id, session_id, emoji)` unique).
+- WhatsApp number from `SiteHeader`/footer: **+233 53 517 0780** → `233535170780`
+- Bot greetings localized via `Intl` with Africa/Accra timezone; greeting buckets: 05–11 Good morning, 12–16 Good afternoon, 17–21 Good evening, else Hello
+- Notification sound: tiny synthesized "ding" via WebAudio (no asset needed), respects `prefers-reduced-motion` and a one-time `localStorage` flag so it only plays once per session
+- No new packages required — use existing `lucide-react`, Supabase client, Tailwind
+- All new routes get `head()` SEO metadata
+- `ChatWidget` and `BackToTop` mount in `SiteLayout` so they appear on every public page
 
 ---
 
-## After implementation, the user must
+## File changes
 
-1. In Admin → Gateways, add a Flutterwave row with their public key, secret key, and (optional) webhook secret, then enable it.
-2. In the Flutterwave dashboard, set the webhook URL to `https://<your-domain>/api/public/flutterwave-webhook` and paste the same webhook secret.
-3. Test the connection from Admin → Gateways. Then renew from the dashboard to confirm end-to-end.  
-  
-add call back and webhook url where necssary to avoid network error during transaction
+**New**
+- `src/routes/contact.tsx`
+- `src/components/site/SearchOverlay.tsx`
+- `src/components/site/ChatWidget.tsx`
+- `src/components/site/BackToTop.tsx`
+- `supabase/migrations/<ts>_contact_and_reactions.sql`
+
+**Edited**
+- `src/components/site/SiteHeader.tsx` — add Contact link, wire Search button to overlay
+- `src/components/site/SiteFooter.tsx` — add Contact link in Explore
+- `src/components/site/SiteLayout.tsx` — mount `<ChatWidget />` + `<BackToTop />` + `<SearchOverlay />` provider
+- `src/routes/news.$slug.tsx` — add Share + Reactions bars
+
+After approval I'll confirm the WhatsApp handoff number and the manual-registration email before wiring.

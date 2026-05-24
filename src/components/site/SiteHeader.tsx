@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone, ShieldCheck, ArrowRight, Menu, X, ChevronDown, Search, User } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useSiteSearch } from "./SiteLayout";
 
 const aboutItems = [
   { to: "/about/who-we-are", label: "Who We Are" },
@@ -13,6 +14,7 @@ const navItems = [
   { to: "/activities", label: "Activities" },
   { to: "/media", label: "Media" },
   { to: "/membership", label: "Membership" },
+  { to: "/contact", label: "Contact" },
 ] as const;
 
 export function SiteHeader() {
@@ -20,6 +22,7 @@ export function SiteHeader() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [topBarVisible, setTopBarVisible] = useState(true);
   const [progress, setProgress] = useState(0);
+  const { open: openSearch } = useSiteSearch();
 
   useEffect(() => {
     function onScroll() {
@@ -123,7 +126,8 @@ export function SiteHeader() {
           <button
             type="button"
             aria-label="Search"
-            className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-accent hover:text-primary"
+            onClick={openSearch}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-accent hover:text-primary"
           >
             <Search className="h-4.5 w-4.5" />
           </button>
