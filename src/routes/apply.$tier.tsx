@@ -11,6 +11,7 @@ import { createPendingApplication } from "@/lib/onboarding.functions";
 import { downloadFile } from "@/lib/forceDownload";
 import { PostDownloadModal } from "@/components/membership/PostDownloadModal";
 import { openPaystackInline } from "@/lib/paystackInline";
+import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 
 export const Route = createFileRoute("/apply/$tier")({
   head: () => ({ meta: [{ title: "Apply for Membership — FAGE Ghana" }] }),
@@ -41,14 +42,17 @@ function ApplyPage() {
     (async () => {
       const [{ data: p }, { data: g }, { data: form }] = await Promise.all([
         supabase.from("subscription_plans").select("*").eq("tier", tier as any).eq("active", true).maybeSingle(),
-        supabase.from("payment_gateways").select("*").eq("enabled", true).order("display_order"),
+        supabase.rpc("list_enabled_gateways" as any),
         supabase.from("application_forms").select("schema").eq("tier", tier as any).maybeSingle(),
       ]);
-      setPlan(p); setGateways(g ?? []); setFormSchema((form?.schema as any) ?? []);
+      // Shape gateway rows to include config.public_key for compatibility
+      const gateways = (g ?? []).map((row: any) => ({ ...row, config: { public_key: row.public_key } }));
+      setPlan(p); setGateways(gateways); setFormSchema((form?.schema as any) ?? []);
 
       if (token) {
         // Returning from payment with claim token — load pending + check submission
-        const { data: pa } = await supabase.from("pending_applications").select("*").eq("claim_token", token).maybeSingle();
+        const { data: paRows } = await supabase.rpc("get_pending_application" as any, { _token: token });
+        const pa = Array.isArray(paRows) ? paRows[0] : paRows;
         if (pa) {
           setPending(pa);
           if (pa.status === "paid" || pa.status === "claimed") { setStep("form"); return; }
@@ -84,6 +88,10 @@ function ApplyPage() {
       const payment = await initPay({ data: { pending_application_id: p.id, gateway_id: g.id } });
       if ("mode" in payment && payment.mode === "paystack_inline") {
         await openPaystackInline(payment, () => setBusy(false));
+        return;
+      }
+      if ("mode" in payment && payment.mode === "flutterwave_inline") {
+        await openFlutterwaveInline(payment, () => setBusy(false));
         return;
       }
       window.location.href = payment.redirect_url;

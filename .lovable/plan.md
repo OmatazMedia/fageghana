@@ -1,94 +1,131 @@
-# Plan: Paystack + Dual Email System + Template Builder
 
-## 1. Paystack — verify & wire to membership payments
+## Scope
 
-**Current state:** `payment_gateways` row exists with `provider='paystack'` and `config.public_key/secret_key`. `paystack-webhook` server route reads `PAYSTACK_SECRET_KEY` env var. Gap: the admin-entered keys in DB are not used by `initApplicationPayment` / `initRenewalPayment`, and the webhook only checks env secret.
+Four additions to the public site:
 
-**Fix:**
+1. **Contact page** (`/contact`) — sourced from fageghana.com/contact
+2. **Single-blog upgrades** — share, reactions, sidebar (prev/next already exists)
+3. **Site-wide search overlay** — triggered from the navbar search icon
+4. **Chat widget + Back-to-top button** — bot simulation, WhatsApp handoff, offline message form
 
-- `src/lib/payments.functions.ts`: when initiating a Paystack charge, read `secret_key` from the selected gateway row (fallback to `process.env.PAYSTACK_SECRET_KEY`). Build a real `POST https://api.paystack.co/transaction/initialize` call with `email`, `amount` (kobo), `reference`, `callback_url=/payment/callback?ref=…&pid=…`. Persist returned `authorization_url` and redirect the user there.
-- `payment.callback.tsx`: after Paystack redirects back, call a new `verifyPaystackPayment` server fn that hits `GET /transaction/verify/:reference` with the gateway's secret, marks `payment_submissions.status='confirmed'`, then runs the existing `finalizePaymentConfirmation` (creates user, member_id, sends welcome notification + email).
-- `paystack-webhook.ts`: also accept the gateway row's `secret_key` (lookup by reference → gateway_id) so admin-entered keys work without a Lovable secret.
-- Add a tiny "Test connection" button on `/admin/gateways` that calls Paystack `/bank` with the saved secret to confirm keys are valid.
+---
 
-## 2. Email system — Resend (primary) + SMTP (fallback)
+## 1. Contact page — `src/routes/contact.tsx`
 
-**New table `email_settings**` (single-row, admin-only RLS):
+New route, premium layout, real info from fageghana.com/contact:
 
-- `resend_api_key text`, `resend_from text`, `resend_enabled bool`
-- `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_secure bool`, `smtp_enabled bool`
-- `primary_provider text default 'resend'` (resend|smtp)
+- **Hero** — "Contact Us" with eyebrow "Get In Touch"
+- **Two-column section**
+  - Left: contact form (Name, Email, Subject, Message) → saves to a new `contact_messages` table and shows a success toast
+  - Right: info cards
+    - **Phone**: +233 (0) 53 517 0780 | +233 (0) 53 522 4555
+    - **Email**: info@fageghana.com
+    - **Location**: Number 22, Nii Tsatse Dzani Street, Adjiringanor, Accra (kept from footer — current accurate address; the old fageghana.com address is outdated)
+- **Embedded Google Map** (iframe) for the Accra office
+- **Social row** reusing footer socials
+- Add **Contact** link to `SiteHeader` nav and mobile menu
 
-Secrets are stored in DB (admin convenience as chosen). RLS: only admins can select/update; service role reads it from server functions.
+DB: new `contact_messages` table (name, email, subject, message, created_at) with RLS — anyone can insert, admins can read.
 
-**New admin page `/admin/email-settings`:**
+`head()` SEO with title/description/og.
 
-- Two cards (Resend / SMTP) with form fields, "Save" and "Send test email" buttons.
-- "Send test" calls `sendTestEmail` server fn for that provider and shows pass/fail + error.
+---
 
-**New server module `src/lib/email/send.server.ts`:**
+## 2. Single blog enhancements — `src/routes/news.$slug.tsx`
 
-- `sendEmail({ to, subject, html, text })` reads `email_settings`, tries `primary_provider` first, on any error/timeout (8s) falls back to the other if enabled, logs every attempt to a new `email_log` table (`provider`, `status`, `error`, `to`, `subject`, `template_id`, `created_at`).
-- Resend path: `fetch('https://api.resend.com/emails', Authorization: Bearer <key>)`.
-- SMTP path: use `nodemailer` (works under nodejs_compat). `bun add nodemailer @types/nodemailer`.
+Already has prev/next, related posts, recent posts sidebar. Add:
 
-**Wire into existing flows:**
+- **Share bar** at end of article — Facebook, X/Twitter, LinkedIn, WhatsApp, Copy link buttons (use `window.location.href` + share intents)
+- **Reactions bar** — 5 emoji reactions (👍 ❤️ 🎉 😮 👏) with counts. Stored in new `blog_reactions` table (`news_id`, `emoji`, `session_id`, `created_at`). One reaction per browser per post (localStorage `session_id`). Public insert/select RLS.
+- **Sidebar already exists** with recent posts + CTA — keep as-is.
 
-- `finalizePaymentConfirmation` → send "Welcome + temp password" email.
-- Renewal confirmation → send "Renewal receipt" email.
-- Password change / reset → use existing Supabase auth (unchanged).
-- Application form submitted → "Application received" email.
+---
 
-## 3. Block-based drag-and-drop template editor
+## 3. Site-wide search overlay
 
-**New tables:**
+New component `src/components/site/SearchOverlay.tsx`:
 
-- `email_templates(id, key text unique, name, subject, blocks jsonb, updated_at)` — `key` is the system slug (e.g. `welcome`, `receipt`, `renewal`, `application_received`).
-- Seed 4 rows for the triggers above (defaults rendered from site theme).
+- Triggered by Search icon in `SiteHeader` (and a mobile entry)
+- Full-screen dark overlay (`bg-background/95 backdrop-blur`), large input at top, ESC + click-outside to close
+- Debounced query (250 ms) runs parallel Supabase queries across:
+  - `news` (title, excerpt) → link `/news/$slug`
+  - `products` (name, description) → link `/products`
+  - `activities` (title, description) → link `/activities`
+  - `media` (title) → link `/media`
+  - Static routes registry (About, Services, Membership, Contact, Verify) — client-side title match
+- Grouped results with category headers; "No results found for '<query>'" empty state
+- Hooked into the existing navbar Search button
 
-**New admin page `/admin/email-templates`:**
+---
 
-- Left: list of templates. Right: editor.
-- Editor uses `@dnd-kit/core` (already common; install if missing) with a palette of block types: **Heading, Text, Image, Button, Divider, Spacer, Two-column**.
-- Each block has an inline settings popover (text content, alignment, link URL, image upload via existing `uploadImage`).
-- Live preview pane on the right rendering the same HTML the mailer will send.
-- "Variables" chip list (e.g. `{{name}}`, `{{member_id}}`, `{{amount}}`, `{{temp_password}}`) inserts merge tags.
-- Subject field at the top.
+## 4. Chat widget + Back-to-top — `src/components/site/ChatWidget.tsx` + `BackToTop.tsx`
 
-**Renderer `src/lib/email/render.ts`:**
+Fixed bottom-right. Stack: Chat bubble (bottom), Back-to-top above it. When scroll > 400 px, Back-to-top fades in and chat bubble slides up to make room; when it disappears, chat returns to the original position.
 
-- `renderBlocks(blocks, variables)` returns `{html, text}`.
-- Wraps content in a responsive table layout themed with the site's tokens (primary color = FAGE green, brand font stack, logo header, footer with org address). Theme values are read from a small `email_theme.ts` constants file mirroring `src/styles.css` brand colors so emails match the website look.
+**Onboarding**: 10 s after page load, play a soft "ding" (a small mp3/data-URI in `/public/sounds/`) and show a tooltip near the bubble: "Hi! We're here to help 👋" — auto-dismiss after 5 s.
 
-**Trigger code calls:**
+**Bot persona**: "Ama" — clearly introduces itself as a bot, greets with Ghana-time-aware greeting (`Intl.DateTimeFormat('en-GH', { timeZone: 'Africa/Accra' })`).
 
-```ts
-const tpl = await loadTemplate('welcome');
-const { html, text } = renderBlocks(tpl.blocks, { name, temp_password, member_id });
-await sendEmail({ to, subject: interpolate(tpl.subject, vars), html, text });
-```
+**Online vs offline**: Office hours = Mon–Fri 08:00–17:00 Accra time. Outside that → "We're currently offline" banner, but quick replies still work.
+
+**Quick-reply menu** (chips, bot-driven; selecting one shows reply with optional link):
+- About FAGE → `/about/who-we-are`
+- Services → `/services`
+- Products → `/products`
+- Membership registration → message explains both options:
+  - **Online**: link to `/membership`
+  - **Manual**: download form + email proof of payment to `membership@fageghana.org`
+- Activities/Events → `/activities`
+- News → `/news`
+- Contact details → shows phone/email/address inline
+- Verify a member → `/verify`
+- Talk to a real person → WhatsApp handoff (see below)
+- Leave a message → offline form (see below)
+
+After any reply, wait ~4 s then prompt: "Anything else? Pick an option or type 'menu'." Typing `menu` or clicking **Back to menu** returns to quick replies.
+
+**WhatsApp handoff**:
+1. User clicks "Chat with a real person"
+2. Bot asks: "Please type your request — I'll forward it to our team."
+3. After they reply, bot shows "Transferring you now…" for ~5 s
+4. Build a transcript: `[FAGE Chat Transcript]\nAma (bot): ...\nYou: ...\n\nMy request: <last message>`
+5. Open `https://wa.me/233535170780?text=<encoded transcript>` in a new tab
+
+**Offline "Leave a message" flow**:
+1. Ask Name → Phone → Email (validated with regex) → Message
+2. Save to `contact_messages` table (same one used by Contact page, with `source = 'chat'`)
+3. Show "Sending…" spinner for ~5 s mock, then "Your message has been sent — we'll reach out within working days."
+
+State stored in component state + localStorage so the conversation persists across pages.
+
+---
 
 ## Technical notes
 
-- All admin pages gated by existing `has_role(auth.uid(),'admin')`.
-- `email_settings`, `email_templates`, `email_log` use admin-only RLS; nothing exposed publicly.
-- `nodemailer` is Worker-safe under nodejs_compat (uses `net`/`tls` which are supported).
-- Resend keys stored encrypted-at-rest by Supabase; never sent to client (admin page fetches via server fn that masks the key after save).
-- No changes to Lovable Cloud built-in email; this is a parallel, fully self-managed system per your spec.
+- All new client UI in `src/components/site/` and `src/routes/contact.tsx`
+- New tables migration: `contact_messages` (public insert, admin select) and `blog_reactions` (public insert/select, dedup by `(news_id, session_id, emoji)` unique).
+- WhatsApp number from `SiteHeader`/footer: **+233 53 517 0780** → `233535170780`
+- Bot greetings localized via `Intl` with Africa/Accra timezone; greeting buckets: 05–11 Good morning, 12–16 Good afternoon, 17–21 Good evening, else Hello
+- Notification sound: tiny synthesized "ding" via WebAudio (no asset needed), respects `prefers-reduced-motion` and a one-time `localStorage` flag so it only plays once per session
+- No new packages required — use existing `lucide-react`, Supabase client, Tailwind
+- All new routes get `head()` SEO metadata
+- `ChatWidget` and `BackToTop` mount in `SiteLayout` so they appear on every public page
 
-## Out of scope (ask later if needed)
+---
 
-- Welcome email language/copy beyond a sensible default (you can edit in the builder).
-- Marketing/bulk sends — this stays transactional.
+## File changes
 
-## Open questions before build
+**New**
+- `src/routes/contact.tsx`
+- `src/components/site/SearchOverlay.tsx`
+- `src/components/site/ChatWidget.tsx`
+- `src/components/site/BackToTop.tsx`
+- `supabase/migrations/<ts>_contact_and_reactions.sql`
 
-1. **Templates to seed**: I'll start with Welcome + Temp Password, Payment Receipt, Renewal Receipt, Application Received. Add/remove any?
-2. **SMTP "secure" default**: assume TLS on port 465, STARTTLS on 587 — OK?  
-  
-answer to questions:  
-1. yea  
-2. yea  
-  
-  
-alsways let me those that has been done and what is remaining
+**Edited**
+- `src/components/site/SiteHeader.tsx` — add Contact link, wire Search button to overlay
+- `src/components/site/SiteFooter.tsx` — add Contact link in Explore
+- `src/components/site/SiteLayout.tsx` — mount `<ChatWidget />` + `<BackToTop />` + `<SearchOverlay />` provider
+- `src/routes/news.$slug.tsx` — add Share + Reactions bars
+
+After approval I'll confirm the WhatsApp handoff number and the manual-registration email before wiring.

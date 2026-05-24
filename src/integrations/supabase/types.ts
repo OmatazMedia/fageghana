@@ -119,6 +119,30 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          news_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          news_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          news_id?: string
+          session_id?: string
+        }
+        Relationships: []
+      }
       certificate_templates: {
         Row: {
           authorized_name: string | null
@@ -207,6 +231,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          source: string
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          source?: string
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          source?: string
+          subject?: string | null
+        }
+        Relationships: []
       }
       email_log: {
         Row: {
@@ -662,6 +719,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payment_submissions_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "payment_gateways_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "payment_submissions_pending_application_id_fkey"
             columns: ["pending_application_id"]
             isOneToOne: false
@@ -901,7 +965,39 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      payment_gateways_public: {
+        Row: {
+          bank_details: Json | null
+          created_at: string | null
+          display_order: number | null
+          enabled: boolean | null
+          id: string | null
+          name: string | null
+          provider: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bank_details?: Json | null
+          created_at?: string | null
+          display_order?: number | null
+          enabled?: boolean | null
+          id?: string | null
+          name?: string | null
+          provider?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bank_details?: Json | null
+          created_at?: string | null
+          display_order?: number | null
+          enabled?: boolean | null
+          id?: string | null
+          name?: string | null
+          provider?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_exec_sql: { Args: { sql: string }; Returns: undefined }
@@ -914,12 +1010,53 @@ export type Database = {
         Args: { _tier: Database["public"]["Enums"]["membership_tier"] }
         Returns: string
       }
+      get_pending_application: {
+        Args: { _token: string }
+        Returns: {
+          claim_token: string
+          company_name: string
+          created_at: string
+          email: string
+          expires_at: string
+          full_name: string
+          id: string
+          phone: string
+          plan_id: string
+          status: string
+          tier: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      list_enabled_gateways: {
+        Args: never
+        Returns: {
+          bank_details: Json
+          display_order: number
+          enabled: boolean
+          id: string
+          name: string
+          provider: string
+          public_key: string
+        }[]
+      }
+      verify_certificate: {
+        Args: { _code: string }
+        Returns: {
+          expires_at: string
+          full_name: string
+          issued_at: string
+          member_id: string
+          revoked: boolean
+          tier: Database["public"]["Enums"]["membership_tier"]
+          verification_code: string
+        }[]
       }
     }
     Enums: {

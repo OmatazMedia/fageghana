@@ -50,6 +50,7 @@ export function SiteFooter() {
               <li><Link to="/media" className="hover:text-primary">Media Center</Link></li>
               <li><Link to="/membership" className="hover:text-primary">Membership</Link></li>
               <li><Link to="/verify" className="hover:text-primary">Verify a Member</Link></li>
+              <li><Link to="/contact" className="hover:text-primary">Contact Us</Link></li>
             </ul>
           </div>
 

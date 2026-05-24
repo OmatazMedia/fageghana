@@ -57,8 +57,12 @@ async function initializePaystack(input: {
   });
   const json: any = await res.json().catch(() => ({}));
   if (!res.ok || !json?.status) {
-    await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${json?.message ?? res.status}` }).eq("id", input.submissionId);
-    throw new Error(`Paystack init failed: ${json?.message ?? res.status}`);
+    const msg = json?.message ?? `HTTP ${res.status}`;
+    const friendly = /currency not supported/i.test(msg)
+      ? `Paystack rejected currency "${input.currency}". Your Paystack account is registered in a different country/currency. Either change the plan currency in Admin → Plans to match your Paystack account (e.g. NGN for a Nigerian account, GHS for a Ghanaian account), or contact Paystack Support to enable multi-currency on your account.`
+      : `Paystack init failed: ${msg}`;
+    await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: friendly }).eq("id", input.submissionId);
+    throw new Error(friendly);
   }
   return {
     mode: "paystack_inline" as const,
@@ -70,6 +74,65 @@ async function initializePaystack(input: {
     amount: Math.round(Number(input.amount) * 100),
     currency: input.currency || "GHS",
     reference: input.reference,
+    callback_url: input.callbackUrl,
+  };
+}
+
+function flutterwaveSecret(gateway: any) {
+  return (((gateway.config as any)?.secret_key as string | undefined) || "").trim();
+}
+function flutterwavePublicKey(gateway: any) {
+  return (((gateway.config as any)?.public_key as string | undefined) || "").trim();
+}
+
+async function initializeFlutterwave(input: {
+  gateway: any;
+  email: string;
+  name?: string;
+  phone?: string;
+  amount: number;
+  currency: string;
+  reference: string;
+  callbackUrl: string;
+  metadata: Record<string, any>;
+  submissionId: string;
+}) {
+  const secret = flutterwaveSecret(input.gateway);
+  const publicKey = flutterwavePublicKey(input.gateway);
+  if (!secret) throw new Error("Flutterwave is not configured — add a secret key in Admin → Gateways");
+  if (!publicKey) throw new Error("Flutterwave is not configured — add a public key in Admin → Gateways");
+  const res = await fetch("https://api.flutterwave.com/v3/payments", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tx_ref: input.reference,
+      amount: Number(input.amount),
+      currency: input.currency || "GHS",
+      redirect_url: input.callbackUrl,
+      customer: { email: input.email, name: input.name || input.email, phonenumber: input.phone || "" },
+      customizations: { title: "FAGE Ghana Membership", description: "Membership payment" },
+      meta: input.metadata,
+    }),
+  });
+  const json: any = await res.json().catch(() => ({}));
+  if (!res.ok || json?.status !== "success") {
+    const msg = json?.message ?? `HTTP ${res.status}`;
+    const friendly = /currency/i.test(msg)
+      ? `Flutterwave rejected currency "${input.currency}". Either change the plan currency in Admin → Plans to one your Flutterwave account supports, or enable that currency in your Flutterwave dashboard.`
+      : `Flutterwave init failed: ${msg}`;
+    await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: friendly }).eq("id", input.submissionId);
+    throw new Error(friendly);
+  }
+  return {
+    mode: "flutterwave_inline" as const,
+    redirect_url: json.data?.link as string,
+    public_key: publicKey,
+    tx_ref: input.reference,
+    amount: Number(input.amount),
+    currency: input.currency || "GHS",
+    email: input.email,
+    name: input.name,
+    phone: input.phone,
     callback_url: input.callbackUrl,
   };
 }
@@ -176,6 +239,21 @@ export const initApplicationPayment = createServerFn({ method: "POST" })
       return { redirect_url: checkoutUrl, reference };
     }
 
+    if (gateway.provider === "flutterwave") {
+      return initializeFlutterwave({
+        gateway,
+        email: pending.email,
+        name: pending.full_name,
+        phone: pending.phone,
+        amount: Number(plan.amount),
+        currency: plan.currency || "GHS",
+        reference,
+        callbackUrl: `${origin}/payment/callback?token=${pending.claim_token}`,
+        metadata: { pending_application_id: pending.id, tier: plan.tier, submission_id: sub.id },
+        submissionId: sub.id,
+      });
+    }
+
     throw new Error(`Online payments not supported for provider: ${gateway.provider}`);
   });
 
@@ -264,6 +342,21 @@ export const initRenewalPayment = createServerFn({ method: "POST" })
       return { redirect_url: checkoutUrl, reference };
     }
 
+    if (gateway.provider === "flutterwave") {
+      return initializeFlutterwave({
+        gateway,
+        email,
+        name: profile?.contact_name ?? undefined,
+        phone: profile?.phone ?? undefined,
+        amount: Number(plan.amount),
+        currency: plan.currency || "GHS",
+        reference,
+        callbackUrl: `${origin}/payment/callback`,
+        metadata: { user_id: context.userId, tier: plan.tier, kind: "renew", submission_id: sub.id },
+        submissionId: sub.id,
+      });
+    }
+
     throw new Error(`Renewal not supported for provider: ${gateway.provider}`);
   });
 
@@ -304,6 +397,19 @@ export const verifyPayment = createServerFn({ method: "POST" })
       const json: any = await res.json();
       confirmed = json?.data?.status === "Paid";
       if (!confirmed) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
+    } else if (sub.method === "flutterwave") {
+      let key = "";
+      if (sub.gateway_id) {
+        const { data: gw } = await supabaseAdmin.from("payment_gateways").select("config").eq("id", sub.gateway_id).maybeSingle();
+        key = ((gw?.config as any)?.secret_key as string | undefined) ?? "";
+      }
+      if (!key) throw new Error("Flutterwave secret key not configured");
+      const res = await fetch(`https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(data.reference)}`, {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const json: any = await res.json().catch(() => ({}));
+      confirmed = !!(res.ok && json?.status === "success" && json?.data?.status === "successful" && Number(json.data.amount) >= Number(sub.amount));
+      if (!confirmed) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
     } else {
       throw new Error(`Unsupported method: ${sub.method}`);
     }
@@ -330,19 +436,33 @@ export const testPaymentGateway = createServerFn({ method: "POST" })
     const { data: role } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
     if (!role) throw new Error("Admin only");
     const gateway = await loadGateway(data.gateway_id);
-    if (gateway.provider !== "paystack") return { ok: false, message: `Testing is not available for ${gateway.provider}` };
-    const secret = paystackSecret(gateway);
-    const publicKey = paystackPublicKey(gateway);
-    if (!secret || !publicKey) return { ok: false, message: "Add both Paystack public and secret keys first." };
-    const res = await fetch("https://api.paystack.co/bank?currency=GHS", {
-      headers: { Authorization: `Bearer ${secret}` },
-    });
-    const json: any = await res.json().catch(() => ({}));
-    if (!res.ok || !json?.status) return { ok: false, message: json?.message ?? `Paystack returned ${res.status}` };
-    return {
-      ok: true,
-      message: "Paystack keys are valid and can reach the gateway.",
-      callback_url: `${siteOrigin()}/payment/callback`,
-      webhook_url: `${siteOrigin()}/api/public/paystack-webhook`,
-    };
+    if (gateway.provider === "paystack") {
+      const secret = paystackSecret(gateway);
+      const publicKey = paystackPublicKey(gateway);
+      if (!secret || !publicKey) return { ok: false, message: "Add both Paystack public and secret keys first." };
+      const res = await fetch("https://api.paystack.co/bank?currency=GHS", { headers: { Authorization: `Bearer ${secret}` } });
+      const json: any = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.status) return { ok: false, message: json?.message ?? `Paystack returned ${res.status}` };
+      return {
+        ok: true,
+        message: "Paystack keys are valid and can reach the gateway.",
+        callback_url: `${siteOrigin()}/payment/callback`,
+        webhook_url: `${siteOrigin()}/api/public/paystack-webhook`,
+      };
+    }
+    if (gateway.provider === "flutterwave") {
+      const secret = flutterwaveSecret(gateway);
+      const publicKey = flutterwavePublicKey(gateway);
+      if (!secret || !publicKey) return { ok: false, message: "Add both Flutterwave public and secret keys first." };
+      const res = await fetch("https://api.flutterwave.com/v3/banks/GH", { headers: { Authorization: `Bearer ${secret}` } });
+      const json: any = await res.json().catch(() => ({}));
+      if (!res.ok || json?.status !== "success") return { ok: false, message: json?.message ?? `Flutterwave returned ${res.status}` };
+      return {
+        ok: true,
+        message: "Flutterwave keys are valid and can reach the gateway.",
+        callback_url: `${siteOrigin()}/payment/callback`,
+        webhook_url: `${siteOrigin()}/api/public/flutterwave-webhook`,
+      };
+    }
+    return { ok: false, message: `Testing is not available for ${gateway.provider}` };
   });
