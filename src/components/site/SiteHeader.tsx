@@ -39,7 +39,7 @@ export function SiteHeader() {
     <header className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
       scrolled
         ? "bg-background/50 backdrop-blur-md border-border shadow-md"
-        : "bg-background/20 backdrop-blur-sm border-transparent"
+        : "bg-background/10 backdrop-blur-sm border-transparent"
     }`}>
       {/* Top utility bar — always visible */}
       <div className="bg-primary text-primary-foreground text-xs">
