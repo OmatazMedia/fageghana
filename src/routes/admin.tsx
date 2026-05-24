@@ -105,7 +105,7 @@ function AdminLayout() {
     <div className="flex h-screen overflow-hidden bg-[#f5f7f5]">
 
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
-      <aside className="hidden w-64 flex-shrink-0 flex-col bg-[#0f1a14] lg:flex h-screen sticky top-0">
+      <aside className="hidden w-64 flex-shrink-0 flex-col bg-[#0f1a14] lg:flex h-screen sticky top-0 overflow-hidden">
 
         {/* Logo */}
         <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
