@@ -10,7 +10,6 @@ export const useSiteSearch = () => useContext(SearchCtx);
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [raised, setRaised] = useState(false);
 
   return (
     <SearchCtx.Provider value={{ open: () => setSearchOpen(true) }}>
@@ -20,8 +19,8 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         <SiteFooter />
       </div>
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <ChatWidget raised={raised} />
-      <BackToTop onVisibilityChange={setRaised} />
+      <ChatWidget />
+      <BackToTop />
     </SearchCtx.Provider>
   );
 }
