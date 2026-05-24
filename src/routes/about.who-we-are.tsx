@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, Target } from "lucide-react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 import { AnimatedStat } from "@/components/site/AnimatedStat";
@@ -106,36 +106,88 @@ function WhoWeArePage() {
         imageUrl="https://images.unsplash.com/photo-1595841696677-6489ff3f8cd1?q=80&w=2070&auto=format&fit=crop"
       />
 
-      <section className="py-20 scroll-mt-32">
-        <div className="mx-auto max-w-4xl px-4 text-center">
-          <Reveal variant="fade">
-            <p className="mb-3 text-sm font-semibold tracking-widest text-primary">WHO WE ARE</p>
-          </Reveal>
-          <Reveal variant="up" delay={1}>
-            <h2 className="mb-6 text-3xl font-bold md:text-4xl">Our Story</h2>
-          </Reveal>
-          <Reveal variant="up" delay={2}>
-            <p className="text-muted-foreground leading-relaxed">
-              The Federation of Associations of Ghanaian Exporters (FAGE), established in 1992, is a not-for-profit umbrella organization for exporters and product associations, registered under Ghana's Companies Code (Act 179, 1963).
-            </p>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
-              FAGE promotes the expansion and diversification of{" "}
-              <a
-                href="https://www.graphic.com.gh/business/business-news/non-traditional-export-sector-gets-major-boost-fidelity-bank-fage-sign-mou-to-boost-financing.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-primary"
-              >
-                Ghanaian exports to foreign markets
-              </a>
-              {" "}by assisting member firms in developing and marketing their products, and by improving the enabling environment for trade through government advocacy.
-            </p>
-          </Reveal>
-          <Reveal variant="scale" delay={3}>
-            <Link to="/membership" className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:scale-105 transition">
-              Contact us <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Reveal>
+      {/* ── Our Story ── */}
+      <section className="py-20 scroll-mt-32 overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center">
+
+            {/* Left — text */}
+            <div>
+              <Reveal variant="fade">
+                <p className="mb-3 text-sm font-semibold tracking-widest text-primary">WHO WE ARE</p>
+              </Reveal>
+              <Reveal variant="up" delay={1}>
+                <h2 className="mb-6 text-3xl font-bold md:text-4xl">Our Story</h2>
+              </Reveal>
+              <Reveal variant="up" delay={2}>
+                <p className="text-muted-foreground leading-relaxed">
+                  The Federation of Associations of Ghanaian Exporters (FAGE), established in 1992, is a not-for-profit umbrella organization for exporters and product associations, registered under Ghana's Companies Code (Act 179, 1963).
+                </p>
+                <p className="mt-4 text-muted-foreground leading-relaxed">
+                  FAGE promotes the expansion and diversification of{" "}
+                  <a
+                    href="https://www.graphic.com.gh/business/business-news/non-traditional-export-sector-gets-major-boost-fidelity-bank-fage-sign-mou-to-boost-financing.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-primary"
+                  >
+                    Ghanaian exports to foreign markets
+                  </a>
+                  {" "}by assisting member firms in developing and marketing their products, and by improving the enabling environment for trade through government advocacy.
+                </p>
+              </Reveal>
+              <Reveal variant="scale" delay={3}>
+                <Link to="/membership" className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:scale-105 transition">
+                  Contact us <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Reveal>
+            </div>
+
+            {/* Right — stacked floating images */}
+            <Reveal variant="right">
+              <div className="relative mx-auto w-full max-w-md lg:max-w-none" style={{ height: 420 }}>
+
+                {/* fage1 — main image, left-aligned, green border */}
+                <div className="absolute left-0 top-0 w-[78%] rounded-2xl border-4 border-primary shadow-xl overflow-hidden" style={{ height: 340 }}>
+                  <img
+                    src="/images/fage1.jpg"
+                    alt="FAGE Ghana"
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                  {/* subtle green overlay tint */}
+                  <div className="absolute inset-0 bg-primary/10" />
+                </div>
+
+                {/* fage2 — smaller, floats bottom-right over fage1, white border */}
+                <div className="absolute bottom-0 right-0 w-[55%] rounded-2xl border-4 border-white ring-1 ring-border shadow-2xl overflow-hidden" style={{ height: 240 }}>
+                  <img
+                    src="/images/fage2.jpg"
+                    alt="FAGE Ghana activities"
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+
+                {/* Decorative green dot grid — top-right corner */}
+                <div className="absolute -right-4 -top-4 grid grid-cols-4 gap-1.5 opacity-30">
+                  {Array.from({ length: 16 }).map((_, i) => (
+                    <div key={i} className="h-2 w-2 rounded-full bg-primary" />
+                  ))}
+                </div>
+
+                {/* Decorative accent bar — bottom-left */}
+                <div className="absolute -bottom-3 -left-3 h-16 w-16 rounded-xl bg-primary/20" />
+
+                {/* Founded badge */}
+                <div className="absolute left-4 bottom-6 z-10 rounded-xl bg-primary px-4 py-2 shadow-lg">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-white/70">Est.</p>
+                  <p className="text-xl font-extrabold text-white leading-none">1992</p>
+                </div>
+
+              </div>
+            </Reveal>
+          </div>
         </div>
       </section>
 
@@ -144,21 +196,31 @@ function WhoWeArePage() {
         <div className="mx-auto max-w-4xl px-4">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             <Reveal variant="left">
-              <div className="rounded-2xl border border-border bg-card p-8 h-full">
-                <p className="mb-3 text-xs font-semibold tracking-widest text-primary uppercase">Our Vision</p>
+              <div className="rounded-2xl border border-border bg-card p-8 h-full flex flex-col">
+                {/* Icon badge */}
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/50 shadow-lg shadow-primary/20">
+                  <Eye className="h-7 w-7 text-white" />
+                </div>
+                <p className="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">Our Vision</p>
                 <h3 className="mb-4 text-xl font-bold">Market Enabler for Non-Traditional Exports</h3>
-                <p className="text-muted-foreground leading-relaxed text-sm">
+                <p className="text-muted-foreground leading-relaxed text-sm flex-1">
                   We envision being the main market enabler organization in the promoting of Non-traditional exports to foreign markets.
                 </p>
+                <div className="mt-6 h-1 w-12 rounded-full bg-gradient-to-r from-primary to-primary/30" />
               </div>
             </Reveal>
             <Reveal variant="right">
-              <div className="rounded-2xl border border-border bg-card p-8 h-full">
-                <p className="mb-3 text-xs font-semibold tracking-widest text-primary uppercase">Our Mission</p>
+              <div className="rounded-2xl border border-border bg-card p-8 h-full flex flex-col">
+                {/* Icon badge */}
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/50 shadow-lg shadow-primary/20">
+                  <Target className="h-7 w-7 text-white" />
+                </div>
+                <p className="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">Our Mission</p>
                 <h3 className="mb-4 text-xl font-bold">Promoting Exports Through Global Standards</h3>
-                <p className="text-muted-foreground leading-relaxed text-sm">
+                <p className="text-muted-foreground leading-relaxed text-sm flex-1">
                   FAGE leverages global best standard practices in promoting Non-traditional exports to foreign markets through advocacy, member capacity building, market development services, communication and FAGE facilitated funds.
                 </p>
+                <div className="mt-6 h-1 w-12 rounded-full bg-gradient-to-r from-primary to-primary/30" />
               </div>
             </Reveal>
           </div>
