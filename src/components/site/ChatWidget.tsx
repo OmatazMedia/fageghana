@@ -72,7 +72,7 @@ function playNotificationSound() {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function ChatWidget() {
+export function ChatWidget({ raised }: { raised?: boolean }) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);       // widget shown after 10s delay
   const [notifBubble, setNotifBubble] = useState(false); // speech bubble
@@ -281,11 +281,13 @@ export function ChatWidget() {
 
   if (!visible) return null;
 
+  const bp = raised ? "bottom-24" : "bottom-6";
+
   return (
     <>
       {/* Notification speech bubble */}
       {notifBubble && !open && (
-        <div className="fixed right-20 bottom-6 z-[99] max-w-[220px] animate-in slide-in-from-right-4 fade-in duration-300">
+        <div className={`fixed right-20 z-[99] max-w-[220px] animate-in slide-in-from-right-4 fade-in duration-300 transition-all duration-300 ${bp}`}>
           <div className="rounded-xl bg-foreground px-4 py-2.5 text-xs font-medium text-background shadow-lg">
             <p className="font-semibold">👋 Hi there!</p>
             <p className="mt-0.5 opacity-80">We're here to help. Chat with us!</p>
@@ -299,7 +301,7 @@ export function ChatWidget() {
         <button
           onClick={openChat}
           aria-label="Open chat"
-          className={`fixed right-6 bottom-6 z-[99] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all duration-300 hover:scale-110 ${
+          className={`fixed right-6 z-[99] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all duration-300 hover:scale-110 ${bp} ${
             dancing ? "animate-bounce" : ""
           }`}
         >
@@ -315,7 +317,7 @@ export function ChatWidget() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed inset-x-3 bottom-3 z-[99] sm:inset-auto sm:right-6 sm:bottom-6 sm:w-[380px] flex h-[min(85vh,620px)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200">
+        <div className={`fixed inset-x-3 bottom-3 z-[99] sm:inset-auto sm:right-6 sm:w-[380px] flex h-[min(85vh,620px)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200 transition-all duration-300 ${bp}`}>
           {/* Header */}
           <div className="flex items-center justify-between gap-2 border-b border-border bg-primary px-4 py-3 text-primary-foreground">
             <div className="flex items-center gap-2">

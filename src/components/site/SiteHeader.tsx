@@ -46,22 +46,22 @@ export function SiteHeader() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2">
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline">Promoting non-traditional exports</span>
-            <Link to="/membership" className="hidden sm:inline underline-offset-4 hover:underline">Join us now →</Link>
+            <Link to="/membership" className="hidden sm:inline hover:font-semibold">Join us now →</Link>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/verify" className="flex items-center gap-1 hover:underline">
+            <Link to="/verify" className="flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Verify Member</span>
             </Link>
-            <a href="mailto:info@fageghana.com" className="hidden md:flex items-center gap-1 hover:underline">
+            <a href="mailto:info@fageghana.com" className="hidden md:flex items-center gap-1">
               <Mail className="h-3.5 w-3.5" />
               <span>info@fageghana.com</span>
             </a>
-            <a href="tel:+233535170780" className="hidden md:flex items-center gap-1 hover:underline">
+            <a href="tel:+233535170780" className="hidden md:flex items-center gap-1">
               <Phone className="h-3.5 w-3.5" />
               <span>+233 (0) 53 517 0780</span>
             </a>
-            <a href="tel:+233535224555" className="hidden md:flex items-center gap-1 hover:underline">
+            <a href="tel:+233535224555" className="hidden md:flex items-center gap-1">
               <Phone className="h-3.5 w-3.5" />
               <span>+233 (0) 53 522 4555</span>
             </a>

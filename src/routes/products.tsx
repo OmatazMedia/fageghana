@@ -103,7 +103,7 @@ function FeaturedGrid() {
 function ProductsPage() {
   return (
     <SiteLayout>
-      <PageHero eyebrow="Our Products" title="Our Products" subtitle="Quality Ghanaian products trusted by international buyers worldwide" imageUrl="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80" />
+      <PageHero eyebrow="Our Members' Products" title="Our Members' Products" subtitle="Quality Ghanaian products trusted by international buyers worldwide" imageUrl="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80" />
 
       <section className="py-20 scroll-mt-32">
         <div className="mx-auto max-w-7xl px-4">

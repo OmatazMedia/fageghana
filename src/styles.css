@@ -151,11 +151,11 @@
   }
 
   a {
-    text-decoration: none;
+    text-decoration: none !important;
   }
 
   a:hover {
-    text-decoration: none;
+    text-decoration: none !important;
     font-weight: 600;
     letter-spacing: 0.01em;
   }
