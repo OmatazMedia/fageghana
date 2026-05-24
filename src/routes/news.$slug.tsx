@@ -117,6 +117,9 @@ function NewsDetail() {
                 </div>
               )}
 
+              {/* Share + Reactions */}
+              <ShareAndReactions newsId={article.id} title={article.title} />
+
               {/* Prev / Next */}
               <nav className="mt-12 grid grid-cols-1 gap-4 border-t border-border pt-8 md:grid-cols-2">
                 {prev ? (
