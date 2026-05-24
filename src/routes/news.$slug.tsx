@@ -221,3 +221,102 @@ function NewsDetail() {
     </SiteLayout>
   );
 }
+
+const EMOJIS = ["👍", "❤️", "🎉", "😮", "👏"] as const;
+
+function getSessionId() {
+  let id = localStorage.getItem("fage_sess");
+  if (!id) {
+    id = (crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36));
+    localStorage.setItem("fage_sess", id);
+  }
+  return id;
+}
+
+function ShareAndReactions({ newsId, title }: { newsId: string; title: string }) {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [mine, setMine] = useState<Set<string>>(new Set());
+  const sessionId = typeof window !== "undefined" ? getSessionId() : "";
+
+  useEffect(() => {
+    if (!newsId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("blog_reactions").select("emoji,session_id").eq("news_id", newsId);
+      if (cancelled || !data) return;
+      const c: Record<string, number> = {};
+      const m = new Set<string>();
+      for (const r of data as { emoji: string; session_id: string }[]) {
+        c[r.emoji] = (c[r.emoji] ?? 0) + 1;
+        if (r.session_id === sessionId) m.add(r.emoji);
+      }
+      setCounts(c); setMine(m);
+    })();
+    return () => { cancelled = true; };
+  }, [newsId, sessionId]);
+
+  async function toggle(emoji: string) {
+    if (mine.has(emoji)) {
+      const next = new Set(mine); next.delete(emoji); setMine(next);
+      setCounts((c) => ({ ...c, [emoji]: Math.max(0, (c[emoji] ?? 1) - 1) }));
+      await supabase.from("blog_reactions").delete().eq("news_id", newsId).eq("session_id", sessionId).eq("emoji", emoji);
+    } else {
+      const next = new Set(mine); next.add(emoji); setMine(next);
+      setCounts((c) => ({ ...c, [emoji]: (c[emoji] ?? 0) + 1 }));
+      await supabase.from("blog_reactions").insert({ news_id: newsId, emoji, session_id: sessionId });
+    }
+  }
+
+  const url = typeof window !== "undefined" ? window.location.href : "";
+  const enc = encodeURIComponent;
+  const shareItems = [
+    { label: "Facebook", Icon: Facebook, href: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}` },
+    { label: "Twitter", Icon: Twitter, href: `https://twitter.com/intent/tweet?url=${enc(url)}&text=${enc(title)}` },
+    { label: "LinkedIn", Icon: Linkedin, href: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}` },
+    { label: "WhatsApp", Icon: () => <span className="text-base leading-none">🟢</span>, href: `https://wa.me/?text=${enc(title + " — " + url)}` },
+  ];
+
+  function copyLink() {
+    navigator.clipboard?.writeText(url).then(
+      () => toast.success("Link copied to clipboard"),
+      () => toast.error("Could not copy link")
+    );
+  }
+
+  return (
+    <div className="mt-10 grid gap-4 rounded-2xl border border-border bg-card p-5 md:grid-cols-2">
+      {/* Reactions */}
+      <div>
+        <div className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">How does this make you feel?</div>
+        <div className="flex flex-wrap gap-2">
+          {EMOJIS.map((e) => {
+            const active = mine.has(e);
+            return (
+              <button key={e} onClick={() => toggle(e)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition ${active ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:bg-accent"}`}>
+                <span className="text-base leading-none">{e}</span>
+                <span className="text-xs font-semibold">{counts[e] ?? 0}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {/* Share */}
+      <div className="md:text-right">
+        <div className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Share this post</div>
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          {shareItems.map(({ label, Icon, href }) => (
+            <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${label}`}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-foreground/70 transition hover:bg-primary hover:text-primary-foreground">
+              <Icon className="h-4 w-4" />
+            </a>
+          ))}
+          <button onClick={copyLink} aria-label="Copy link"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-foreground/70 transition hover:bg-primary hover:text-primary-foreground">
+            <LinkIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
