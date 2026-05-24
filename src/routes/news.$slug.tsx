@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Calendar, User, Tag, TrendingUp } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, User, Tag, TrendingUp, Facebook, Linkedin, Twitter, Link as LinkIcon } from "lucide-react";
+import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { supabase } from "@/integrations/supabase/client";
 
