@@ -83,9 +83,9 @@ function MembershipPage() {
                         </ul>
                       )}
                       <div className="mt-7 space-y-2">
-                        <Link to="/apply/$tier" params={{ tier: plan.tier }} className="block w-full rounded-full bg-primary py-3 text-center text-sm font-semibold text-primary-foreground transition hover:opacity-90">
+                        <a href={`/apply/${plan.tier}`} className="block w-full rounded-full bg-primary py-3 text-center text-sm font-semibold text-primary-foreground transition hover:opacity-90">
                           Apply now
-                        </Link>
+                        </a>
                         <button onClick={() => handleDownload(plan)} className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-primary py-2.5 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition">
                           <Download className="h-4 w-4" /> Download form (PDF)
                         </button>

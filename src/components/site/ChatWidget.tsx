@@ -19,21 +19,24 @@ type Msg = {
 type Mode = "menu" | "leave-msg" | "whatsapp-input" | "transferring" | "sending";
 
 const QUICK_MENU: { label: string; action: string }[] = [
-  { label: "About FAGE", action: "about" },
-  { label: "Services", action: "services" },
-  { label: "Products", action: "products" },
-  { label: "Membership", action: "membership" },
-  { label: "Activities & Events", action: "activities" },
-  { label: "News & Blog", action: "news" },
-  { label: "Contact details", action: "contact" },
-  { label: "Verify a member", action: "verify" },
+  { label: "About FAGE",           action: "about" },
+  { label: "Services",             action: "services" },
+  { label: "Products",             action: "products" },
+  { label: "Membership",           action: "membership" },
+  { label: "Activities & Events",  action: "activities" },
+  { label: "News & Blog",          action: "news" },
+  { label: "Contact details",      action: "contact" },
+  { label: "Verify a member",      action: "verify" },
   { label: "Chat with a real person", action: "whatsapp" },
-  { label: "Leave a message", action: "leave" },
+  { label: "Leave a message",      action: "leave" },
 ];
 
 function ghanaGreeting() {
   try {
-    const h = parseInt(new Intl.DateTimeFormat("en-GH", { hour: "2-digit", hour12: false, timeZone: "Africa/Accra" }).format(new Date()), 10);
+    const h = parseInt(
+      new Intl.DateTimeFormat("en-GH", { hour: "2-digit", hour12: false, timeZone: "Africa/Accra" }).format(new Date()),
+      10
+    );
     if (h >= 5 && h < 12) return "Good morning";
     if (h >= 12 && h < 17) return "Good afternoon";
     if (h >= 17 && h < 22) return "Good evening";
@@ -43,14 +46,15 @@ function ghanaGreeting() {
 
 function isOnline() {
   try {
-    const fmt = new Intl.DateTimeFormat("en-GH", { weekday: "short", hour: "2-digit", hour12: false, timeZone: "Africa/Accra" }).formatToParts(new Date());
-    const day = fmt.find((p) => p.type === "weekday")?.value ?? "";
+    const fmt = new Intl.DateTimeFormat("en-GH", {
+      weekday: "short", hour: "2-digit", hour12: false, timeZone: "Africa/Accra",
+    }).formatToParts(new Date());
+    const day  = fmt.find((p) => p.type === "weekday")?.value ?? "";
     const hour = parseInt(fmt.find((p) => p.type === "hour")?.value ?? "0", 10);
     return !["Sat", "Sun"].includes(day) && hour >= 8 && hour < 17;
   } catch { return true; }
 }
 
-// Window notification sound — two-tone ding
 function playNotificationSound() {
   try {
     const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -72,23 +76,37 @@ function playNotificationSound() {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function ChatWidget({ raised }: { raised?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [visible, setVisible] = useState(false);       // widget shown after 10s delay
-  const [notifBubble, setNotifBubble] = useState(false); // speech bubble
-  const [badge, setBadge] = useState(false);            // "1" badge
-  const [dancing, setDancing] = useState(false);        // wiggle animation
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [mode, setMode] = useState<Mode>("menu");
-  const [typing, setTyping] = useState(false);
-  const [input, setInput] = useState("");
-  const [leave, setLeave] = useState<{ step: "name" | "phone" | "email" | "message" | "done"; name: string; phone: string; email: string; message: string }>({ step: "name", name: "", phone: "", email: "", message: "" });
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const danceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const greetedRef = useRef(false);
+function delayMs(ms: number) { return new Promise<void>((r) => setTimeout(r, ms)); }
 
-  // ── 10s delay → show widget → notification bubble → badge → dance ──
+function buildTranscript(msgs: Msg[]) {
+  const lines = msgs
+    .filter((m) => m.text)
+    .map((m) => `${m.from === "bot" ? "Ama (bot)" : "Me"}: ${m.text}`)
+    .join("\n");
+  return `Hello FAGE Team — I was chatting on your website and would like to continue here.\n\n--- Chat Transcript ---\n${lines}\n--- End ---`;
+}
+
+export function ChatWidget({ raised }: { raised?: boolean }) {
+  const [open, setOpen]               = useState(false);
+  const [visible, setVisible]         = useState(false);
+  const [notifBubble, setNotifBubble] = useState(false);
+  const [badge, setBadge]             = useState(false);
+  const [dancing, setDancing]         = useState(false);
+  const [msgs, setMsgs]               = useState<Msg[]>([]);
+  const [mode, setMode]               = useState<Mode>("menu");
+  const [typing, setTyping]           = useState(false);
+  const [input, setInput]             = useState("");
+  const [leave, setLeave]             = useState<{
+    step: "name" | "phone" | "email" | "message" | "done";
+    name: string; phone: string; email: string; message: string;
+  }>({ step: "name", name: "", phone: "", email: "", message: "" });
+
+  const scrollRef   = useRef<HTMLDivElement>(null);
+  const idleTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const danceTimer  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const greetedRef  = useRef(false);
+
+  /* ── Show widget after 10s, fire notification once per session ── */
   useEffect(() => {
     const alreadyPinged = sessionStorage.getItem("fage_chat_pinged");
     const t = setTimeout(() => {
@@ -100,7 +118,6 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
         setTimeout(() => {
           setNotifBubble(false);
           setBadge(true);
-          // Start intermittent dance every 8s
           danceTimer.current = setInterval(() => {
             setDancing(true);
             setTimeout(() => setDancing(false), 800);
@@ -111,7 +128,6 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     return () => clearTimeout(t);
   }, []);
 
-  // Stop dancing when opened, clear badge
   function openChat() {
     setOpen(true);
     setBadge(false);
@@ -119,19 +135,19 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     if (danceTimer.current) { clearInterval(danceTimer.current); danceTimer.current = null; }
   }
 
-  // ── Greeting with typing animation on first open ──
+  /* ── Greeting on first open ── */
   useEffect(() => {
     if (!open || greetedRef.current) return;
     greetedRef.current = true;
-    const greet = ghanaGreeting();
+    const greet  = ghanaGreeting();
     const online = isOnline();
     (async () => {
       setTyping(true);
-      await delay(1200);
+      await delayMs(1200);
       setTyping(false);
       addBot(`Hi! I'm Ama 🤖 — a friendly bot from FAGE. ${greet}!`);
       setTyping(true);
-      await delay(1000);
+      await delayMs(1000);
       setTyping(false);
       addBot(
         online
@@ -142,62 +158,58 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     })();
   }, [open]);
 
-  // Auto-scroll
+  /* ── Auto-scroll ── */
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs, typing]);
 
-  // Idle timer — 20s after last user interaction
+  /* ── Idle timer ── */
   const resetIdle = useCallback(() => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(async () => {
       if (!open) return;
       setTyping(true);
-      await delay(800);
+      await delayMs(800);
       setTyping(false);
       addBot("Anything else I can help you with? 😊", QUICK_MENU);
     }, 20000);
   }, [open]);
 
   function addBot(text: string, quickReplies?: { label: string; action: string }[], link?: { to: string; label: string }) {
-    setMsgs(m => [...m, { id: crypto.randomUUID(), from: "bot", text, quickReplies, link, ts: Date.now() }]);
+    setMsgs((m) => [...m, { id: crypto.randomUUID(), from: "bot", text, quickReplies, link, ts: Date.now() }]);
   }
   function addUser(text: string) {
-    setMsgs(m => [...m, { id: crypto.randomUUID(), from: "user", text, ts: Date.now() }]);
+    setMsgs((m) => [...m, { id: crypto.randomUUID(), from: "user", text, ts: Date.now() }]);
     resetIdle();
   }
-
   async function botReply(text: string, quickReplies?: { label: string; action: string }[], link?: { to: string; label: string }, ms = 800) {
     setTyping(true);
-    await delay(ms);
+    await delayMs(ms);
     setTyping(false);
     addBot(text, quickReplies, link);
   }
 
-  // ── Exit detection ──
   function isExitIntent(text: string) {
     const t = text.toLowerCase().trim();
-    return EXIT_WORDS.some(w => t === w || t.startsWith(w + " ") || t.endsWith(" " + w));
+    return EXIT_WORDS.some((w) => t === w || t.startsWith(w + " ") || t.endsWith(" " + w));
   }
 
   async function handleExit() {
     setTyping(true);
-    await delay(800);
+    await delayMs(800);
     setTyping(false);
     addBot("Thank you for chatting with us today! 🙏 We hope we were helpful. Have a wonderful day — goodbye! 👋");
     if (idleTimer.current) clearTimeout(idleTimer.current);
     setTimeout(() => {
       setOpen(false);
-      // Clear chat after close so next open is fresh
       setTimeout(() => { setMsgs([]); greetedRef.current = false; setMode("menu"); }, 500);
     }, 2500);
   }
 
   async function handleAction(action: string, label?: string) {
     addUser(label ?? action);
-    await botReply("", undefined, undefined, 0); // start typing immediately
     setTyping(true);
-    await delay(800);
+    await delayMs(800);
     setTyping(false);
 
     switch (action) {
@@ -227,7 +239,6 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     if (!text) return;
     setInput("");
 
-    // Exit intent
     if (isExitIntent(text)) { addUser(text); await handleExit(); return; }
 
     if (mode === "whatsapp-input") {
@@ -250,7 +261,9 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       if (s === "phone")   { setLeave({ ...leave, phone: text, step: "email" });   await botReply("Got it. And your email address?"); return; }
       if (s === "email")   {
         if (!EMAIL_RE.test(text)) { await botReply("That doesn't look like a valid email. Please try again (e.g. you@example.com)."); return; }
-        setLeave({ ...leave, email: text, step: "message" }); await botReply("Perfect. Now, what's your message?"); return;
+        setLeave({ ...leave, email: text, step: "message" });
+        await botReply("Perfect. Now, what's your message?");
+        return;
       }
       if (s === "message") {
         const payload = { ...leave, message: text };
@@ -258,7 +271,12 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
         setMode("sending");
         await botReply("Sending your message…");
         setTimeout(async () => {
-          await supabase.from("contact_messages").insert({ name: payload.name, email: payload.email, phone: payload.phone, subject: "Chat widget message", message: payload.message, source: "chat_widget" });
+          await supabase.from("contact_messages").insert({
+            name: payload.name,
+            email: payload.email,
+            subject: `Chat widget message from ${payload.name}`,
+            message: `Phone: ${payload.phone}\n\n${payload.message}`,
+          });
           addBot("✅ Your message has been sent. Our team will reach out within working hours.");
           setTimeout(() => addBot("Anything else? Pick an option below.", QUICK_MENU), 1500);
           setMode("menu");
@@ -281,13 +299,15 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
 
   if (!visible) return null;
 
-  const bp = raised ? "bottom-24" : "bottom-6";
+  /* ── Positioning: button slides up when BackToTop is visible ── */
+  const btnBottom  = raised ? "bottom-20" : "bottom-6";
+  const panelBottom = raised ? "bottom-[88px]" : "bottom-[72px]";
 
   return (
     <>
       {/* Notification speech bubble */}
       {notifBubble && !open && (
-        <div className={`fixed right-20 z-[99] max-w-[220px] animate-in slide-in-from-right-4 fade-in duration-300 transition-all duration-300 ${bp}`}>
+        <div className={`fixed right-20 z-[99] max-w-[220px] animate-in slide-in-from-right-4 fade-in duration-300 ${btnBottom}`}>
           <div className="rounded-xl bg-foreground px-4 py-2.5 text-xs font-medium text-background shadow-lg">
             <p className="font-semibold">👋 Hi there!</p>
             <p className="mt-0.5 opacity-80">We're here to help. Chat with us!</p>
@@ -301,12 +321,11 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
         <button
           onClick={openChat}
           aria-label="Open chat"
-          className={`fixed right-6 z-[99] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all duration-300 hover:scale-110 ${bp} ${
+          className={`fixed right-6 z-[99] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all duration-300 hover:scale-110 ${btnBottom} ${
             dancing ? "animate-bounce" : ""
           }`}
         >
           <MessageCircle className="h-6 w-6" />
-          {/* Badge */}
           {badge && (
             <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white animate-pulse">
               1
@@ -315,13 +334,18 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
         </button>
       )}
 
-      {/* Chat panel */}
+      {/* Chat panel — slides up from above the button */}
       {open && (
-        <div className={`fixed inset-x-3 bottom-3 z-[99] sm:inset-auto sm:right-6 sm:w-[380px] flex h-[min(85vh,620px)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200 transition-all duration-300 ${bp}`}>
+        <div
+          className={`fixed right-6 z-[99] w-[calc(100vw-24px)] sm:w-[380px] flex flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200 transition-all duration-300 ${panelBottom}`}
+          style={{ height: "min(85vh, 620px)" }}
+        >
           {/* Header */}
           <div className="flex items-center justify-between gap-2 border-b border-border bg-primary px-4 py-3 text-primary-foreground">
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/20"><Bot className="h-5 w-5" /></div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/20">
+                <Bot className="h-5 w-5" />
+              </div>
               <div className="min-w-0">
                 <div className="text-sm font-bold leading-tight">Ama · FAGE Bot</div>
                 <div className="flex items-center gap-1.5 text-[11px] opacity-90">
@@ -347,7 +371,9 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
             {msgs.map((m) => (
               <div key={m.id} className={m.from === "user" ? "flex justify-end" : "flex justify-start"}>
                 <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap ${
-                  m.from === "user" ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-card border border-border rounded-bl-sm"
+                  m.from === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-sm"
+                    : "bg-card border border-border rounded-bl-sm"
                 }`}>
                   {m.text}
                   {m.link && (
@@ -358,8 +384,11 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
                   {m.quickReplies && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {m.quickReplies.map((q) => (
-                        <button key={q.action} onClick={() => handleAction(q.action, q.label)}
-                          className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground transition hover:bg-primary hover:text-primary-foreground cursor-pointer">
+                        <button
+                          key={q.action}
+                          onClick={() => handleAction(q.action, q.label)}
+                          className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground transition hover:bg-primary hover:text-primary-foreground cursor-pointer"
+                        >
                           {q.label}
                         </button>
                       ))}
@@ -368,7 +397,6 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
                 </div>
               </div>
             ))}
-            {/* Typing indicator */}
             {typing && (
               <div className="flex justify-start">
                 <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm border border-border bg-card px-3.5 py-3">
@@ -383,12 +411,19 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={mode === "transferring" || mode === "sending" ? "Please wait…" : "Type a message or 'exit' to end…"}
+              placeholder={
+                mode === "transferring" || mode === "sending"
+                  ? "Please wait…"
+                  : "Type a message or 'exit' to end…"
+              }
               disabled={mode === "transferring" || mode === "sending"}
               className="flex-1 rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
             />
-            <button type="submit" disabled={!input.trim() || mode === "transferring" || mode === "sending"}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer">
+            <button
+              type="submit"
+              disabled={!input.trim() || mode === "transferring" || mode === "sending"}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
+            >
               <Send className="h-4 w-4" />
             </button>
           </form>
@@ -405,11 +440,4 @@ function Dot({ delay = 0 }: { delay?: number }) {
       style={{ animation: `typingDot 1.2s ease-in-out ${delay}ms infinite` }}
     />
   );
-}
-
-function delay(ms: number) { return new Promise(r => setTimeout(r, ms)); }
-
-function buildTranscript(msgs: Msg[]) {
-  const lines = msgs.filter(m => m.text).map(m => `${m.from === "bot" ? "Ama (bot)" : "Me"}: ${m.text}`).join("\n");
-  return `Hello FAGE Team — I was chatting on your website and would like to continue here.\n\n--- Chat Transcript ---\n${lines}\n--- End ---`;
 }
