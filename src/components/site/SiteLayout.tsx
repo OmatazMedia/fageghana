@@ -1,14 +1,28 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { SiteHeader } from "./SiteHeader";
 import { SiteFooter } from "./SiteFooter";
+import { ChatWidget } from "./ChatWidget";
+import { BackToTop } from "./BackToTop";
+import { SearchOverlay } from "./SearchOverlay";
+
+const SearchCtx = createContext<{ open: () => void }>({ open: () => {} });
+export const useSiteSearch = () => useContext(SearchCtx);
 
 export function SiteLayout({ children }: { children: ReactNode }) {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [raised, setRaised] = useState(false);
+
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <SiteHeader />
-      <main className="flex-1">{children}</main>
-      <SiteFooter />
-    </div>
+    <SearchCtx.Provider value={{ open: () => setSearchOpen(true) }}>
+      <div className="flex min-h-screen flex-col bg-background">
+        <SiteHeader />
+        <main className="flex-1">{children}</main>
+        <SiteFooter />
+      </div>
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ChatWidget raised={raised} />
+      <BackToTop onVisibilityChange={setRaised} />
+    </SearchCtx.Provider>
   );
 }
 
