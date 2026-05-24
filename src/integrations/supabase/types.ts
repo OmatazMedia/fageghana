@@ -119,6 +119,30 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          news_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          news_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          news_id?: string
+          session_id?: string
+        }
+        Relationships: []
+      }
       certificate_templates: {
         Row: {
           authorized_name: string | null
@@ -207,6 +231,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          source: string
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          source?: string
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          source?: string
+          subject?: string | null
+        }
+        Relationships: []
       }
       email_log: {
         Row: {
