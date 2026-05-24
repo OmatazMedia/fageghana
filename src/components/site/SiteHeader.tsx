@@ -20,13 +20,13 @@ const navItems = [
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [topBarVisible, setTopBarVisible] = useState(true);
+  const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
   const { open: openSearch } = useSiteSearch();
 
   useEffect(() => {
     function onScroll() {
-      setTopBarVisible(window.scrollY < 40);
+      setScrolled(window.scrollY > 10);
       const el = document.documentElement;
       const total = el.scrollHeight - el.clientHeight;
       setProgress(total > 0 ? (el.scrollTop / total) * 100 : 0);
@@ -36,12 +36,13 @@ export function SiteHeader() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background border-b border-border shadow-sm">
-      {/* Top utility bar — hides while scrolled, shows at top */}
-      <div
-        className="bg-primary text-primary-foreground text-xs overflow-hidden transition-all duration-300 ease-in-out"
-        style={{ maxHeight: topBarVisible ? "40px" : "0px", opacity: topBarVisible ? 1 : 0 }}
-      >
+    <header className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
+      scrolled
+        ? "bg-background/50 backdrop-blur-md border-border shadow-md"
+        : "bg-background/20 backdrop-blur-sm border-transparent"
+    }`}>
+      {/* Top utility bar — always visible */}
+      <div className="bg-primary text-primary-foreground text-xs">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2">
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline">Promoting non-traditional exports</span>
