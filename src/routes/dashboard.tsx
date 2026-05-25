@@ -810,84 +810,476 @@ function InvoicesTab({ userId, profile }: { userId: string; profile: any }) {
 /* ─────────────────────────────────────────────────────────────────────────
    Export Readiness Score
 ───────────────────────────────────────────────────────────────────────── */
-function ReadinessTab({ profile, onGoTo }: { profile: any; onGoTo: (t: Tab) => void }) {
-  const checks = [
-    { label: "Company name added", done: !!profile.company_name, tab: "profile" as Tab },
-    { label: "Contact name added", done: !!profile.contact_name, tab: "profile" as Tab },
-    { label: "Phone number added", done: !!profile.phone, tab: "profile" as Tab },
-    { label: "Country set", done: !!profile.country, tab: "profile" as Tab },
-    { label: "Industry specified", done: !!profile.industry, tab: "profile" as Tab },
-    { label: "Products exported listed", done: !!profile.products_exported, tab: "profile" as Tab },
-    { label: "Membership active", done: !!profile.subscription_expiry && new Date(profile.subscription_expiry) > new Date(), tab: "subscription" as Tab },
-    { label: "Member ID issued", done: !!profile.member_id, tab: "subscription" as Tab },
-  ];
-  const score = Math.round((checks.filter((c) => c.done).length / checks.length) * 100);
+function ReadinessTab({ userId }: { userId: string }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [responses, setResponses] = useState<Record<string, any>>({});
+  const [docs, setDocs] = useState<any[]>([]);
+  const [score, setScore] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [itemsRes, respRes, docsRes, scoreRes] = await Promise.all([
+      supabase.from("readiness_checklist_items").select("*").eq("active", true).order("display_order"),
+      supabase.from("member_readiness_responses").select("*").eq("user_id", userId),
+      supabase.from("member_documents").select("id,name,doc_type").eq("user_id", userId).order("uploaded_at", { ascending: false }),
+      supabase.rpc("get_readiness_score", { _user_id: userId }),
+    ]);
+    setItems(itemsRes.data ?? []);
+    const map: Record<string, any> = {};
+    (respRes.data ?? []).forEach((r: any) => { map[r.item_id] = r; });
+    setResponses(map);
+    setDocs(docsRes.data ?? []);
+    setScore(Number(scoreRes.data ?? 0));
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function update(itemId: string, patch: { status?: string; evidence_doc_id?: string | null; notes?: string }) {
+    const existing = responses[itemId];
+    const row = {
+      user_id: userId,
+      item_id: itemId,
+      status: patch.status ?? existing?.status ?? "not_started",
+      evidence_doc_id: patch.evidence_doc_id !== undefined ? patch.evidence_doc_id : existing?.evidence_doc_id ?? null,
+      notes: patch.notes !== undefined ? patch.notes : existing?.notes ?? null,
+    };
+    const { error } = await supabase
+      .from("member_readiness_responses")
+      .upsert(row, { onConflict: "user_id,item_id" });
+    if (error) { toast.error(error.message); return; }
+    setResponses((p) => ({ ...p, [itemId]: { ...row } }));
+    const { data: s } = await supabase.rpc("get_readiness_score", { _user_id: userId });
+    setScore(Number(s ?? 0));
+  }
+
+  const grouped = items.reduce<Record<string, any[]>>((acc, it) => {
+    (acc[it.category] ||= []).push(it);
+    return acc;
+  }, {});
+
   const color = score >= 80 ? "text-emerald-600" : score >= 50 ? "text-amber-600" : "text-destructive";
   const ring = score >= 80 ? "stroke-emerald-500" : score >= 50 ? "stroke-amber-500" : "stroke-destructive";
   const circumference = 2 * Math.PI * 40;
   const offset = circumference - (score / 100) * circumference;
 
+  if (loading) return <p className="text-muted-foreground">Loading readiness checklist…</p>;
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl bg-card p-6 shadow-sm">
         <h2 className="text-xl font-bold">Export Readiness Score</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Complete your profile to improve your score and unlock full member benefits.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Mark each item as you progress. Attach supporting documents from your uploads as evidence.</p>
         <div className="mt-6 flex flex-col items-center gap-6 sm:flex-row">
-          {/* Circular progress */}
           <div className="relative flex h-32 w-32 shrink-0 items-center justify-center">
             <svg className="-rotate-90" width="128" height="128" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--color-border)" strokeWidth="10" />
-              <circle
-                cx="50" cy="50" r="40" fill="none"
-                className={ring}
-                strokeWidth="10"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={offset}
-                style={{ transition: "stroke-dashoffset 0.8s ease" }}
-              />
+              <circle cx="50" cy="50" r="40" fill="none" className={ring} strokeWidth="10" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.8s ease" }} />
             </svg>
             <div className="absolute text-center">
               <div className={`text-2xl font-bold ${color}`}>{score}%</div>
-              <div className="text-[10px] text-muted-foreground">complete</div>
+              <div className="text-[10px] text-muted-foreground">ready</div>
             </div>
           </div>
-          {/* Summary */}
           <div className="flex-1">
             <p className={`text-lg font-semibold ${color}`}>
-              {score === 100 ? "🎉 Fully ready!" : score >= 80 ? "Almost there!" : score >= 50 ? "Good progress" : "Just getting started"}
+              {score >= 100 ? "🎉 Fully export-ready" : score >= 80 ? "Almost there!" : score >= 50 ? "Good progress" : "Just getting started"}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {checks.filter((c) => c.done).length} of {checks.length} items complete.
-              {score < 100 && " Complete the remaining items below to reach 100%."}
+              Weighted across {items.length} checklist items. Items marked “In progress” count for half.
             </p>
           </div>
         </div>
       </div>
 
+      {Object.entries(grouped).map(([cat, list]) => (
+        <div key={cat} className="rounded-2xl bg-card p-6 shadow-sm">
+          <h3 className="mb-4 text-base font-bold">{cat}</h3>
+          <ul className="space-y-4">
+            {list.map((it) => {
+              const r = responses[it.id];
+              const status = r?.status ?? "not_started";
+              return (
+                <li key={it.id} className="rounded-xl border border-border p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        {status === "complete"
+                          ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                          : status === "in_progress"
+                            ? <Circle className="h-5 w-5 text-amber-500" />
+                            : <Circle className="h-5 w-5 text-muted-foreground" />}
+                        <span className="font-medium text-sm">{it.label}</span>
+                      </div>
+                      {it.description && <p className="mt-1 text-xs text-muted-foreground pl-7">{it.description}</p>}
+                    </div>
+                    <select
+                      value={status}
+                      onChange={(e) => update(it.id, { status: e.target.value })}
+                      className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs"
+                    >
+                      <option value="not_started">Not started</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="complete">Complete</option>
+                    </select>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 pl-7">
+                    <select
+                      value={r?.evidence_doc_id ?? ""}
+                      onChange={(e) => update(it.id, { evidence_doc_id: e.target.value || null })}
+                      className={inputCls}
+                    >
+                      <option value="">No evidence document</option>
+                      {docs.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      placeholder="Notes (optional)"
+                      defaultValue={r?.notes ?? ""}
+                      onBlur={(e) => {
+                        if ((e.target.value || "") !== (r?.notes || "")) {
+                          void update(it.id, { notes: e.target.value || "" });
+                        }
+                      }}
+                      className={inputCls}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Events & RSVPs
+───────────────────────────────────────────────────────────────────────── */
+function EventsTab({ userId }: { userId: string }) {
+  const [events, setEvents] = useState<any[]>([]);
+  const [rsvps, setRsvps] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [evRes, rRes] = await Promise.all([
+      supabase.from("activities").select("*").eq("published", true).order("event_date", { ascending: true, nullsFirst: false }),
+      supabase.from("event_rsvps").select("activity_id").eq("user_id", userId),
+    ]);
+    setEvents(evRes.data ?? []);
+    setRsvps(new Set((rRes.data ?? []).map((r: any) => r.activity_id)));
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function rsvp(activityId: string) {
+    const { error } = await supabase.from("event_rsvps").insert({ user_id: userId, activity_id: activityId });
+    if (error) toast.error(error.message);
+    else { toast.success("You're attending"); setRsvps((s) => new Set(s).add(activityId)); }
+  }
+  async function cancel(activityId: string) {
+    const { error } = await supabase.from("event_rsvps").delete().eq("user_id", userId).eq("activity_id", activityId);
+    if (error) toast.error(error.message);
+    else { toast.success("RSVP cancelled"); setRsvps((s) => { const n = new Set(s); n.delete(activityId); return n; }); }
+  }
+
+  if (loading) return <p className="text-muted-foreground">Loading events…</p>;
+
+  const now = Date.now();
+  const upcoming = events.filter((e) => !e.event_date || new Date(e.event_date).getTime() >= now);
+  const myEvents = events.filter((e) => rsvps.has(e.id));
+
+  return (
+    <div className="space-y-6">
+      {myEvents.length > 0 && (
+        <div className="rounded-2xl bg-card p-6 shadow-sm">
+          <h3 className="mb-4 text-base font-bold">Events I'm Attending ({myEvents.length})</h3>
+          <div className="grid gap-3 md:grid-cols-2">
+            {myEvents.map((e) => <EventCard key={e.id} event={e} attending onRsvp={() => cancel(e.id)} />)}
+          </div>
+        </div>
+      )}
       <div className="rounded-2xl bg-card p-6 shadow-sm">
-        <h3 className="mb-4 text-base font-bold">Checklist</h3>
-        <ul className="space-y-3">
-          {checks.map((c) => (
-            <li key={c.label} className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                {c.done
-                  ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
-                  : <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />}
-                <span className={`text-sm ${c.done ? "text-foreground" : "text-muted-foreground"}`}>{c.label}</span>
-              </div>
-              {!c.done && (
-                <button
-                  onClick={() => onGoTo(c.tab)}
-                  className="text-xs font-semibold text-primary hover:underline shrink-0"
-                >
-                  Fix →
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <h2 className="text-xl font-bold">Upcoming Events & Activities</h2>
+        <p className="mt-1 text-sm text-muted-foreground">RSVP to receive reminders and let organisers know you're coming.</p>
+        {upcoming.length === 0 ? (
+          <p className="mt-6 text-sm text-muted-foreground">No upcoming events right now. Check back soon.</p>
+        ) : (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {upcoming.map((e) => (
+              <EventCard key={e.id} event={e} attending={rsvps.has(e.id)} onRsvp={() => rsvps.has(e.id) ? cancel(e.id) : rsvp(e.id)} />
+            ))}
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function EventCard({ event, attending, onRsvp }: { event: any; attending: boolean; onRsvp: () => void }) {
+  const date = event.event_date ? new Date(event.event_date) : null;
+  return (
+    <div className="rounded-xl border border-border bg-background p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-wide text-primary">{event.category}</div>
+          <h4 className="mt-1 font-semibold leading-tight">{event.title}</h4>
+        </div>
+        {attending && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Going</span>}
+      </div>
+      {date && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Calendar className="h-3.5 w-3.5" />
+          {date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+        </div>
+      )}
+      {event.location && (
+        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <MapPin className="h-3.5 w-3.5" /> {event.location}
+        </div>
+      )}
+      {event.description && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{event.description}</p>}
+      <button
+        onClick={onRsvp}
+        className={`mt-3 w-full rounded-full px-3 py-1.5 text-xs font-semibold ${attending ? "border border-input bg-background hover:bg-muted" : "bg-primary text-primary-foreground"}`}
+      >
+        {attending ? "Cancel RSVP" : "RSVP"}
+      </button>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Trade Opportunities
+───────────────────────────────────────────────────────────────────────── */
+function TradeTab({ userId }: { userId: string }) {
+  const [ops, setOps] = useState<any[]>([]);
+  const [interests, setInterests] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [country, setCountry] = useState("");
+  const [open, setOpen] = useState<any | null>(null);
+  const [message, setMessage] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [oRes, iRes] = await Promise.all([
+      supabase.from("trade_opportunities").select("*").eq("is_active", true).order("posted_at", { ascending: false }),
+      supabase.from("trade_opportunity_interests").select("*").eq("user_id", userId),
+    ]);
+    setOps(oRes.data ?? []);
+    const m: Record<string, any> = {};
+    (iRes.data ?? []).forEach((r: any) => { m[r.opportunity_id] = r; });
+    setInterests(m);
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function submitInterest() {
+    if (!open) return;
+    const { error, data } = await supabase
+      .from("trade_opportunity_interests")
+      .insert({ user_id: userId, opportunity_id: open.id, message: message || null })
+      .select()
+      .single();
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Interest recorded — the FAGE team will follow up");
+      setInterests((p) => ({ ...p, [open.id]: data }));
+      setOpen(null); setMessage("");
+    }
+  }
+  async function withdraw(opportunityId: string) {
+    const { error } = await supabase.from("trade_opportunity_interests").delete().eq("user_id", userId).eq("opportunity_id", opportunityId);
+    if (error) toast.error(error.message);
+    else { toast.success("Withdrawn"); setInterests((p) => { const n = { ...p }; delete n[opportunityId]; return n; }); }
+  }
+
+  const countries = Array.from(new Set(ops.map((o) => o.country).filter(Boolean))).sort();
+  const filtered = ops.filter((o) => {
+    const term = q.trim().toLowerCase();
+    const matchesQ = !term || [o.title, o.description, o.category].some((v) => (v ?? "").toLowerCase().includes(term));
+    const matchesC = !country || o.country === country;
+    return matchesQ && matchesC;
+  });
+
+  if (loading) return <p className="text-muted-foreground">Loading trade opportunities…</p>;
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl bg-card p-6 shadow-sm">
+        <h2 className="text-xl font-bold">Trade Opportunities</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Buyer leads, RFQs and export tenders curated for FAGE members.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search opportunities…" className={`${inputCls} pl-9`} />
+          </div>
+          <select value={country} onChange={(e) => setCountry(e.target.value)} className={inputCls} style={{ maxWidth: 200 }}>
+            <option value="">All countries</option>
+            {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground shadow-sm">No opportunities match your filters.</p>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {filtered.map((o) => {
+            const i = interests[o.id];
+            return (
+              <div key={o.id} className="rounded-2xl bg-card p-5 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    {o.category && <div className="text-xs font-semibold uppercase tracking-wide text-primary">{o.category}</div>}
+                    <h4 className="mt-1 font-semibold leading-tight">{o.title}</h4>
+                  </div>
+                  {o.deadline && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                      Due {new Date(o.deadline).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  {o.country && <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> {o.country}</span>}
+                  {o.source && <span>Source: {o.source}</span>}
+                </div>
+                {o.description && <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">{o.description}</p>}
+                <div className="mt-4 flex items-center justify-between gap-2">
+                  {o.source_url && (
+                    <a href={o.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                      View source <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                  {i ? (
+                    <button onClick={() => withdraw(o.id)} className="ml-auto rounded-full border border-input bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted">
+                      Withdraw interest
+                    </button>
+                  ) : (
+                    <button onClick={() => { setOpen(o); setMessage(""); }} className="ml-auto rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+                      I'm Interested
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold">Express interest</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{open.title}</p>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              placeholder="Add a short message for the FAGE secretariat (optional)…"
+              className={`${inputCls} mt-4`}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setOpen(null)} className="rounded-full border border-input px-4 py-2 text-sm">Cancel</button>
+              <button onClick={submitInterest} className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Submit</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Member Directory
+───────────────────────────────────────────────────────────────────────── */
+function DirectoryTab() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [country, setCountry] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("member_profiles")
+        .select("id, company_name, contact_name, industry, country, tier, directory_bio, directory_website, directory_logo_url")
+        .eq("status", "approved")
+        .eq("directory_visible", true)
+        .order("company_name");
+      if (error) toast.error(error.message);
+      else setRows(data ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const countries = Array.from(new Set(rows.map((r) => r.country).filter(Boolean))).sort();
+  const filtered = rows.filter((r) => {
+    const term = q.trim().toLowerCase();
+    const matchesQ = !term || [r.company_name, r.industry, r.contact_name].some((v) => (v ?? "").toLowerCase().includes(term));
+    const matchesC = !country || r.country === country;
+    return matchesQ && matchesC;
+  });
+
+  if (loading) return <p className="text-muted-foreground">Loading directory…</p>;
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl bg-card p-6 shadow-sm">
+        <h2 className="text-xl font-bold">Member Directory</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Connect with fellow FAGE members. To appear here, enable directory visibility in your Profile.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search companies or industries…" className={`${inputCls} pl-9`} />
+          </div>
+          <select value={country} onChange={(e) => setCountry(e.target.value)} className={inputCls} style={{ maxWidth: 200 }}>
+            <option value="">All countries</option>
+            {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground shadow-sm">No members match your filters.</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((m) => (
+            <div key={m.id} className="rounded-2xl bg-card p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                {m.directory_logo_url ? (
+                  <img src={m.directory_logo_url} alt={m.company_name} className="h-14 w-14 rounded-lg object-cover" />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <Building2 className="h-6 w-6" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-semibold leading-tight truncate">{m.company_name}</h4>
+                  {m.industry && <p className="text-xs text-muted-foreground truncate">{m.industry}</p>}
+                  <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold capitalize text-primary">{m.tier}</span>
+                </div>
+              </div>
+              {m.directory_bio && <p className="mt-3 line-clamp-3 text-xs text-muted-foreground">{m.directory_bio}</p>}
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                {m.country && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {m.country}</span>}
+                {m.directory_website && (
+                  <a href={m.directory_website.startsWith("http") ? m.directory_website : `https://${m.directory_website}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-semibold text-primary hover:underline">
+                    <Globe className="h-3.5 w-3.5" /> Website
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
