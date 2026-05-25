@@ -158,13 +158,14 @@ function DesignerPage() {
     if (!imageUrl) return toast.error("Upload a background image first");
     setSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         name,
         tier,
         image_url: imageUrl,
         signature_url: signatureUrl || null,
         authorized_name: authorizedName,
         field_positions: layout,
+        signers,
         is_active: true,
       };
       const { error } = template?.id
