@@ -93,6 +93,7 @@ const navSections: NavSection[] = [
       { to: "/admin/email-templates", label: "Email Templates", icon: FileText },
       { to: "/admin/reports", label: "Reports", icon: BarChart3 },
       { to: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup },
+      { to: "/admin/users", label: "User Management", icon: ShieldCheck },
     ],
   },
 ];
