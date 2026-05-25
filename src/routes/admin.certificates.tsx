@@ -420,14 +420,21 @@ function DesignerPage() {
 }
 
 function FieldControls({
+  fieldKey,
   field,
   canvas,
+  dateFormat,
   onChange,
+  onDateFormatChange,
 }: {
+  fieldKey: FieldKey;
   field: any;
   canvas: { w: number; h: number };
+  dateFormat?: string;
   onChange: (p: any) => void;
+  onDateFormatChange: (v: string) => void;
 }) {
+  const isDate = fieldKey === "issued" || fieldKey === "expires";
   return (
     <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
       <h3 className="text-sm font-bold">Position & style</h3>
