@@ -45,7 +45,7 @@ function MembersPage() {
   const [editing, setEditing] = useState<Member | null>(null);
   const [tierFor, setTierFor] = useState<Member | null>(null);
   const [deleting, setDeleting] = useState<Member | null>(null);
-  const [menuFor, setMenuFor] = useState<string | null>(null);
+  
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
