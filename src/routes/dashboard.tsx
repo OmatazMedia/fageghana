@@ -402,7 +402,10 @@ function Dashboard() {
             <SubscriptionTab profile={profile} userId={user!.id} onChange={loadProfile} />
           )}
           {tab === "certificate" && <CertificateTab userId={user!.id} />}
-          {tab === "readiness" && <ReadinessTab profile={profile} onGoTo={setTab} />}
+          {tab === "events" && <EventsTab userId={user!.id} />}
+          {tab === "trade" && <TradeTab userId={user!.id} />}
+          {tab === "directory" && <DirectoryTab />}
+          {tab === "readiness" && <ReadinessTab userId={user!.id} />}
           {tab === "resources" && <ResourcesTab />}
           {tab === "documents" && <DocumentsTab userId={user!.id} />}
           {tab === "invoices" && <InvoicesTab userId={user!.id} profile={profile} />}
