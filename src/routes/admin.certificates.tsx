@@ -350,16 +350,16 @@ function DesignerPage() {
                 QR Code
               </button>
               <button
-                onClick={() => setActive("signature")}
-                className={`rounded-md px-2 py-1.5 text-xs ${active === "signature" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
+                onClick={() => setActive("signers")}
+                className={`rounded-md px-2 py-1.5 text-xs ${active === "signers" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
               >
-                Signature
+                Signers ({signers.length})
               </button>
             </div>
           </div>
 
           {/* Active controls */}
-          {active && active !== "qr" && active !== "signature" && (
+          {active && active !== "qr" && active !== "signers" && (
             <FieldControls
               field={layout.fields[active]}
               canvas={layout.canvas}
@@ -369,14 +369,16 @@ function DesignerPage() {
           {active === "qr" && (
             <QrControls layout={layout} setLayout={setLayout} onUploadLogo={onUploadLogo} />
           )}
-          {active === "signature" && (
-            <SignatureControls
-              sigUrl={signatureUrl}
-              onUpload={onUploadSig}
-              layout={layout}
-              setLayout={setLayout}
-              authorizedName={authorizedName}
-              setAuthorizedName={setAuthorizedName}
+          {active === "signers" && (
+            <SignersControls
+              signers={signers}
+              activeSignerId={activeSignerId}
+              setActiveSignerId={setActiveSignerId}
+              canvas={layout.canvas}
+              onAdd={addSigner}
+              onRemove={removeSigner}
+              onUpdate={updateSigner}
+              onUploadFile={onUploadSignerFile}
             />
           )}
 
