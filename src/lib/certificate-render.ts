@@ -201,6 +201,7 @@ export function defaultLayout(): TemplateLayout {
     },
     signature: { x: 600, y: 760, w: 220, h: 80 },
     verification_display: ["name", "member_id", "tier", "issued", "expires"],
+    dateFormat: "D MMMM YYYY",
   };
 }
 
