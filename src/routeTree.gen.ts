@@ -28,6 +28,7 @@ import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
@@ -151,6 +152,11 @@ const ApplyTierRoute = ApplyTierRouteImport.update({
   id: '/apply/$tier',
   path: '/apply/$tier',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminTradeOpportunitiesRoute = AdminTradeOpportunitiesRouteImport.update({
   id: '/trade-opportunities',
@@ -334,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -383,6 +390,7 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -433,6 +441,7 @@ export interface FileRoutesById {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -484,6 +493,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
+    | '/admin/users'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
@@ -533,6 +543,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
+    | '/admin/users'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
@@ -582,6 +593,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
+    | '/admin/users'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
@@ -752,6 +764,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/apply/$tier'
       preLoaderRoute: typeof ApplyTierRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/trade-opportunities': {
       id: '/admin/trade-opportunities'
@@ -976,6 +995,7 @@ interface AdminRouteChildren {
   AdminReportsRoute: typeof AdminReportsRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
   AdminTradeOpportunitiesRoute: typeof AdminTradeOpportunitiesRoute
+  AdminUsersRoute: typeof AdminUsersRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -1002,6 +1022,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminReportsRoute: AdminReportsRoute,
   AdminTicketsRoute: AdminTicketsRoute,
   AdminTradeOpportunitiesRoute: AdminTradeOpportunitiesRoute,
+  AdminUsersRoute: AdminUsersRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
