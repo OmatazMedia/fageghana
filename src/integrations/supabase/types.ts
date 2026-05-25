@@ -162,6 +162,7 @@ export type Database = {
           is_active: boolean
           name: string
           signature_url: string | null
+          signers: Json
           tier: Database["public"]["Enums"]["membership_tier"]
           updated_at: string
         }
@@ -174,6 +175,7 @@ export type Database = {
           is_active?: boolean
           name: string
           signature_url?: string | null
+          signers?: Json
           tier: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
         }
@@ -186,6 +188,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           signature_url?: string | null
+          signers?: Json
           tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
         }

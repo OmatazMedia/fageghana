@@ -8,13 +8,17 @@ import { Slider } from "@/components/ui/slider";
 import {
   defaultLayout,
   mergeLayout,
+  normalizeSigners,
+  defaultSigner,
   FIELD_KEYS,
   FIELD_LABELS,
   fieldValue,
   type TemplateLayout,
   type FieldKey,
+  type Signer,
 } from "@/lib/certificate-render";
 import QRCodeStyling from "qr-code-styling";
+import { Trash2, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/admin/certificates")({
   head: () => ({ meta: [{ title: "Certificate Designer — Admin" }] }),
@@ -43,7 +47,9 @@ function DesignerPage() {
   const [authorizedName, setAuthorizedName] = useState("FAGE President");
   const [imageUrl, setImageUrl] = useState<string>("");
   const [signatureUrl, setSignatureUrl] = useState<string>("");
-  const [active, setActive] = useState<FieldKey | "qr" | "signature" | null>("name");
+  const [signers, setSigners] = useState<Signer[]>([]);
+  const [activeSignerId, setActiveSignerId] = useState<string | null>(null);
+  const [active, setActive] = useState<FieldKey | "qr" | "signers" | null>("name");
   const [saving, setSaving] = useState(false);
 
   // Sample preview values
@@ -69,6 +75,9 @@ function DesignerPage() {
       setAuthorizedName(data.authorized_name ?? "FAGE President");
       setImageUrl(data.image_url ?? "");
       setSignatureUrl(data.signature_url ?? "");
+      const s = normalizeSigners(data);
+      setSigners(s);
+      setActiveSignerId(s[0]?.id ?? null);
     } else {
       setTemplate(null);
       setLayout(defaultLayout());
@@ -76,6 +85,8 @@ function DesignerPage() {
       setAuthorizedName("FAGE President");
       setImageUrl("");
       setSignatureUrl("");
+      setSigners([]);
+      setActiveSignerId(null);
     }
   }
   useEffect(() => {
@@ -107,15 +118,29 @@ function DesignerPage() {
       toast.error(err.message);
     }
   }
-  async function onUploadSig(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  async function onUploadSignerFile(signerId: string, file: File) {
     try {
-      setSignatureUrl(await uploadAsset(f, "signatures"));
+      const url = await uploadAsset(file, "signatures");
+      setSigners((arr) =>
+        arr.map((s) => (s.id === signerId ? { ...s, signature_url: url } : s)),
+      );
       toast.success("Signature uploaded");
     } catch (err: any) {
       toast.error(err.message);
     }
+  }
+  function updateSigner(signerId: string, patch: Partial<Signer>) {
+    setSigners((arr) => arr.map((s) => (s.id === signerId ? { ...s, ...patch } : s)));
+  }
+  function addSigner() {
+    const s = defaultSigner({ label: `Signer ${signers.length + 1}`, name: "" });
+    setSigners((arr) => [...arr, s]);
+    setActive("signers");
+    setActiveSignerId(s.id);
+  }
+  function removeSigner(signerId: string) {
+    setSigners((arr) => arr.filter((s) => s.id !== signerId));
+    if (activeSignerId === signerId) setActiveSignerId(null);
   }
   async function onUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -133,13 +158,14 @@ function DesignerPage() {
     if (!imageUrl) return toast.error("Upload a background image first");
     setSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         name,
         tier,
         image_url: imageUrl,
         signature_url: signatureUrl || null,
         authorized_name: authorizedName,
         field_positions: layout,
+        signers,
         is_active: true,
       };
       const { error } = template?.id
@@ -281,8 +307,9 @@ function DesignerPage() {
             <PreviewCanvas
               layout={layout}
               imageUrl={imageUrl}
-              signatureUrl={signatureUrl}
-              authorizedName={authorizedName}
+              signers={signers}
+              activeSignerId={activeSignerId}
+              setActiveSignerId={setActiveSignerId}
               sampleCert={sampleCert}
               active={active}
               onSelect={setActive}
@@ -290,9 +317,7 @@ function DesignerPage() {
               onMoveQr={(x: number, y: number) =>
                 setLayout((l) => ({ ...l, qr: { ...l.qr, x, y } }))
               }
-              onMoveSig={(x: number, y: number) =>
-                setLayout((l) => ({ ...l, signature: { ...l.signature, x, y } }))
-              }
+              onMoveSigner={(id: string, x: number, y: number) => updateSigner(id, { x, y })}
             />
           )}
           {imageUrl && (
@@ -325,16 +350,16 @@ function DesignerPage() {
                 QR Code
               </button>
               <button
-                onClick={() => setActive("signature")}
-                className={`rounded-md px-2 py-1.5 text-xs ${active === "signature" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
+                onClick={() => setActive("signers")}
+                className={`rounded-md px-2 py-1.5 text-xs ${active === "signers" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
               >
-                Signature
+                Signers ({signers.length})
               </button>
             </div>
           </div>
 
           {/* Active controls */}
-          {active && active !== "qr" && active !== "signature" && (
+          {active && active !== "qr" && active !== "signers" && (
             <FieldControls
               field={layout.fields[active]}
               canvas={layout.canvas}
@@ -344,14 +369,16 @@ function DesignerPage() {
           {active === "qr" && (
             <QrControls layout={layout} setLayout={setLayout} onUploadLogo={onUploadLogo} />
           )}
-          {active === "signature" && (
-            <SignatureControls
-              sigUrl={signatureUrl}
-              onUpload={onUploadSig}
-              layout={layout}
-              setLayout={setLayout}
-              authorizedName={authorizedName}
-              setAuthorizedName={setAuthorizedName}
+          {active === "signers" && (
+            <SignersControls
+              signers={signers}
+              activeSignerId={activeSignerId}
+              setActiveSignerId={setActiveSignerId}
+              canvas={layout.canvas}
+              onAdd={addSigner}
+              onRemove={removeSigner}
+              onUpdate={updateSigner}
+              onUploadFile={onUploadSignerFile}
             />
           )}
 
@@ -583,55 +610,144 @@ function QrControls({ layout, setLayout, onUploadLogo }: any) {
   );
 }
 
-function SignatureControls({
-  sigUrl,
-  onUpload,
-  layout,
-  setLayout,
-  authorizedName,
-  setAuthorizedName,
-}: any) {
-  const upd = (patch: any) =>
-    setLayout((l: TemplateLayout) => ({ ...l, signature: { ...l.signature, ...patch } }));
+function SignersControls({
+  signers,
+  activeSignerId,
+  setActiveSignerId,
+  canvas,
+  onAdd,
+  onRemove,
+  onUpdate,
+  onUploadFile,
+}: {
+  signers: Signer[];
+  activeSignerId: string | null;
+  setActiveSignerId: (id: string | null) => void;
+  canvas: { w: number; h: number };
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  onUpdate: (id: string, patch: Partial<Signer>) => void;
+  onUploadFile: (id: string, file: File) => void;
+}) {
+  const active = signers.find((s) => s.id === activeSignerId) ?? null;
   return (
     <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-      <h3 className="text-sm font-bold">Signature</h3>
-      <input type="file" accept="image/*" onChange={onUpload} className="text-xs" />
-      {sigUrl && <img src={sigUrl} className="h-16 rounded border bg-white object-contain p-1" />}
-      <div>
-        <label className="mb-1 block text-xs font-medium">Authorized name</label>
-        <input
-          value={authorizedName}
-          onChange={(e) => setAuthorizedName(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
-        />
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold">Signers</h3>
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
+        >
+          <Plus className="h-3 w-3" /> Add
+        </button>
       </div>
-      <SliderRow
-        label={`X: ${layout.signature.x}`}
-        value={layout.signature.x}
-        max={layout.canvas.w}
-        onChange={(v) => upd({ x: v })}
-      />
-      <SliderRow
-        label={`Y: ${layout.signature.y}`}
-        value={layout.signature.y}
-        max={layout.canvas.h}
-        onChange={(v) => upd({ y: v })}
-      />
-      <SliderRow
-        label={`Width: ${layout.signature.w}`}
-        value={layout.signature.w}
-        min={50}
-        max={500}
-        onChange={(v) => upd({ w: v })}
-      />
-      <SliderRow
-        label={`Height: ${layout.signature.h}`}
-        value={layout.signature.h}
-        min={20}
-        max={200}
-        onChange={(v) => upd({ h: v })}
-      />
+      <p className="text-xs text-muted-foreground">
+        Label is admin-only (which file is whose). Name is what appears on the certificate.
+      </p>
+      <div className="space-y-1.5">
+        {signers.length === 0 && (
+          <div className="text-xs text-muted-foreground">No signers yet. Click Add.</div>
+        )}
+        {signers.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setActiveSignerId(s.id)}
+            className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs ${activeSignerId === s.id ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
+          >
+            <span className="truncate">
+              {s.label || "Unlabeled"} — <span className="opacity-80">{s.name || "(no name)"}</span>
+            </span>
+            <Trash2
+              className="h-3 w-3 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Remove signer "${s.label}"?`)) onRemove(s.id);
+              }}
+            />
+          </button>
+        ))}
+      </div>
+
+      {active && (
+        <div className="space-y-3 border-t border-border pt-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium">Label (admin only)</label>
+            <input
+              value={active.label}
+              onChange={(e) => onUpdate(active.id, { label: e.target.value })}
+              placeholder="e.g. CEO, President"
+              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium">Name on certificate</label>
+            <input
+              value={active.name}
+              onChange={(e) => onUpdate(active.id, { name: e.target.value })}
+              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium">Signature image</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onUploadFile(active.id, f);
+              }}
+              className="text-xs"
+            />
+            {active.signature_url && (
+              <img
+                src={active.signature_url}
+                className="mt-2 h-14 rounded border bg-white object-contain p-1"
+              />
+            )}
+          </div>
+          <SliderRow
+            label={`X: ${active.x}`}
+            value={active.x}
+            max={canvas.w}
+            onChange={(v) => onUpdate(active.id, { x: v })}
+          />
+          <SliderRow
+            label={`Y: ${active.y}`}
+            value={active.y}
+            max={canvas.h}
+            onChange={(v) => onUpdate(active.id, { y: v })}
+          />
+          <SliderRow
+            label={`Width: ${active.w}`}
+            value={active.w}
+            min={50}
+            max={500}
+            onChange={(v) => onUpdate(active.id, { w: v })}
+          />
+          <SliderRow
+            label={`Height: ${active.h}`}
+            value={active.h}
+            min={20}
+            max={200}
+            onChange={(v) => onUpdate(active.id, { h: v })}
+          />
+          <SliderRow
+            label={`Name size: ${active.nameFontSize}px`}
+            value={active.nameFontSize}
+            min={10}
+            max={60}
+            onChange={(v) => onUpdate(active.id, { nameFontSize: v })}
+          />
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={active.visible}
+              onChange={(e) => onUpdate(active.id, { visible: e.target.checked })}
+            />
+            Visible on certificate
+          </label>
+        </div>
+      )}
     </div>
   );
 }
@@ -670,26 +786,26 @@ function SliderRow({
 function PreviewCanvas({
   layout,
   imageUrl,
-  signatureUrl,
-  authorizedName,
+  signers,
+  activeSignerId,
+  setActiveSignerId,
   sampleCert,
   active,
   onSelect,
   onMoveField,
   onMoveQr,
-  onMoveSig,
+  onMoveSigner,
 }: any) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [qrUrl, setQrUrl] = useState<string>("");
   const [drag, setDrag] = useState<null | {
-    type: "field" | "qr" | "sig";
+    type: "field" | "qr" | "signer";
     key?: string;
     offX: number;
     offY: number;
   }>(null);
 
-  // Compute scale based on container
   useEffect(() => {
     const update = () => {
       if (!wrapRef.current) return;
@@ -702,7 +818,6 @@ function PreviewCanvas({
     return () => ro.disconnect();
   }, [layout.canvas.w]);
 
-  // Build QR preview
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -734,16 +849,22 @@ function PreviewCanvas({
     };
   }, [layout.qr]);
 
-  function startDrag(e: React.PointerEvent, type: "field" | "qr" | "sig", key?: string) {
+  function startDrag(e: React.PointerEvent, type: "field" | "qr" | "signer", key?: string) {
     e.stopPropagation();
-    const target =
-      type === "field" ? layout.fields[key!] : type === "qr" ? layout.qr : layout.signature;
+    let target: { x: number; y: number };
+    if (type === "field") target = layout.fields[key!];
+    else if (type === "qr") target = layout.qr;
+    else target = signers.find((s: Signer) => s.id === key) ?? { x: 0, y: 0 };
     const rect = wrapRef.current!.getBoundingClientRect();
     const px = (e.clientX - rect.left) / scale;
     const py = (e.clientY - rect.top) / scale;
     setDrag({ type, key, offX: px - target.x, offY: py - target.y });
     if (type === "field") onSelect(key);
-    else onSelect(type);
+    else if (type === "qr") onSelect("qr");
+    else {
+      onSelect("signers");
+      setActiveSignerId(key!);
+    }
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }
   function onPointerMove(e: React.PointerEvent) {
@@ -755,7 +876,7 @@ function PreviewCanvas({
     const y = Math.round(py);
     if (drag.type === "field") onMoveField(drag.key as FieldKey, x, y);
     else if (drag.type === "qr") onMoveQr(x, y);
-    else onMoveSig(x, y);
+    else onMoveSigner(drag.key!, x, y);
   }
   function endDrag() {
     setDrag(null);
@@ -774,14 +895,11 @@ function PreviewCanvas({
       onPointerUp={endDrag}
       onPointerLeave={endDrag}
     >
-      {/* Fields */}
       {FIELD_KEYS.map((k) => {
         const f = layout.fields[k];
         if (!f.visible) return null;
-        const text =
-          k === "authorized_name"
-            ? authorizedName
-            : fieldValue(k, sampleCert, { authorized_name: authorizedName });
+        if (k === "authorized_name" && signers.length > 0) return null;
+        const text = fieldValue(k, sampleCert, { authorized_name: "" });
         const transform =
           f.align === "center"
             ? "translate(-50%, -100%)"
@@ -808,22 +926,52 @@ function PreviewCanvas({
           </div>
         );
       })}
-      {/* Signature */}
-      {signatureUrl && (
-        <img
-          src={signatureUrl}
-          draggable={false}
-          onPointerDown={(e) => startDrag(e, "sig")}
-          className={`absolute cursor-move object-contain ${active === "signature" ? "outline outline-2 outline-primary" : ""}`}
-          style={{
-            left: `${(layout.signature.x / layout.canvas.w) * 100}%`,
-            top: `${(layout.signature.y / layout.canvas.h) * 100}%`,
-            width: `${(layout.signature.w / layout.canvas.w) * 100}%`,
-            height: `${(layout.signature.h / layout.canvas.h) * 100}%`,
-          }}
-        />
-      )}
-      {/* QR */}
+
+      {signers.map((s: Signer) => {
+        if (!s.visible) return null;
+        const isActive = active === "signers" && activeSignerId === s.id;
+        return (
+          <div
+            key={s.id}
+            onPointerDown={(e) => startDrag(e, "signer", s.id)}
+            className={`absolute cursor-move ${isActive ? "outline outline-2 outline-primary" : ""}`}
+            style={{
+              left: `${(s.x / layout.canvas.w) * 100}%`,
+              top: `${(s.y / layout.canvas.h) * 100}%`,
+              width: `${(s.w / layout.canvas.w) * 100}%`,
+              height: `${(s.h / layout.canvas.h) * 100}%`,
+            }}
+          >
+            {s.signature_url ? (
+              <img
+                src={s.signature_url}
+                draggable={false}
+                className="h-full w-full object-contain pointer-events-none"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded border border-dashed border-primary/60 bg-primary/5 text-[10px] text-primary">
+                {s.label}
+              </div>
+            )}
+            {s.name && (
+              <div
+                className="absolute left-1/2 whitespace-nowrap"
+                style={{
+                  top: `calc(100% + ${s.nameOffsetY * scale - s.nameFontSize * scale}px)`,
+                  transform: "translateX(-50%)",
+                  fontSize: `${s.nameFontSize * scale}px`,
+                  fontFamily: s.nameFontFamily,
+                  fontWeight: s.nameFontWeight,
+                  color: s.nameColor,
+                }}
+              >
+                {s.name}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
       {qrUrl && (
         <div
           onPointerDown={(e) => startDrag(e, "qr")}

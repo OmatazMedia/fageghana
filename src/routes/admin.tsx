@@ -72,7 +72,7 @@ const navSections: NavSection[] = [
   {
     label: "Content",
     items: [
-      { to: "/admin/news", label: "News", icon: Newspaper },
+      { to: "/admin/news", label: "News & Blog", icon: Newspaper },
       { to: "/admin/products", label: "Products", icon: Package },
       { to: "/admin/activities", label: "Events", icon: CalendarDays },
       { to: "/admin/media", label: "Media", icon: ImageIcon },
