@@ -160,7 +160,111 @@ function ActivitiesAdmin() {
           }}
         />
       )}
+
+      {attendeesFor && (
+        <AttendeesDrawer activity={attendeesFor} onClose={() => setAttendeesFor(null)} />
+      )}
     </AdminShell>
+  );
+}
+
+function AttendeesDrawer({ activity, onClose }: { activity: ActivityRow; onClose: () => void }) {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    void (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("event_rsvps")
+        .select("id, created_at, user_id")
+        .eq("activity_id", activity.id)
+        .order("created_at", { ascending: false });
+      const list = (data ?? []) as any[];
+      if (list.length) {
+        const ids = list.map((r) => r.user_id);
+        const { data: profs } = await supabase
+          .from("member_profiles")
+          .select("user_id, contact_name, company_name, email, member_id")
+          .in("user_id", ids);
+        const map = new Map((profs ?? []).map((p: any) => [p.user_id, p]));
+        list.forEach((r) => (r.profile = map.get(r.user_id)));
+      }
+      setRows(list);
+      setLoading(false);
+    })();
+  }, [activity.id]);
+
+  function exportCsv() {
+    const header = ["Member ID", "Contact", "Company", "Email", "RSVP Date"];
+    const lines = rows.map((r) =>
+      [
+        r.profile?.member_id ?? "",
+        r.profile?.contact_name ?? "",
+        r.profile?.company_name ?? "",
+        r.profile?.email ?? "",
+        new Date(r.created_at).toLocaleString(),
+      ]
+        .map((c) => `"${String(c).replace(/"/g, '""')}"`)
+        .join(","),
+    );
+    const csv = [header.join(","), ...lines].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendees-${activity.title.replace(/\s+/g, "-").toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-foreground/40">
+      <div className="flex h-full w-full max-w-xl flex-col overflow-hidden bg-card shadow-xl">
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <div>
+            <h3 className="font-bold">Attendees</h3>
+            <p className="text-xs text-muted-foreground">{activity.title}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportCsv}
+              disabled={!rows.length}
+              className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs disabled:opacity-50"
+            >
+              <Download className="h-3 w-3" /> CSV
+            </button>
+            <button onClick={onClose} className="rounded p-1 hover:bg-accent">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No RSVPs yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {rows.map((r) => (
+                <li key={r.id} className="rounded-xl border border-border p-3 text-sm">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-semibold">{r.profile?.contact_name ?? "—"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(r.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {r.profile?.company_name} · {r.profile?.email} ·{" "}
+                    {r.profile?.member_id ?? "no ID"}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
