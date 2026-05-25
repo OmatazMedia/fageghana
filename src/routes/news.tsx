@@ -42,10 +42,6 @@ function NewsPage() {
   const [active, setActive] = useState("All");
   const [search, setSearch] = useState("");
 
-  if (pathname.replace(/\/$/, "") !== "/news") {
-    return <Outlet />;
-  }
-
   useEffect(() => {
     void supabase
       .from("news")
@@ -75,6 +71,10 @@ function NewsPage() {
   const featured = filtered[0];
   const rest = filtered.slice(1);
   const recent = [...news].slice(0, 5);
+
+  if (pathname.replace(/\/$/, "") !== "/news") {
+    return <Outlet />;
+  }
 
   return (
     <SiteLayout>
