@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const tierEnum = z.enum(["associate", "standard", "corporate"]);
-const statusEnum = z.enum(["new", "in_review", "approved", "rejected", "suspended"]);
+const statusEnum = z.enum(["new", "reviewing", "approved", "rejected"]);
 
 async function assertAdmin(context: any) {
   const { data: roleRow } = await context.supabase
