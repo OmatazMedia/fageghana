@@ -39,6 +39,7 @@ const empty: Omit<ActivityRow, "id"> = {
   published: true,
   register_button_link: "",
   register_button_text: "Register",
+  view_count: 0,
 };
 
 function ActivitiesAdmin() {
