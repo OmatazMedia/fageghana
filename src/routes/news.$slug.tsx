@@ -321,8 +321,8 @@ function NewsDetail() {
             </article>
 
             {/* ── Sticky Sidebar ── */}
-            <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0">
-              <div className="lg:sticky lg:top-24 space-y-6">
+            <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0 self-start lg:sticky lg:top-24">
+              <div className="space-y-6 rounded-2xl bg-card/60 p-4 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.15)] backdrop-blur-sm max-h-[calc(100vh-7rem)] overflow-y-auto">
                 {/* Back link */}
                 <Link
                   to="/news"
