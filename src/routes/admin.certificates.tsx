@@ -361,9 +361,12 @@ function DesignerPage() {
           {/* Active controls */}
           {active && active !== "qr" && active !== "signers" && (
             <FieldControls
+              fieldKey={active}
               field={layout.fields[active]}
               canvas={layout.canvas}
+              dateFormat={layout.dateFormat}
               onChange={(patch) => updField(active, patch)}
+              onDateFormatChange={(v) => setLayout((l) => ({ ...l, dateFormat: v }))}
             />
           )}
           {active === "qr" && (
