@@ -184,6 +184,10 @@ export const deleteMember = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
 
+    if (data.user_id === context.userId) {
+      throw new Error("You cannot delete your own admin account.");
+    }
+
     const { error: profErr } = await supabaseAdmin
       .from("member_profiles")
       .delete()
