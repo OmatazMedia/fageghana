@@ -1,1 +1,7 @@
 project_id = "hsbrjwmxskequsugrhii"
+
+[functions.fetch-trade-opportunities]
+verify_jwt = false
+
+[functions.manage-email-preferences]
+verify_jwt = true
