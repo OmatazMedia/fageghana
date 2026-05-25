@@ -8,13 +8,17 @@ import { Slider } from "@/components/ui/slider";
 import {
   defaultLayout,
   mergeLayout,
+  normalizeSigners,
+  defaultSigner,
   FIELD_KEYS,
   FIELD_LABELS,
   fieldValue,
   type TemplateLayout,
   type FieldKey,
+  type Signer,
 } from "@/lib/certificate-render";
 import QRCodeStyling from "qr-code-styling";
+import { Trash2, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/admin/certificates")({
   head: () => ({ meta: [{ title: "Certificate Designer — Admin" }] }),
