@@ -165,6 +165,13 @@ function NewsDetail() {
           <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
             {/* ── Article body ── */}
             <article className="flex-1 min-w-0">
+              <Link
+                to="/news"
+                className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-primary transition hover:bg-accent"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back to News & Blog
+              </Link>
+
               {!article.cover_image_url && (
                 <>
                   <span className="mb-3 inline-block rounded-full bg-accent px-3 py-1 text-xs font-semibold text-primary">
@@ -175,6 +182,7 @@ function NewsDetail() {
                   </h1>
                 </>
               )}
+
 
               <div className="mb-6 flex flex-wrap items-center gap-4 border-b border-border pb-6 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
