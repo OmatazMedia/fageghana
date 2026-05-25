@@ -164,43 +164,45 @@ function EmailTemplatesPage() {
       title="Email Templates"
       description="Edit transactional emails with themed blocks and merge tags."
     >
-      <div className="grid gap-6 xl:grid-cols-[260px_1fr_420px]">
-        <aside className="rounded-2xl border border-border bg-card p-4">
-          <h2 className="mb-3 text-sm font-bold">Templates</h2>
-          <div className="space-y-2">
-            {templates.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => selectTemplate(t.id)}
-                className={`w-full rounded-xl px-3 py-2 text-left text-sm ${currentId === t.id ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-              >
-                {t.name}
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        {draft && (
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <div className="grid gap-3 md:grid-cols-2">
-              <FormField label="Template name">
-                <input
-                  className={inputCls}
-                  value={draft.name}
-                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                />
-              </FormField>
-              <FormField label="Subject">
-                <input
-                  className={inputCls}
-                  value={draft.subject}
-                  onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-                />
-              </FormField>
+      <div className="grid gap-6 xl:grid-cols-[1fr_460px]">
+        <div className="space-y-6">
+          <aside className="rounded-2xl border border-border bg-card p-4">
+            <h2 className="mb-3 text-sm font-bold">Templates</h2>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => selectTemplate(t.id)}
+                  className={`w-full rounded-xl px-3 py-2 text-left text-sm transition ${currentId === t.id ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+                >
+                  {t.name}
+                </button>
+              ))}
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {(["heading", "text", "image", "button", "divider", "spacer"] as Block["type"][]).map(
-                (type) => (
+          </aside>
+
+          {draft && (
+            <section className="rounded-2xl border border-border bg-card p-5">
+              <div className="grid gap-3 md:grid-cols-2">
+                <FormField label="Template name">
+                  <input
+                    className={inputCls}
+                    value={draft.name}
+                    onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  />
+                </FormField>
+                <FormField label="Subject">
+                  <input
+                    className={inputCls}
+                    value={draft.subject}
+                    onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
+                  />
+                </FormField>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(
+                  ["heading", "text", "image", "button", "divider", "spacer"] as Block["type"][]
+                ).map((type) => (
                   <button
                     key={type}
                     onClick={() => setDraft({ ...draft, blocks: [...blocks, newBlock(type)] })}
@@ -208,65 +210,65 @@ function EmailTemplatesPage() {
                   >
                     <Plus className="h-3 w-3" /> {type}
                   </button>
-                ),
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {variables.map((v) => (
-                <button
-                  key={v}
-                  onClick={() => navigator.clipboard?.writeText(v)}
-                  className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {variables.map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => navigator.clipboard?.writeText(v)}
+                    className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                <SortableContext
+                  items={blocks.map((b) => b.id)}
+                  strategy={verticalListSortingStrategy}
                 >
-                  {v}
+                  <div className="mt-5 space-y-3">
+                    {blocks.map((b) => (
+                      <BlockEditor
+                        key={b.id}
+                        block={b}
+                        onChange={(patch) => updateBlock(b.id, patch)}
+                        onRemove={() => removeBlock(b.id)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              <div className="mt-5 flex flex-wrap items-end gap-3 border-t border-border pt-4">
+                <FormField label="Send test to">
+                  <input
+                    type="email"
+                    className={inputCls}
+                    value={testTo}
+                    onChange={(e) => setTestTo(e.target.value)}
+                  />
+                </FormField>
+                <button
+                  disabled={busy}
+                  onClick={send}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm hover:bg-accent disabled:opacity-60"
+                >
+                  <Send className="h-4 w-4" /> Send test
                 </button>
-              ))}
-            </div>
-            <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext
-                items={blocks.map((b) => b.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="mt-5 space-y-3">
-                  {blocks.map((b) => (
-                    <BlockEditor
-                      key={b.id}
-                      block={b}
-                      onChange={(patch) => updateBlock(b.id, patch)}
-                      onRemove={() => removeBlock(b.id)}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-            <div className="mt-5 flex flex-wrap items-end gap-3 border-t border-border pt-4">
-              <FormField label="Send test to">
-                <input
-                  type="email"
-                  className={inputCls}
-                  value={testTo}
-                  onChange={(e) => setTestTo(e.target.value)}
-                />
-              </FormField>
-              <button
-                disabled={busy}
-                onClick={send}
-                className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm hover:bg-accent disabled:opacity-60"
-              >
-                <Send className="h-4 w-4" /> Send test
-              </button>
-              <button
-                disabled={busy}
-                onClick={save}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-              >
-                <Save className="h-4 w-4" /> Save
-              </button>
-            </div>
-          </section>
-        )}
+                <button
+                  disabled={busy}
+                  onClick={save}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  <Save className="h-4 w-4" /> Save
+                </button>
+              </div>
+            </section>
+          )}
+        </div>
 
-        <aside className="rounded-2xl border border-border bg-card p-4">
+        <aside className="rounded-2xl border border-border bg-card p-4 xl:sticky xl:top-4 xl:self-start">
           <h2 className="mb-3 text-sm font-bold">Live preview</h2>
           <iframe
             title="Email preview"
