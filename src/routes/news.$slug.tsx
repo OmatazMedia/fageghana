@@ -144,7 +144,7 @@ function NewsDetail() {
           <img
             src={article.cover_image_url}
             alt={article.title}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover object-top"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-brand-dark/30 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
