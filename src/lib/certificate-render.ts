@@ -26,6 +26,23 @@ export type QrStyle = {
 
 export type SignatureStyle = { x: number; y: number; w: number; h: number };
 
+export type Signer = {
+  id: string;
+  label: string; // admin-only ("CEO", "President") — not shown on cert
+  name: string; // shown on cert under the signature
+  signature_url: string | null;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  nameOffsetY: number;
+  nameFontSize: number;
+  nameFontFamily: string;
+  nameFontWeight: string;
+  nameColor: string;
+  visible: boolean;
+};
+
 export type TemplateLayout = {
   canvas: { w: number; h: number };
   fields: Record<string, FieldStyle>;
@@ -116,7 +133,7 @@ export function defaultLayout(): TemplateLayout {
         weight: "600",
         color: "#1a1a1a",
         align: "center",
-        visible: true,
+        visible: false,
       },
     },
     qr: {
@@ -136,6 +153,29 @@ export function defaultLayout(): TemplateLayout {
   };
 }
 
+export function defaultSigner(partial: Partial<Signer> = {}): Signer {
+  return {
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2),
+    label: "Primary",
+    name: "FAGE President",
+    signature_url: null,
+    x: 600,
+    y: 760,
+    w: 220,
+    h: 80,
+    nameOffsetY: 36,
+    nameFontSize: 20,
+    nameFontFamily: "'Inter', sans-serif",
+    nameFontWeight: "600",
+    nameColor: "#1a1a1a",
+    visible: true,
+    ...partial,
+  };
+}
+
 export function mergeLayout(stored: any): TemplateLayout {
   const def = defaultLayout();
   if (!stored || typeof stored !== "object") return def;
@@ -146,6 +186,30 @@ export function mergeLayout(stored: any): TemplateLayout {
     signature: { ...def.signature, ...(stored.signature ?? {}) },
     verification_display: stored.verification_display ?? def.verification_display,
   };
+}
+
+/** Normalize signers array from template row, falling back to legacy single signer. */
+export function normalizeSigners(template: any): Signer[] {
+  const raw = template?.signers;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw.map((s: any) => ({ ...defaultSigner(), ...s }));
+  }
+  // legacy fallback
+  const layout = mergeLayout(template?.field_positions);
+  if (template?.signature_url || template?.authorized_name) {
+    return [
+      defaultSigner({
+        label: "Primary",
+        name: template.authorized_name ?? "FAGE President",
+        signature_url: template.signature_url ?? null,
+        x: layout.signature.x,
+        y: layout.signature.y,
+        w: layout.signature.w,
+        h: layout.signature.h,
+      }),
+    ];
+  }
+  return [];
 }
 
 export function fieldValue(key: FieldKey, cert: any, template: any): string {
@@ -192,38 +256,69 @@ export async function buildQrDataUrl(verifyUrl: string, qr: QrStyle): Promise<st
   });
 }
 
+async function ensureFontsLoaded(layout: TemplateLayout, signers: Signer[]) {
+  if (typeof document === "undefined" || !(document as any).fonts) return;
+  const families = new Set<string>();
+  for (const k of FIELD_KEYS) {
+    const f = layout.fields[k];
+    if (f) families.add(`${f.weight} ${f.fontSize}px ${f.font}`);
+  }
+  for (const s of signers) {
+    families.add(`${s.nameFontWeight} ${s.nameFontSize}px ${s.nameFontFamily}`);
+  }
+  try {
+    await Promise.all(
+      Array.from(families).map((spec) => (document as any).fonts.load(spec).catch(() => null)),
+    );
+    await (document as any).fonts.ready;
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function renderCertificate(canvas: HTMLCanvasElement, cert: any, template: any) {
   const layout = mergeLayout(template?.field_positions);
+  const signers = normalizeSigners(template);
+  await ensureFontsLoaded(layout, signers);
+
   const bg = await loadImage(template.image_url);
-  const w = layout.canvas.w || bg.naturalWidth;
-  const h = layout.canvas.h || bg.naturalHeight;
+  // Always use layout canvas — positions are stored in this coordinate space.
+  const w = layout.canvas.w;
+  const h = layout.canvas.h;
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(bg, 0, 0, w, h);
 
-  // Signature
-  if (template.signature_url) {
-    try {
-      const sig = await loadImage(template.signature_url);
-      ctx.drawImage(
-        sig,
-        layout.signature.x,
-        layout.signature.y,
-        layout.signature.w,
-        layout.signature.h,
-      );
-    } catch {}
+  // Signers
+  for (const s of signers) {
+    if (!s.visible) continue;
+    if (s.signature_url) {
+      try {
+        const sig = await loadImage(s.signature_url);
+        drawContain(ctx, sig, s.x, s.y, s.w, s.h);
+      } catch {
+        /* ignore broken signature */
+      }
+    }
+    if (s.name) {
+      ctx.fillStyle = s.nameColor;
+      ctx.font = `${s.nameFontWeight} ${s.nameFontSize}px ${s.nameFontFamily}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(s.name, s.x + s.w / 2, s.y + s.h + s.nameOffsetY - s.nameFontSize);
+    }
   }
 
-  // Fields
+  // Fields — match preview's translate(0,-100%) → baseline = bottom
   for (const key of FIELD_KEYS) {
     const f = layout.fields[key];
     if (!f || !f.visible) continue;
+    if (key === "authorized_name" && signers.length > 0) continue; // signers replace legacy
     ctx.fillStyle = f.color;
     ctx.font = `${f.weight} ${f.fontSize}px ${f.font}`;
     ctx.textAlign = f.align;
-    ctx.textBaseline = "alphabetic";
+    ctx.textBaseline = "bottom";
     ctx.fillText(fieldValue(key, cert, template), f.x, f.y);
   }
 
@@ -241,6 +336,26 @@ export async function renderCertificate(canvas: HTMLCanvasElement, cert: any, te
     );
   }
   ctx.drawImage(qrImg, layout.qr.x, layout.qr.y, layout.qr.size, layout.qr.size);
+}
+
+function drawContain(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  const ar = img.naturalWidth / img.naturalHeight;
+  const boxAr = w / h;
+  let dw = w,
+    dh = h;
+  if (ar > boxAr) {
+    dh = w / ar;
+  } else {
+    dw = h * ar;
+  }
+  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
