@@ -164,7 +164,7 @@ function EmailTemplatesPage() {
       title="Email Templates"
       description="Edit transactional emails with themed blocks and merge tags."
     >
-      <div className="grid gap-6 xl:grid-cols-[1fr_580px]">
+      <div className="grid gap-6 xl:grid-cols-[30%_70%]">
         <div className="space-y-6">
           <aside className="rounded-2xl border border-border bg-card p-4">
             <h2 className="mb-3 text-sm font-bold">Templates</h2>
