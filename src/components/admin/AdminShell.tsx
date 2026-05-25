@@ -17,9 +17,7 @@ export function AdminShell({
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-border pb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-          {description && (
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-          )}
+          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>
@@ -42,9 +40,7 @@ export function FormField({
     <label className="block">
       <span className="mb-1.5 block text-sm font-medium text-foreground">{label}</span>
       {children}
-      {hint && (
-        <span className="mt-1 block text-xs text-muted-foreground">{hint}</span>
-      )}
+      {hint && <span className="mt-1 block text-xs text-muted-foreground">{hint}</span>}
     </label>
   );
 }

@@ -40,14 +40,14 @@ th { font-weight: bold; background: #f0f0f0; }
 <body>
 <h1>${title}</h1>
 ${content ? `<p>${content.replace(/\n/g, "<br/>")}</p>` : ""}
-${sections?.map(s => `<h2>${s.heading}</h2><p>${s.text.replace(/\n/g, "<br/>")}</p>`).join("") || ""}
-${tableData ? `<table><tr>${tableData.headers.map(h => `<th>${h}</th>`).join("")}</tr>${tableData.rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join("")}</tr>`).join("")}</table>` : ""}
+${sections?.map((s) => `<h2>${s.heading}</h2><p>${s.text.replace(/\n/g, "<br/>")}</p>`).join("") || ""}
+${tableData ? `<table><tr>${tableData.headers.map((h) => `<th>${h}</th>`).join("")}</tr>${tableData.rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}</table>` : ""}
 </body>
 </html>`;
 
-  const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
+  const blob = new Blob(["\ufeff" + htmlContent], { type: "application/msword" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = fileName;
   document.body.appendChild(a);

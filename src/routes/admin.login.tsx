@@ -43,7 +43,6 @@ function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-dark via-brand-dark/95 to-primary/80 flex items-center justify-center px-4 py-12">
-
       {/* Back to site */}
       <button
         type="button"
@@ -55,7 +54,6 @@ function AdminLogin() {
       </button>
 
       <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-0 rounded-3xl overflow-hidden shadow-2xl">
-
         {/* ── Left panel ── */}
         <div className="relative flex flex-col items-center justify-center bg-primary/20 backdrop-blur-sm border border-white/10 p-10 text-white text-center hidden lg:flex">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none rounded-l-3xl" />
@@ -66,9 +64,7 @@ function AdminLogin() {
             className="h-16 w-auto object-contain mb-8"
           />
 
-          <h2 className="text-3xl font-bold leading-tight">
-            Admin Console
-          </h2>
+          <h2 className="text-3xl font-bold leading-tight">Admin Console</h2>
           <p className="mt-3 text-white/70 text-sm max-w-xs leading-relaxed">
             Manage members, payments, certificates, content and support — all in one place.
           </p>
@@ -84,7 +80,13 @@ function AdminLogin() {
             ].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-white/80">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/20 text-white">
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </span>
@@ -96,7 +98,6 @@ function AdminLogin() {
 
         {/* ── Right panel ── */}
         <div className="flex flex-col items-center justify-center bg-background px-8 py-12">
-
           {/* Logo — mobile only */}
           <img
             src="/images/logos/fage-logo-main.webp"
@@ -122,7 +123,6 @@ function AdminLogin() {
 
           {/* Form */}
           <form onSubmit={submit} className="w-full space-y-5">
-
             {/* Email */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
@@ -188,7 +188,13 @@ function AdminLogin() {
                 />
                 <div className="h-5 w-5 rounded border border-input bg-background peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
                   {remember && (
-                    <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <svg
+                      className="h-3 w-3 text-primary-foreground"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}

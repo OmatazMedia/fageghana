@@ -10,7 +10,8 @@ type PaystackInit = {
 let scriptPromise: Promise<void> | null = null;
 
 function loadPaystackScript() {
-  if (typeof window === "undefined") return Promise.reject(new Error("Paystack can only open in the browser"));
+  if (typeof window === "undefined")
+    return Promise.reject(new Error("Paystack can only open in the browser"));
   if ((window as any).PaystackPop) return Promise.resolve();
   if (scriptPromise) return scriptPromise;
   scriptPromise = new Promise<void>((resolve, reject) => {
@@ -18,7 +19,10 @@ function loadPaystackScript() {
     script.src = "https://js.paystack.co/v1/inline.js";
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Could not load Paystack checkout. Please check your connection and try again."));
+    script.onerror = () =>
+      reject(
+        new Error("Could not load Paystack checkout. Please check your connection and try again."),
+      );
     document.head.appendChild(script);
   });
   return scriptPromise;

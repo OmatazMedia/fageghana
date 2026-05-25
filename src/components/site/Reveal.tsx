@@ -12,12 +12,12 @@ type Props = {
 };
 
 const variantClass: Record<Variant, string> = {
-  up:    "reveal",
-  down:  "reveal-down",
-  left:  "reveal-left",
+  up: "reveal",
+  down: "reveal-down",
+  left: "reveal-left",
   right: "reveal-right",
   scale: "reveal-scale",
-  fade:  "reveal-fade",
+  fade: "reveal-fade",
 };
 
 export function Reveal({
@@ -32,10 +32,7 @@ export function Reveal({
   const delayClass = delay ? `reveal-delay-${delay}` : "";
 
   return (
-    <Tag
-      ref={ref}
-      className={`${base} ${delayClass} ${inView ? "in-view" : ""} ${className}`}
-    >
+    <Tag ref={ref} className={`${base} ${delayClass} ${inView ? "in-view" : ""} ${className}`}>
       {children}
     </Tag>
   );

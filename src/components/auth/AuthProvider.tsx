@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
-        void checkAdminRoleSync(newSession.user.id).then(admin => {
+        void checkAdminRoleSync(newSession.user.id).then((admin) => {
           if (!cancelled) setIsAdmin(admin);
         });
       } else {
@@ -101,7 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signUp, signOut, resetPassword }}>
+    <AuthContext.Provider
+      value={{ user, session, isAdmin, loading, signIn, signUp, signOut, resetPassword }}
+    >
       {children}
     </AuthContext.Provider>
   );

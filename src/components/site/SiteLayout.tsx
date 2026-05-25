@@ -47,10 +47,7 @@ export function PageHero({
             {eyebrow}
           </span>
         )}
-        <h1
-          className="font-bold !text-white"
-          style={{ fontSize: "clamp(1.75rem, 4vw, 4rem)" }}
-        >
+        <h1 className="font-bold !text-white" style={{ fontSize: "clamp(1.75rem, 4vw, 4rem)" }}>
           {title}
         </h1>
         {subtitle && (

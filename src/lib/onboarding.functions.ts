@@ -60,7 +60,16 @@ export const startRenewal = createServerFn({ method: "POST" })
     z.object({ plan_id: z.string().uuid(), gateway_id: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { data: plan } = await supabaseAdmin.from("subscription_plans").select("*").eq("id", data.plan_id).maybeSingle();
+    const { data: plan } = await supabaseAdmin
+      .from("subscription_plans")
+      .select("*")
+      .eq("id", data.plan_id)
+      .maybeSingle();
     if (!plan || plan.active === false) throw new Error("Plan unavailable");
-    return { tier: plan.tier as string, plan_id: plan.id, gateway_id: data.gateway_id, user_id: context.userId };
+    return {
+      tier: plan.tier as string,
+      plan_id: plan.id,
+      gateway_id: data.gateway_id,
+      user_id: context.userId,
+    };
   });

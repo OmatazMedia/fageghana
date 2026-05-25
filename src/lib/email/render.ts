@@ -5,12 +5,22 @@ import { emailTheme as t } from "./theme";
 export type Block =
   | { id: string; type: "heading"; text: string; align?: "left" | "center" | "right" }
   | { id: string; type: "text"; text: string; align?: "left" | "center" | "right" }
-  | { id: string; type: "image"; url: string; alt?: string; width?: number; align?: "left" | "center" | "right" }
+  | {
+      id: string;
+      type: "image";
+      url: string;
+      alt?: string;
+      width?: number;
+      align?: "left" | "center" | "right";
+    }
   | { id: string; type: "button"; text: string; url: string; align?: "left" | "center" | "right" }
   | { id: string; type: "divider" }
   | { id: string; type: "spacer"; height?: number };
 
-export function interpolate(input: string, vars: Record<string, string | number | undefined | null>): string {
+export function interpolate(
+  input: string,
+  vars: Record<string, string | number | undefined | null>,
+): string {
   return (input || "").replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_, k) => {
     const v = vars[k];
     return v == null ? "" : String(v);
@@ -53,7 +63,10 @@ function renderBlockHtml(b: Block, vars: Record<string, any>): string {
   }
 }
 
-export function renderEmail(blocks: Block[], vars: Record<string, any> = {}): { html: string; text: string } {
+export function renderEmail(
+  blocks: Block[],
+  vars: Record<string, any> = {},
+): { html: string; text: string } {
   const inner = (blocks || []).map((b) => renderBlockHtml(b, vars)).join("");
   const html = `<!doctype html>
 <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
@@ -83,7 +96,8 @@ export function renderEmail(blocks: Block[], vars: Record<string, any> = {}): { 
   // Plain-text fallback
   const text = (blocks || [])
     .map((b) => {
-      if (b.type === "heading" || b.type === "text") return interpolate(b.text, vars).replace(/<[^>]+>/g, "");
+      if (b.type === "heading" || b.type === "text")
+        return interpolate(b.text, vars).replace(/<[^>]+>/g, "");
       if (b.type === "button") return `${interpolate(b.text, vars)}: ${interpolate(b.url, vars)}`;
       if (b.type === "divider") return "—";
       return "";

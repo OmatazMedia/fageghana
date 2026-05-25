@@ -32,7 +32,7 @@ function buildEnumsSQL(enums: Array<{ name: string; values: string[] }>) {
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = ${quoteLit(e.name)}) THEN
     CREATE TYPE public.${quoteIdent(e.name)} AS ENUM (${(e.values || []).map(quoteLit).join(", ")});
   END IF;
-END $$;`
+END $$;`,
     )
     .join("\n\n");
 }
@@ -42,7 +42,7 @@ function buildTablesSQL(
     name: string;
     columns: Array<{ name: string; type: string; notnull: boolean; default: string | null }>;
     pk: string[] | null;
-  }>
+  }>,
 ) {
   return tables
     .map((t) => {
@@ -68,7 +68,7 @@ function buildPoliciesSQL(
     roles: string[];
     qual: string | null;
     with_check: string | null;
-  }>
+  }>,
 ) {
   return policies
     .map((p) => {
@@ -135,15 +135,16 @@ export const createBackup = createServerFn({ method: "POST" })
     zip.file("schema/enums.sql", buildEnumsSQL(enums));
     zip.file("schema/tables.sql", buildTablesSQL(tables));
     zip.file("schema/policies.sql", buildPoliciesSQL(policies));
-    zip.file(
-      "schema/functions.sql",
-      fns.map((f: any) => f.definition + ";").join("\n\n")
-    );
+    zip.file("schema/functions.sql", fns.map((f: any) => f.definition + ";").join("\n\n"));
     zip.file(
       "schema/sequences.sql",
-      sequences.map((s: any) => `CREATE SEQUENCE IF NOT EXISTS public.${quoteIdent(s.name)};`).join("\n")
+      sequences
+        .map((s: any) => `CREATE SEQUENCE IF NOT EXISTS public.${quoteIdent(s.name)};`)
+        .join("\n"),
     );
-    log.push(`Schema: ${tables.length} tables, ${enums.length} enums, ${fns.length} functions, ${policies.length} policies`);
+    log.push(
+      `Schema: ${tables.length} tables, ${enums.length} enums, ${fns.length} functions, ${policies.length} policies`,
+    );
 
     // Data
     for (const t of tables) {
@@ -184,7 +185,7 @@ export const createBackup = createServerFn({ method: "POST" })
           user_metadata: u.user_metadata,
           app_metadata: u.app_metadata,
           created_at: u.created_at,
-        }))
+        })),
       );
       if (data.users.length < 1000) break;
       page++;
@@ -224,7 +225,11 @@ export const createBackup = createServerFn({ method: "POST" })
     };
     zip.file("manifest.json", JSON.stringify(manifest, null, 2));
 
-    const blob = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE", compressionOptions: { level: 6 } });
+    const blob = await zip.generateAsync({
+      type: "uint8array",
+      compression: "DEFLATE",
+      compressionOptions: { level: 6 },
+    });
     const filename = `backup-${manifest.created_at.replace(/[:.]/g, "-")}.zip`;
     const upload = await supabaseAdmin.storage.from("backups").upload(filename, blob, {
       contentType: "application/zip",
@@ -261,7 +266,7 @@ export const listBackups = createServerFn({ method: "GET" })
           created_at: f.created_at,
           url: signed.data?.signedUrl || null,
         };
-      })
+      }),
     );
     return { backups: results };
   });
@@ -320,7 +325,7 @@ export const restoreBackup = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const log: string[] = [];
     const summary = { tables: 0, rows: 0, files: 0, users: 0, errors: 0 };
-    const safeStep = async <T,>(label: string, fn: () => Promise<T>): Promise<T | null> => {
+    const safeStep = async <T>(label: string, fn: () => Promise<T>): Promise<T | null> => {
       try {
         return await fn();
       } catch (e: any) {
@@ -333,29 +338,55 @@ export const restoreBackup = createServerFn({ method: "POST" })
     try {
       await assertAdmin(context.userId);
     } catch (e: any) {
-      return { ok: false as const, summary, log: [`[ERROR] Auth: ${e?.message || e}`], error: e?.message || String(e) };
+      return {
+        ok: false as const,
+        summary,
+        log: [`[ERROR] Auth: ${e?.message || e}`],
+        error: e?.message || String(e),
+      };
     }
 
     const dl = await supabaseAdmin.storage.from("backups").download(data.path);
     if (dl.error) {
-      return { ok: false as const, summary, log: [`[ERROR] Download backup: ${dl.error.message}`], error: dl.error.message };
+      return {
+        ok: false as const,
+        summary,
+        log: [`[ERROR] Download backup: ${dl.error.message}`],
+        error: dl.error.message,
+      };
     }
 
     let zip: JSZip;
     try {
       zip = await JSZip.loadAsync(await dl.data.arrayBuffer());
     } catch (e: any) {
-      return { ok: false as const, summary, log: [`[ERROR] Open ZIP: ${e?.message || e}`], error: e?.message || String(e) };
+      return {
+        ok: false as const,
+        summary,
+        log: [`[ERROR] Open ZIP: ${e?.message || e}`],
+        error: e?.message || String(e),
+      };
     }
 
     const mfFile = zip.file("manifest.json");
     if (!mfFile) {
-      return { ok: false as const, summary, log: ["[ERROR] manifest.json missing in ZIP"], error: "manifest.json missing" };
+      return {
+        ok: false as const,
+        summary,
+        log: ["[ERROR] manifest.json missing in ZIP"],
+        error: "manifest.json missing",
+      };
     }
     const manifest = JSON.parse(await mfFile.async("string"));
     log.push(`Restoring backup from ${manifest.created_at} (mode: ${data.mode})`);
 
-    const schemaFiles = ["schema/enums.sql", "schema/sequences.sql", "schema/tables.sql", "schema/functions.sql", "schema/policies.sql"];
+    const schemaFiles = [
+      "schema/enums.sql",
+      "schema/sequences.sql",
+      "schema/tables.sql",
+      "schema/functions.sql",
+      "schema/policies.sql",
+    ];
     for (const sf of schemaFiles) {
       const f = zip.file(sf);
       if (!f) continue;
@@ -367,8 +398,10 @@ export const restoreBackup = createServerFn({ method: "POST" })
       for (const stmt of stmts) {
         try {
           const { error } = await supabaseAdmin.rpc("admin_exec_sql", { sql: stmt });
-          if (error) { failCount++; log.push(`  [schema:${sf}] ${error.message.slice(0, 180)}`); }
-          else okCount++;
+          if (error) {
+            failCount++;
+            log.push(`  [schema:${sf}] ${error.message.slice(0, 180)}`);
+          } else okCount++;
         } catch (e: any) {
           failCount++;
           log.push(`  [schema:${sf}] ${(e?.message || String(e)).slice(0, 180)}`);
@@ -379,10 +412,16 @@ export const restoreBackup = createServerFn({ method: "POST" })
 
     await safeStep("Restore auth users", async () => {
       const usersFile = zip.file("auth/users.json");
-      if (!usersFile) { log.push("Auth: no users.json, skipped"); return; }
+      if (!usersFile) {
+        log.push("Auth: no users.json, skipped");
+        return;
+      }
       const users = JSON.parse(await usersFile.async("string"));
       if (data.mode === "overwrite") {
-        const { data: existing } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+        const { data: existing } = await supabaseAdmin.auth.admin.listUsers({
+          page: 1,
+          perPage: 1000,
+        });
         for (const u of existing?.users || []) {
           if (u.id === context.userId) continue;
           await supabaseAdmin.auth.admin.deleteUser(u.id).catch(() => {});
@@ -429,20 +468,32 @@ export const restoreBackup = createServerFn({ method: "POST" })
     for (const t of tableNames) {
       await safeStep(`Restore table ${t}`, async () => {
         const f = zip.file(`data/${t}.jsonl`);
-        if (!f) { log.push(`Data ${t}: no jsonl, skipped`); return; }
+        if (!f) {
+          log.push(`Data ${t}: no jsonl, skipped`);
+          return;
+        }
         const text = await f.async("string");
-        if (!text.trim()) { log.push(`Data ${t}: empty`); return; }
-        const rows = text.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+        if (!text.trim()) {
+          log.push(`Data ${t}: empty`);
+          return;
+        }
+        const rows = text
+          .split("\n")
+          .filter(Boolean)
+          .map((l) => JSON.parse(l));
         const CHUNK = 500;
         let inserted = 0;
         for (let i = 0; i < rows.length; i += CHUNK) {
           const chunk = rows.slice(i, i + CHUNK);
-          const q = data.mode === "overwrite"
-            ? (supabaseAdmin as any).from(t).insert(chunk)
-            : (supabaseAdmin as any).from(t).upsert(chunk);
+          const q =
+            data.mode === "overwrite"
+              ? (supabaseAdmin as any).from(t).insert(chunk)
+              : (supabaseAdmin as any).from(t).upsert(chunk);
           const { error } = await q;
-          if (error) { summary.errors++; log.push(`  data ${t}: ${error.message.slice(0, 220)}`); }
-          else inserted += chunk.length;
+          if (error) {
+            summary.errors++;
+            log.push(`  data ${t}: ${error.message.slice(0, 220)}`);
+          } else inserted += chunk.length;
         }
         summary.rows += inserted;
         summary.tables++;
@@ -455,12 +506,16 @@ export const restoreBackup = createServerFn({ method: "POST" })
       await safeStep(`Restore bucket ${bucket}`, async () => {
         const { data: b } = await supabaseAdmin.storage.getBucket(bucket);
         if (!b) {
-          await supabaseAdmin.storage.createBucket(bucket, { public: bucket === "content" || bucket === "certificate-assets" });
+          await supabaseAdmin.storage.createBucket(bucket, {
+            public: bucket === "content" || bucket === "certificate-assets",
+          });
           log.push(`Created bucket ${bucket}`);
         }
         const prefix = `storage/${bucket}/`;
         const entries: string[] = [];
-        zip.forEach((p) => { if (p.startsWith(prefix) && !zip.file(p)?.dir) entries.push(p); });
+        zip.forEach((p) => {
+          if (p.startsWith(prefix) && !zip.file(p)?.dir) entries.push(p);
+        });
         let uploaded = 0;
         for (const entry of entries) {
           const path = entry.slice(prefix.length);
@@ -480,7 +535,8 @@ export const restoreBackup = createServerFn({ method: "POST" })
       });
     }
 
-    log.push(`Done. ${summary.tables} tables, ${summary.rows} rows, ${summary.users} users, ${summary.files} files, ${summary.errors} errors`);
+    log.push(
+      `Done. ${summary.tables} tables, ${summary.rows} rows, ${summary.users} users, ${summary.files} files, ${summary.errors} errors`,
+    );
     return { ok: true as const, summary, log };
   });
-

@@ -23,7 +23,9 @@ function PlansPage() {
     if (rows.length > 0 && !activeTab) setActiveTab(rows[0].id);
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+  }, []);
 
   async function save(plan: any, patch: any) {
     const { error } = await supabase.from("subscription_plans").update(patch).eq("id", plan.id);
@@ -55,7 +57,6 @@ function PlansPage() {
         </div>
       ) : (
         <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
-
           {/* ── Tabs ── */}
           <div className="flex border-b border-border bg-muted/30">
             {plans.map((p) => (
@@ -113,7 +114,7 @@ function PlansPage() {
                     onClick={() =>
                       downloadFile(
                         activePlan.application_form_pdf_url,
-                        `FAGE-${activePlan.tier}-application.pdf`
+                        `FAGE-${activePlan.tier}-application.pdf`,
                       )
                     }
                     className="flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5 transition"
@@ -136,11 +137,7 @@ function PlansPage() {
                   />
                 </FormField>
                 <FormField label="Currency">
-                  <input
-                    name="currency"
-                    defaultValue={activePlan.currency}
-                    className={inputCls}
-                  />
+                  <input name="currency" defaultValue={activePlan.currency} className={inputCls} />
                 </FormField>
                 <FormField label="Duration (months)">
                   <input

@@ -35,7 +35,14 @@ export type TemplateLayout = {
   verification_display?: string[];
 };
 
-export const FIELD_KEYS = ["name", "member_id", "tier", "issued", "expires", "authorized_name"] as const;
+export const FIELD_KEYS = [
+  "name",
+  "member_id",
+  "tier",
+  "issued",
+  "expires",
+  "authorized_name",
+] as const;
 export type FieldKey = (typeof FIELD_KEYS)[number];
 
 export const FIELD_LABELS: Record<FieldKey, string> = {
@@ -51,17 +58,78 @@ export function defaultLayout(): TemplateLayout {
   return {
     canvas: { w: 1414, h: 1000 },
     fields: {
-      name: { x: 707, y: 480, fontSize: 64, font: "'Playfair Display', serif", weight: "700", color: "#1a1a1a", align: "center", visible: true },
-      member_id: { x: 707, y: 560, fontSize: 28, font: "'Inter', sans-serif", weight: "500", color: "#444", align: "center", visible: true },
-      tier: { x: 707, y: 610, fontSize: 22, font: "'Inter', sans-serif", weight: "600", color: "#666", align: "center", visible: true },
-      issued: { x: 350, y: 880, fontSize: 18, font: "'Inter', sans-serif", weight: "500", color: "#333", align: "center", visible: true },
-      expires: { x: 1064, y: 880, fontSize: 18, font: "'Inter', sans-serif", weight: "500", color: "#333", align: "center", visible: true },
-      authorized_name: { x: 707, y: 850, fontSize: 20, font: "'Inter', sans-serif", weight: "600", color: "#1a1a1a", align: "center", visible: true },
+      name: {
+        x: 707,
+        y: 480,
+        fontSize: 64,
+        font: "'Playfair Display', serif",
+        weight: "700",
+        color: "#1a1a1a",
+        align: "center",
+        visible: true,
+      },
+      member_id: {
+        x: 707,
+        y: 560,
+        fontSize: 28,
+        font: "'Inter', sans-serif",
+        weight: "500",
+        color: "#444",
+        align: "center",
+        visible: true,
+      },
+      tier: {
+        x: 707,
+        y: 610,
+        fontSize: 22,
+        font: "'Inter', sans-serif",
+        weight: "600",
+        color: "#666",
+        align: "center",
+        visible: true,
+      },
+      issued: {
+        x: 350,
+        y: 880,
+        fontSize: 18,
+        font: "'Inter', sans-serif",
+        weight: "500",
+        color: "#333",
+        align: "center",
+        visible: true,
+      },
+      expires: {
+        x: 1064,
+        y: 880,
+        fontSize: 18,
+        font: "'Inter', sans-serif",
+        weight: "500",
+        color: "#333",
+        align: "center",
+        visible: true,
+      },
+      authorized_name: {
+        x: 707,
+        y: 850,
+        fontSize: 20,
+        font: "'Inter', sans-serif",
+        weight: "600",
+        color: "#1a1a1a",
+        align: "center",
+        visible: true,
+      },
     },
     qr: {
-      x: 1200, y: 800, size: 160,
-      dotType: "rounded", fgColor: "#000000", bgColor: "#ffffff",
-      border: 0, borderColor: "#000000", logoUrl: null, logoSize: 0.3,
+      x: 1200,
+      y: 800,
+      size: 160,
+      dotType: "rounded",
+      fgColor: "#000000",
+      bgColor: "#ffffff",
+      border: 0,
+      borderColor: "#000000",
+      logoUrl: null,
+      logoSize: 0.3,
     },
     signature: { x: 600, y: 760, w: 220, h: 80 },
     verification_display: ["name", "member_id", "tier", "issued", "expires"],
@@ -82,12 +150,18 @@ export function mergeLayout(stored: any): TemplateLayout {
 
 export function fieldValue(key: FieldKey, cert: any, template: any): string {
   switch (key) {
-    case "name": return cert.full_name ?? "";
-    case "member_id": return cert.member_id ?? "";
-    case "tier": return String(cert.tier ?? "").toUpperCase();
-    case "issued": return new Date(cert.issued_at).toLocaleDateString();
-    case "expires": return new Date(cert.expires_at).toLocaleDateString();
-    case "authorized_name": return template?.authorized_name ?? "FAGE President";
+    case "name":
+      return cert.full_name ?? "";
+    case "member_id":
+      return cert.member_id ?? "";
+    case "tier":
+      return String(cert.tier ?? "").toUpperCase();
+    case "issued":
+      return new Date(cert.issued_at).toLocaleDateString();
+    case "expires":
+      return new Date(cert.expires_at).toLocaleDateString();
+    case "authorized_name":
+      return template?.authorized_name ?? "FAGE President";
   }
 }
 
@@ -102,11 +176,16 @@ export async function buildQrDataUrl(verifyUrl: string, qr: QrStyle): Promise<st
     backgroundOptions: { color: qr.bgColor },
     cornersSquareOptions: { color: qr.fgColor },
     cornersDotOptions: { color: qr.fgColor },
-    imageOptions: { hideBackgroundDots: true, imageSize: qr.logoSize, margin: 4, crossOrigin: "anonymous" },
+    imageOptions: {
+      hideBackgroundDots: true,
+      imageSize: qr.logoSize,
+      margin: 4,
+      crossOrigin: "anonymous",
+    },
   });
   const blob = await qrCode.getRawData("png");
   if (!blob) throw new Error("QR generation failed");
-  return await new Promise(res => {
+  return await new Promise((res) => {
     const fr = new FileReader();
     fr.onload = () => res(String(fr.result));
     fr.readAsDataURL(blob as Blob);
@@ -127,7 +206,13 @@ export async function renderCertificate(canvas: HTMLCanvasElement, cert: any, te
   if (template.signature_url) {
     try {
       const sig = await loadImage(template.signature_url);
-      ctx.drawImage(sig, layout.signature.x, layout.signature.y, layout.signature.w, layout.signature.h);
+      ctx.drawImage(
+        sig,
+        layout.signature.x,
+        layout.signature.y,
+        layout.signature.w,
+        layout.signature.h,
+      );
     } catch {}
   }
 
@@ -148,7 +233,12 @@ export async function renderCertificate(canvas: HTMLCanvasElement, cert: any, te
   const qrImg = await loadImage(qrUrl);
   if (layout.qr.border > 0) {
     ctx.fillStyle = layout.qr.borderColor;
-    ctx.fillRect(layout.qr.x - layout.qr.border, layout.qr.y - layout.qr.border, layout.qr.size + layout.qr.border * 2, layout.qr.size + layout.qr.border * 2);
+    ctx.fillRect(
+      layout.qr.x - layout.qr.border,
+      layout.qr.y - layout.qr.border,
+      layout.qr.size + layout.qr.border * 2,
+      layout.qr.size + layout.qr.border * 2,
+    );
   }
   ctx.drawImage(qrImg, layout.qr.x, layout.qr.y, layout.qr.size, layout.qr.size);
 }

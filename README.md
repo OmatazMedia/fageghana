@@ -9,6 +9,7 @@ Official web platform for the Federation of Associations of Ghanaian Exporters (
 ## 🌍 Live Platform
 
 The platform serves as the digital home for FAGE Ghana, providing:
+
 - A public-facing website for exporters, partners, and international buyers
 - A member portal for subscription management, certificates, and support
 - An admin console for full operational management
@@ -37,6 +38,7 @@ The platform serves as the digital home for FAGE Ghana, providing:
 The **Federation of Associations of Ghanaian Exporters (FAGE)** is a not-for-profit umbrella organisation for exporters and product associations, registered under Ghana's Companies Code (Act 179, 1963), established in **1992**.
 
 FAGE promotes the expansion and diversification of Ghanaian exports to foreign markets by:
+
 - Assisting member firms in developing and marketing their products
 - Improving the enabling environment for trade through government advocacy
 - Providing capacity building, training, and market intelligence
@@ -52,6 +54,7 @@ FAGE promotes the expansion and diversification of Ghanaian exports to foreign m
 ## ✨ Features
 
 ### Public Website
+
 - 🏠 **Homepage** — Hero slider, services overview, impact statistics, partners marquee, product showcase, testimonials, news feed
 - 👥 **Who We Are** — Organisation story, vision, mission, core values with parallax scroll animations
 - 📦 **Products** — Masonry grid of 11 export product categories with click-to-expand descriptions
@@ -64,6 +67,7 @@ FAGE promotes the expansion and diversification of Ghanaian exports to foreign m
 - 🔐 **Certificate Verification** — Verify certificate authenticity by unique code
 
 ### Member Portal (`/dashboard`)
+
 - 📊 **Overview** — Membership status, expiry countdown, activity summary
 - 💳 **Subscription** — View plan, submit payment (bank transfer or online), payment history
 - 📜 **Certificate** — Download membership certificate as PNG or PDF
@@ -72,6 +76,7 @@ FAGE promotes the expansion and diversification of Ghanaian exports to foreign m
 - 👤 **Profile** — Update company details, contact info, and membership tier
 
 ### Admin Console (`/admin`)
+
 - 📈 **Dashboard** — KPI cards, quick actions, recent applications
 - 👥 **Members** — View and manage all member profiles
 - 📝 **Applications** — Review and approve membership applications
@@ -87,20 +92,20 @@ FAGE promotes the expansion and diversification of Ghanaian exports to foreign m
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Framework** | [TanStack Start](https://tanstack.com/start) (React + SSR) |
-| **Language** | TypeScript |
-| **Styling** | Tailwind CSS v4 |
-| **UI Components** | shadcn/ui + Lucide Icons |
-| **Backend / Database** | [Supabase](https://supabase.com) (PostgreSQL + Auth + Storage) |
-| **Routing** | TanStack Router (file-based) |
-| **PDF Generation** | jsPDF |
-| **Certificate Rendering** | HTML5 Canvas |
-| **Animations** | CSS keyframes + IntersectionObserver |
-| **Toast Notifications** | Sonner |
-| **Build Tool** | Vite |
-| **Package Manager** | Bun |
+| Layer                     | Technology                                                     |
+| ------------------------- | -------------------------------------------------------------- |
+| **Framework**             | [TanStack Start](https://tanstack.com/start) (React + SSR)     |
+| **Language**              | TypeScript                                                     |
+| **Styling**               | Tailwind CSS v4                                                |
+| **UI Components**         | shadcn/ui + Lucide Icons                                       |
+| **Backend / Database**    | [Supabase](https://supabase.com) (PostgreSQL + Auth + Storage) |
+| **Routing**               | TanStack Router (file-based)                                   |
+| **PDF Generation**        | jsPDF                                                          |
+| **Certificate Rendering** | HTML5 Canvas                                                   |
+| **Animations**            | CSS keyframes + IntersectionObserver                           |
+| **Toast Notifications**   | Sonner                                                         |
+| **Build Tool**            | Vite                                                           |
+| **Package Manager**       | Bun                                                            |
 
 ---
 
@@ -132,26 +137,26 @@ src/
 
 ## 🗺️ Pages & Routes
 
-| Route | Description | Access |
-|-------|-------------|--------|
-| `/` | Homepage | Public |
-| `/about/who-we-are` | About FAGE, vision, mission, core values | Public |
-| `/membership` | Membership plans and application | Public |
-| `/products` | Export product categories | Public |
-| `/services` | FAGE services overview | Public |
-| `/news` | News and blog listing | Public |
-| `/news/:slug` | Individual news article | Public |
-| `/activities` | Events and activities | Public |
-| `/media` | Media centre | Public |
-| `/verify` | Public member & certificate verification | Public |
-| `/verify/:code` | Certificate verification by code | Public |
-| `/login` | Member login | Public |
-| `/reset-password` | Password reset flow | Public |
-| `/apply/:tier` | Membership application form | Public |
-| `/dashboard` | Member portal | Members only |
-| `/certificate/:id` | Certificate view & download | Members only |
-| `/admin` | Admin dashboard | Admins only |
-| `/admin/*` | All admin sub-pages | Admins only |
+| Route               | Description                              | Access       |
+| ------------------- | ---------------------------------------- | ------------ |
+| `/`                 | Homepage                                 | Public       |
+| `/about/who-we-are` | About FAGE, vision, mission, core values | Public       |
+| `/membership`       | Membership plans and application         | Public       |
+| `/products`         | Export product categories                | Public       |
+| `/services`         | FAGE services overview                   | Public       |
+| `/news`             | News and blog listing                    | Public       |
+| `/news/:slug`       | Individual news article                  | Public       |
+| `/activities`       | Events and activities                    | Public       |
+| `/media`            | Media centre                             | Public       |
+| `/verify`           | Public member & certificate verification | Public       |
+| `/verify/:code`     | Certificate verification by code         | Public       |
+| `/login`            | Member login                             | Public       |
+| `/reset-password`   | Password reset flow                      | Public       |
+| `/apply/:tier`      | Membership application form              | Public       |
+| `/dashboard`        | Member portal                            | Members only |
+| `/certificate/:id`  | Certificate view & download              | Members only |
+| `/admin`            | Admin dashboard                          | Admins only  |
+| `/admin/*`          | All admin sub-pages                      | Admins only  |
 
 ---
 
@@ -160,11 +165,13 @@ src/
 Members access their portal at `/dashboard` after logging in at `/login`.
 
 **Membership Tiers:**
+
 - **Associate** — Entry level for SMEs entering international markets
 - **Standard** — For established exporters needing deeper market insights
 - **Corporate** — Premium tier for established export companies
 
 **Payment Methods:**
+
 - Manual bank transfer (with proof upload)
 - Online payment via Paystack / Hubtel
 
@@ -179,6 +186,7 @@ Admins log in at `/admin/login`. The console provides full operational control i
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - [Bun](https://bun.sh) >= 1.0
 - [Node.js](https://nodejs.org) >= 18
 - A [Supabase](https://supabase.com) project
@@ -223,6 +231,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 For technical support, feature requests, or business inquiries, please contact our development team.
 
 **FAGE Ghana Office:**
+
 - 📍 Number 22, Nii Tsatse Dzani Street, Adjiringanor, Accra
 - 📱 +233 (0) 53 517 0780 | +233 (0) 53 522 4555
 - 📧 info@fageghana.com
@@ -240,14 +249,16 @@ This project is proprietary software developed for Kodiric Limited. All rights r
 **Author**: Omataz Media  
 **Lead Developer**: Johnson Toluwani  
 **Website**: [www.omatazmedia.com.ng](https://www.omatazmedia.com.ng)  
-**Email**: [hello@omatazmedia.com.ng](mailto:hello@omatazmedia.com.ng)  
+**Email**: [hello@omatazmedia.com.ng](mailto:hello@omatazmedia.com.ng)
 
 **Contact Information**:
+
 - 📱 Phone: +234 902 4599 289 | +234 703 7373 304
 - 🌐 Website: www.omatazmedia.com.ng
 - 📧 Email: hello@omatazmedia.com.ng
 
 **Social Media**:
+
 - 📘 Facebook: [@Omatazmedia](https://facebook.com/Omatazmedia)
 - 📷 Instagram: [@Omatazmedia](https://instagram.com/Omatazmedia)
 - 🐦 X (Twitter): [@Omatazmedia](https://x.com/Omatazmedia)
@@ -255,4 +266,4 @@ This project is proprietary software developed for Kodiric Limited. All rights r
 
 ---
 
-*Built with ❤️ by Omataz Media — Transforming digital experiences through innovative technology solutions.*
+_Built with ❤️ by Omataz Media — Transforming digital experiences through innovative technology solutions._

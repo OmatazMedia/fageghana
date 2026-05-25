@@ -24,7 +24,11 @@ function PaymentCallback() {
   const [message, setMessage] = useState("Confirming your payment with the gateway…");
 
   useEffect(() => {
-    if (!reference) { setState("error"); setMessage("Missing payment reference."); return; }
+    if (!reference) {
+      setState("error");
+      setMessage("Missing payment reference.");
+      return;
+    }
     let cancelled = false;
     let attempts = 0;
     async function run() {
@@ -33,21 +37,30 @@ function PaymentCallback() {
         if (cancelled) return;
         if (res.status === "confirmed") {
           setState("ok");
-          const { data: sub } = await supabase.from("payment_submissions").select("kind,member_message").eq("reference", reference).maybeSingle();
-          const tier = (/tier:([a-z0-9_-]+)/i.exec(sub?.member_message ?? "")?.[1]) || "standard";
+          const { data: sub } = await supabase
+            .from("payment_submissions")
+            .select("kind,member_message")
+            .eq("reference", reference)
+            .maybeSingle();
+          const tier = /tier:([a-z0-9_-]+)/i.exec(sub?.member_message ?? "")?.[1] || "standard";
           if (sub?.kind === "renew") {
             setMessage("Payment confirmed! Redirecting to your dashboard…");
             setTimeout(() => navigate({ to: "/dashboard" }), 1200);
           } else {
             setMessage("Payment confirmed! Redirecting to your application…");
-            setTimeout(() => navigate({ to: "/apply/$tier", params: { tier }, search: { token } }), 1200);
+            setTimeout(
+              () => navigate({ to: "/apply/$tier", params: { tier }, search: { token } }),
+              1200,
+            );
           }
         } else if (attempts < 8) {
           attempts++;
           setTimeout(run, 2000);
         } else {
           setState("pending");
-          setMessage("We haven't received confirmation yet. You'll be notified as soon as the gateway confirms.");
+          setMessage(
+            "We haven't received confirmation yet. You'll be notified as soon as the gateway confirms.",
+          );
         }
       } catch (e: any) {
         if (cancelled) return;
@@ -56,20 +69,39 @@ function PaymentCallback() {
       }
     }
     void run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [reference, token, verify, navigate]);
 
   return (
     <SiteLayout>
       <section className="py-24">
         <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-10 text-center">
-          {state === "verifying" && <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-primary" />}
+          {state === "verifying" && (
+            <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-primary" />
+          )}
           {state === "ok" && <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-emerald-500" />}
-          {(state === "pending" || state === "error") && <XCircle className="mx-auto mb-4 h-12 w-12 text-amber-500" />}
-          <h1 className="text-xl font-bold">{state === "ok" ? "Payment confirmed" : state === "error" ? "Something went wrong" : state === "pending" ? "Awaiting confirmation" : "Verifying payment"}</h1>
+          {(state === "pending" || state === "error") && (
+            <XCircle className="mx-auto mb-4 h-12 w-12 text-amber-500" />
+          )}
+          <h1 className="text-xl font-bold">
+            {state === "ok"
+              ? "Payment confirmed"
+              : state === "error"
+                ? "Something went wrong"
+                : state === "pending"
+                  ? "Awaiting confirmation"
+                  : "Verifying payment"}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">{message}</p>
           {(state === "pending" || state === "error") && (
-            <button onClick={() => navigate({ to: "/dashboard" })} className="mt-6 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Go to dashboard</button>
+            <button
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="mt-6 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              Go to dashboard
+            </button>
           )}
         </div>
       </section>

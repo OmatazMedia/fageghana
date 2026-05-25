@@ -41,7 +41,9 @@ function BackupPage() {
   const runParse = useServerFn(parseBackupManifest);
   const runRestore = useServerFn(restoreBackup);
 
-  const [busy, setBusy] = useState<"idle" | "backing" | "uploading" | "parsing" | "restoring">("idle");
+  const [busy, setBusy] = useState<"idle" | "backing" | "uploading" | "parsing" | "restoring">(
+    "idle",
+  );
   const [log, setLog] = useState<string[]>([]);
   const [backups, setBackups] = useState<any[]>([]);
   const [manifest, setManifest] = useState<any | null>(null);
@@ -158,7 +160,7 @@ function BackupPage() {
         toast.warning(`Restore finished with ${r.summary.errors} errors — see log`);
       } else {
         toast.success(
-          `Restore complete: ${r.summary.rows} rows, ${r.summary.files} files, ${r.summary.users} users`
+          `Restore complete: ${r.summary.rows} rows, ${r.summary.files} files, ${r.summary.users} users`,
         );
       }
     } catch (e: any) {
@@ -187,7 +189,10 @@ function BackupPage() {
   const isBusy = busy !== "idle";
 
   return (
-    <AdminShell title="Backup & Restore" description="Full-system snapshot of database, storage, and auth users.">
+    <AdminShell
+      title="Backup & Restore"
+      description="Full-system snapshot of database, storage, and auth users."
+    >
       {/* Progress bar */}
       {progress > 0 && (
         <div className="mb-6">
@@ -213,20 +218,33 @@ function BackupPage() {
             </div>
             <div>
               <h2 className="font-bold">Create backup</h2>
-              <p className="text-xs text-muted-foreground">Snapshots the entire backend into a downloadable .zip</p>
+              <p className="text-xs text-muted-foreground">
+                Snapshots the entire backend into a downloadable .zip
+              </p>
             </div>
           </div>
           <ul className="mb-4 space-y-1.5 text-sm text-muted-foreground">
-            <li className="flex items-center gap-2"><Database className="h-3.5 w-3.5" /> All public tables + RLS policies + functions</li>
-            <li className="flex items-center gap-2"><HardDrive className="h-3.5 w-3.5" /> Storage buckets: content, payment-proofs, certificate-assets</li>
-            <li className="flex items-center gap-2"><Users className="h-3.5 w-3.5" /> Auth users (passwords excluded — see warning below)</li>
+            <li className="flex items-center gap-2">
+              <Database className="h-3.5 w-3.5" /> All public tables + RLS policies + functions
+            </li>
+            <li className="flex items-center gap-2">
+              <HardDrive className="h-3.5 w-3.5" /> Storage buckets: content, payment-proofs,
+              certificate-assets
+            </li>
+            <li className="flex items-center gap-2">
+              <Users className="h-3.5 w-3.5" /> Auth users (passwords excluded — see warning below)
+            </li>
           </ul>
           <button
             onClick={handleCreate}
             disabled={isBusy}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
           >
-            {busy === "backing" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {busy === "backing" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
             {busy === "backing" ? "Generating snapshot…" : "Generate backup"}
           </button>
         </div>
@@ -239,11 +257,16 @@ function BackupPage() {
             </div>
             <div>
               <h2 className="font-bold">Restore from backup</h2>
-              <p className="text-xs text-muted-foreground">Drop a .zip backup to merge or overwrite this project</p>
+              <p className="text-xs text-muted-foreground">
+                Drop a .zip backup to merge or overwrite this project
+              </p>
             </div>
           </div>
           <label
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
               e.preventDefault();
@@ -252,10 +275,14 @@ function BackupPage() {
               if (f) void handleFile(f);
             }}
             className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition ${
-              dragOver ? "border-primary bg-primary/5 scale-[1.01]" : "border-border hover:border-primary/50"
+              dragOver
+                ? "border-primary bg-primary/5 scale-[1.01]"
+                : "border-border hover:border-primary/50"
             } ${isBusy ? "pointer-events-none opacity-60" : ""}`}
           >
-            <FileArchive className={`mb-3 h-10 w-10 ${dragOver ? "text-primary" : "text-muted-foreground"}`} />
+            <FileArchive
+              className={`mb-3 h-10 w-10 ${dragOver ? "text-primary" : "text-muted-foreground"}`}
+            />
             <p className="text-sm font-medium">Drop backup .zip here</p>
             <p className="mt-1 text-xs text-muted-foreground">or click to browse</p>
             <input
@@ -263,7 +290,10 @@ function BackupPage() {
               type="file"
               accept=".zip"
               className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleFile(f);
+              }}
             />
           </label>
         </div>
@@ -275,11 +305,25 @@ function BackupPage() {
           <ShieldAlert className="h-4 w-4" /> Important warnings
         </div>
         <ul className="list-disc space-y-1 pl-5 text-amber-900/80 dark:text-amber-100/80">
-          <li><strong>Overwrite</strong> truncates every table and empties storage buckets in this project — there is no undo.</li>
-          <li><strong>Auth passwords are not included.</strong> Restored users keep their email & metadata but must reset their password on first login.</li>
-          <li><strong>Missing tables / buckets are auto-created</strong> from the backup's schema files before data import.</li>
-          <li><strong>Project secrets</strong> (Paystack, Hubtel, etc.) are NOT in the backup — re-add them in Cloud settings on the destination project.</li>
-          <li>The currently-signed-in admin account is preserved during overwrite to prevent lockout.</li>
+          <li>
+            <strong>Overwrite</strong> truncates every table and empties storage buckets in this
+            project — there is no undo.
+          </li>
+          <li>
+            <strong>Auth passwords are not included.</strong> Restored users keep their email &
+            metadata but must reset their password on first login.
+          </li>
+          <li>
+            <strong>Missing tables / buckets are auto-created</strong> from the backup's schema
+            files before data import.
+          </li>
+          <li>
+            <strong>Project secrets</strong> (Paystack, Hubtel, etc.) are NOT in the backup — re-add
+            them in Cloud settings on the destination project.
+          </li>
+          <li>
+            The currently-signed-in admin account is preserved during overwrite to prevent lockout.
+          </li>
         </ul>
       </div>
 
@@ -287,7 +331,11 @@ function BackupPage() {
       {log.length > 0 && (
         <div className="mt-6 rounded-2xl border border-border bg-card p-4">
           <div className="mb-2 flex items-center gap-2 font-semibold">
-            {busy === "idle" ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+            {busy === "idle" ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            ) : (
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            )}
             Activity log
           </div>
           <pre className="max-h-72 overflow-auto rounded-lg bg-muted/40 p-3 text-xs">
@@ -304,19 +352,34 @@ function BackupPage() {
         ) : (
           <table className="w-full text-sm">
             <thead className="text-xs uppercase text-muted-foreground">
-              <tr><th className="px-2 py-2 text-left">File</th><th className="px-2 py-2 text-left">Size</th><th className="px-2 py-2 text-left">Created</th><th className="px-2 py-2"></th></tr>
+              <tr>
+                <th className="px-2 py-2 text-left">File</th>
+                <th className="px-2 py-2 text-left">Size</th>
+                <th className="px-2 py-2 text-left">Created</th>
+                <th className="px-2 py-2"></th>
+              </tr>
             </thead>
             <tbody>
               {backups.map((b) => (
                 <tr key={b.name} className="border-t border-border">
                   <td className="px-2 py-2 font-mono text-xs">{b.name}</td>
                   <td className="px-2 py-2">{fmtSize(b.size)}</td>
-                  <td className="px-2 py-2">{b.created_at ? new Date(b.created_at).toLocaleString() : "—"}</td>
+                  <td className="px-2 py-2">
+                    {b.created_at ? new Date(b.created_at).toLocaleString() : "—"}
+                  </td>
                   <td className="px-2 py-2 text-right">
                     {b.url && (
-                      <button onClick={() => downloadBackup(b.name, b.name)} className="mr-2 text-primary hover:underline">Download</button>
+                      <button
+                        onClick={() => downloadBackup(b.name, b.name)}
+                        className="mr-2 text-primary hover:underline"
+                      >
+                        Download
+                      </button>
                     )}
-                    <button onClick={() => deleteBackup(b.name)} className="text-destructive hover:underline">
+                    <button
+                      onClick={() => deleteBackup(b.name)}
+                      className="text-destructive hover:underline"
+                    >
                       <Trash2 className="inline h-3.5 w-3.5" />
                     </button>
                   </td>
@@ -341,11 +404,22 @@ function BackupPage() {
               </div>
             </div>
             <div className="mb-4 rounded-lg bg-muted/40 p-3 text-sm">
-              <div><strong>Snapshot:</strong> {new Date(manifest.created_at).toLocaleString()}</div>
-              <div><strong>Source project:</strong> {manifest.project_ref}</div>
-              <div><strong>Tables:</strong> {Object.keys(manifest.tables || {}).length} ({Object.values(manifest.tables || {}).reduce((a: number, b: any) => a + b, 0)} rows)</div>
-              <div><strong>Auth users:</strong> {manifest.auth_user_count}</div>
-              <div><strong>Storage files:</strong> {manifest.storage_file_count}</div>
+              <div>
+                <strong>Snapshot:</strong> {new Date(manifest.created_at).toLocaleString()}
+              </div>
+              <div>
+                <strong>Source project:</strong> {manifest.project_ref}
+              </div>
+              <div>
+                <strong>Tables:</strong> {Object.keys(manifest.tables || {}).length} (
+                {Object.values(manifest.tables || {}).reduce((a: number, b: any) => a + b, 0)} rows)
+              </div>
+              <div>
+                <strong>Auth users:</strong> {manifest.auth_user_count}
+              </div>
+              <div>
+                <strong>Storage files:</strong> {manifest.storage_file_count}
+              </div>
             </div>
             <div className="mb-4">
               <div className="mb-2 text-sm font-medium">Restore mode</div>
@@ -355,7 +429,9 @@ function BackupPage() {
                   className={`flex-1 rounded-lg border-2 p-3 text-left text-sm transition ${mode === "merge" ? "border-primary bg-primary/5" : "border-border"}`}
                 >
                   <div className="font-semibold">Merge</div>
-                  <div className="text-xs text-muted-foreground">Upsert rows, skip existing files</div>
+                  <div className="text-xs text-muted-foreground">
+                    Upsert rows, skip existing files
+                  </div>
                 </button>
                 <button
                   onClick={() => setMode("overwrite")}
@@ -367,7 +443,9 @@ function BackupPage() {
               </div>
             </div>
             <div className="mb-4">
-              <label className="mb-1.5 block text-sm font-medium">Type <code className="rounded bg-muted px-1">RESTORE</code> to confirm</label>
+              <label className="mb-1.5 block text-sm font-medium">
+                Type <code className="rounded bg-muted px-1">RESTORE</code> to confirm
+              </label>
               <input
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
@@ -376,7 +454,16 @@ function BackupPage() {
               />
             </div>
             <div className="flex justify-end gap-2">
-              <button onClick={() => { setShowConfirm(false); setPendingPath(null); setConfirmText(""); }} className="rounded-lg border border-input px-4 py-2 text-sm">Cancel</button>
+              <button
+                onClick={() => {
+                  setShowConfirm(false);
+                  setPendingPath(null);
+                  setConfirmText("");
+                }}
+                className="rounded-lg border border-input px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
               <button
                 onClick={executeRestore}
                 disabled={confirmText !== "RESTORE"}

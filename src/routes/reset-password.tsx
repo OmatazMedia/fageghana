@@ -36,7 +36,9 @@ function FloatField({
       <span
         className={[
           "pointer-events-none absolute flex items-center justify-center transition-all duration-300",
-          filled ? "left-3 top-1/2 -translate-y-1/2 text-primary" : "left-3 top-1/2 -translate-y-1/2 text-muted-foreground",
+          filled
+            ? "left-3 top-1/2 -translate-y-1/2 text-primary"
+            : "left-3 top-1/2 -translate-y-1/2 text-muted-foreground",
         ].join(" ")}
         style={{ width: 18, height: 18 }}
       >
@@ -56,9 +58,7 @@ function FloatField({
           filled ? "pl-8 pr-10" : "pl-10 pr-10",
         ].join(" ")}
       />
-      {suffix && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2">{suffix}</span>
-      )}
+      {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2">{suffix}</span>}
     </div>
   );
 }
@@ -120,7 +120,6 @@ function ResetPassword() {
         </div>
 
         <div className="rounded-2xl bg-background/95 backdrop-blur-sm shadow-2xl px-8 py-10">
-
           {/* ── SENT confirmation ── */}
           {mode === "sent" && (
             <div className="text-center space-y-4">
@@ -130,8 +129,8 @@ function ResetPassword() {
               <h1 className="text-2xl font-bold">Check your inbox</h1>
               <p className="text-sm text-muted-foreground">
                 We've sent a password reset link to{" "}
-                <span className="font-semibold text-foreground">{email}</span>.
-                Click the link in the email to set a new password.
+                <span className="font-semibold text-foreground">{email}</span>. Click the link in
+                the email to set a new password.
               </p>
               <p className="text-xs text-muted-foreground">
                 Didn't receive it? Check your spam folder or{" "}

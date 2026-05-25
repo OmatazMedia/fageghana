@@ -1,5 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { Mail, Phone, ShieldCheck, ArrowRight, Menu, X, ChevronDown, Search, User } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  ShieldCheck,
+  ArrowRight,
+  Menu,
+  X,
+  ChevronDown,
+  Search,
+  User,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSiteSearch } from "./SiteLayout";
 
@@ -11,7 +21,7 @@ const aboutItems = [
 
 const navItems = [
   { to: "/news", label: "News & Blog" },
-  { to: "/activities", label: "Activities" },
+  { to: "/activities", label: "Events" },
   { to: "/media", label: "Media" },
   { to: "/membership", label: "Membership" },
   { to: "/contact", label: "Contact" },
@@ -36,17 +46,21 @@ export function SiteHeader() {
   }, []);
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
-      scrolled
-        ? "bg-background/50 backdrop-blur-md border-border shadow-md"
-        : "bg-background/10 backdrop-blur-sm border-transparent"
-    }`}>
+    <header
+      className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
+        scrolled
+          ? "bg-background/50 backdrop-blur-md border-border shadow-md"
+          : "bg-background/10 backdrop-blur-sm border-transparent"
+      }`}
+    >
       {/* Top utility bar — always visible */}
       <div className="bg-primary text-primary-foreground text-xs">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2">
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline">Promoting non-traditional exports</span>
-            <Link to="/membership" className="hidden sm:inline hover:font-semibold">Join us now →</Link>
+            <Link to="/membership" className="hidden sm:inline hover:font-semibold">
+              Join us now →
+            </Link>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/verify" className="flex items-center gap-1">
@@ -91,7 +105,10 @@ export function SiteHeader() {
               className="flex items-center gap-1 text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
               onClick={() => setAboutOpen((v) => !v)}
             >
-              About <ChevronDown className={`h-4 w-4 transition-transform ${aboutOpen ? "rotate-180" : ""}`} />
+              About{" "}
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${aboutOpen ? "rotate-180" : ""}`}
+              />
             </button>
             {aboutOpen && (
               <div className="absolute left-1/2 top-full z-50 w-48 -translate-x-1/2 pt-3">
@@ -139,10 +156,7 @@ export function SiteHeader() {
           >
             <User className="h-4.5 w-4.5" />
           </Link>
-          <Link
-            to="/membership"
-            className="lets-talk-btn hidden md:inline-flex"
-          >
+          <Link to="/membership" className="lets-talk-btn hidden md:inline-flex">
             {/* Circle starts LEFT, slides to RIGHT on hover */}
             <span className="lets-talk-circle">
               <ArrowRight className="h-4 w-4" />
@@ -169,7 +183,12 @@ export function SiteHeader() {
               <div className="text-sm font-semibold text-foreground mb-2">About</div>
               <div className="flex flex-col gap-1 pl-3">
                 {aboutItems.map((it) => (
-                  <Link key={it.to} to={it.to} onClick={() => setOpen(false)} className="py-1.5 text-sm text-foreground/80">
+                  <Link
+                    key={it.to}
+                    to={it.to}
+                    onClick={() => setOpen(false)}
+                    className="py-1.5 text-sm text-foreground/80"
+                  >
                     {it.label}
                   </Link>
                 ))}

@@ -87,12 +87,25 @@ async function sendViaSmtp(s: Settings, input: SendInput): Promise<void> {
   });
 }
 
-export type SendResult = { ok: boolean; provider?: "resend" | "smtp"; error?: string; fallback?: boolean };
+export type SendResult = {
+  ok: boolean;
+  provider?: "resend" | "smtp";
+  error?: string;
+  fallback?: boolean;
+};
 
 export async function sendEmail(input: SendInput): Promise<SendResult> {
   const s = await loadSettings();
   if (!s) {
-    await logAttempt({ to_email: input.to, subject: input.subject, template_key: input.templateKey, provider: "none", status: "failed", error: "email_settings missing", fallback_used: false });
+    await logAttempt({
+      to_email: input.to,
+      subject: input.subject,
+      template_key: input.templateKey,
+      provider: "none",
+      status: "failed",
+      error: "email_settings missing",
+      fallback_used: false,
+    });
     return { ok: false, error: "Email is not configured yet" };
   }
 
@@ -105,7 +118,15 @@ export async function sendEmail(input: SendInput): Promise<SendResult> {
   if (other === "smtp" && s.smtp_enabled && !order.includes("smtp")) order.push("smtp");
 
   if (order.length === 0) {
-    await logAttempt({ to_email: input.to, subject: input.subject, template_key: input.templateKey, provider: "none", status: "failed", error: "no provider enabled", fallback_used: false });
+    await logAttempt({
+      to_email: input.to,
+      subject: input.subject,
+      template_key: input.templateKey,
+      provider: "none",
+      status: "failed",
+      error: "no provider enabled",
+      fallback_used: false,
+    });
     return { ok: false, error: "No email provider is enabled" };
   }
 
@@ -116,19 +137,43 @@ export async function sendEmail(input: SendInput): Promise<SendResult> {
     try {
       if (p === "resend") await sendViaResend(s, input);
       else await sendViaSmtp(s, input);
-      await logAttempt({ to_email: input.to, subject: input.subject, template_key: input.templateKey, provider: p, status: "sent", error: null, fallback_used: fallback });
+      await logAttempt({
+        to_email: input.to,
+        subject: input.subject,
+        template_key: input.templateKey,
+        provider: p,
+        status: "sent",
+        error: null,
+        fallback_used: fallback,
+      });
       return { ok: true, provider: p, fallback };
     } catch (e: any) {
       lastErr = e?.message ?? String(e);
-      await logAttempt({ to_email: input.to, subject: input.subject, template_key: input.templateKey, provider: p, status: "failed", error: lastErr.slice(0, 500), fallback_used: fallback });
+      await logAttempt({
+        to_email: input.to,
+        subject: input.subject,
+        template_key: input.templateKey,
+        provider: p,
+        status: "failed",
+        error: lastErr.slice(0, 500),
+        fallback_used: fallback,
+      });
     }
   }
   return { ok: false, error: lastErr };
 }
 
 /** Convenience: render + send a stored template by its key. */
-export async function sendTemplate(key: string, to: string, vars: Record<string, any> = {}): Promise<SendResult> {
-  const { data: tpl } = await supabaseAdmin.from("email_templates").select("*").eq("key", key).maybeSingle();
+export async function sendTemplate(
+  key: string,
+  to: string,
+  vars: Record<string, any> = {},
+): Promise<SendResult> {
+  const { data: tpl } = await supabaseAdmin
+    .from("email_templates")
+    .select("*")
+    .eq("key", key)
+    .maybeSingle();
   if (!tpl) return { ok: false, error: `Template "${key}" not found` };
   const subject = interpolate(tpl.subject ?? "", vars);
   const { html, text } = renderEmail((tpl.blocks ?? []) as Block[], vars);

@@ -7,7 +7,12 @@ import { sendEmail, sendTemplate } from "./send.server";
 import { renderEmail, interpolate, type Block } from "./render";
 
 async function assertAdmin(userId: string) {
-  const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
   if (!data) throw new Error("Admin only");
 }
 
@@ -30,16 +35,33 @@ export const saveEmailSettings = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => settingsSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
-    const { data: existing } = await supabaseAdmin.from("email_settings").select("id, resend_api_key, smtp_password").limit(1).maybeSingle();
+    const { data: existing } = await supabaseAdmin
+      .from("email_settings")
+      .select("id, resend_api_key, smtp_password")
+      .limit(1)
+      .maybeSingle();
     // If a secret field is sent empty, keep the existing one
     const merged: any = { ...data };
-    if ((!merged.resend_api_key || String(merged.resend_api_key).startsWith("••••")) && existing?.resend_api_key) merged.resend_api_key = existing.resend_api_key;
-    if ((!merged.smtp_password || String(merged.smtp_password).startsWith("••••")) && existing?.smtp_password) merged.smtp_password = existing.smtp_password;
+    if (
+      (!merged.resend_api_key || String(merged.resend_api_key).startsWith("••••")) &&
+      existing?.resend_api_key
+    )
+      merged.resend_api_key = existing.resend_api_key;
+    if (
+      (!merged.smtp_password || String(merged.smtp_password).startsWith("••••")) &&
+      existing?.smtp_password
+    )
+      merged.smtp_password = existing.smtp_password;
     if (existing?.id) {
-      const { error } = await supabaseAdmin.from("email_settings").update(merged).eq("id", existing.id);
+      const { error } = await supabaseAdmin
+        .from("email_settings")
+        .update(merged)
+        .eq("id", existing.id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await supabaseAdmin.from("email_settings").insert({ ...merged, singleton: true });
+      const { error } = await supabaseAdmin
+        .from("email_settings")
+        .insert({ ...merged, singleton: true });
       if (error) throw new Error(error.message);
     }
     return { ok: true };
@@ -54,7 +76,9 @@ export const getEmailSettings = createServerFn({ method: "POST" })
     return {
       ...data,
       // mask secrets
-      resend_api_key: data.resend_api_key ? "••••••••" + (data.resend_api_key as string).slice(-4) : "",
+      resend_api_key: data.resend_api_key
+        ? "••••••••" + (data.resend_api_key as string).slice(-4)
+        : "",
       smtp_password: data.smtp_password ? "••••••••" : "",
     };
   });
@@ -70,27 +94,53 @@ export const listEmailTemplates = createServerFn({ method: "POST" })
 
 export const sendTestEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ to: z.string().email(), provider: z.enum(["resend", "smtp", "auto"]).default("auto") }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        to: z.string().email(),
+        provider: z.enum(["resend", "smtp", "auto"]).default("auto"),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     // Force-temp-override the primary provider if requested
     if (data.provider !== "auto") {
-      const { data: s } = await supabaseAdmin.from("email_settings").select("*").limit(1).maybeSingle();
+      const { data: s } = await supabaseAdmin
+        .from("email_settings")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
       if (s) {
         // temporarily disable the other for this call
         const other = data.provider === "resend" ? "smtp" : "resend";
         const otherKey = other === "resend" ? "resend_enabled" : "smtp_enabled";
         const wasOtherEnabled = (s as any)[otherKey];
-        await supabaseAdmin.from("email_settings").update({ primary_provider: data.provider, [otherKey]: false } as any).eq("id", s.id);
+        await supabaseAdmin
+          .from("email_settings")
+          .update({ primary_provider: data.provider, [otherKey]: false } as any)
+          .eq("id", s.id);
         try {
           const { html, text } = renderEmail([
-            { id: "h", type: "heading", text: `Test email via ${data.provider.toUpperCase()}`, align: "center" },
-            { id: "t", type: "text", text: "If you can read this, your email configuration works." },
+            {
+              id: "h",
+              type: "heading",
+              text: `Test email via ${data.provider.toUpperCase()}`,
+              align: "center",
+            },
+            {
+              id: "t",
+              type: "text",
+              text: "If you can read this, your email configuration works.",
+            },
           ]);
           const result = await sendEmail({ to: data.to, subject: "FAGE test email", html, text });
           return result;
         } finally {
-          await supabaseAdmin.from("email_settings").update({ [otherKey]: wasOtherEnabled } as any).eq("id", s.id);
+          await supabaseAdmin
+            .from("email_settings")
+            .update({ [otherKey]: wasOtherEnabled } as any)
+            .eq("id", s.id);
         }
       }
     }
@@ -103,7 +153,11 @@ export const sendTestEmail = createServerFn({ method: "POST" })
 
 const templateSchema = z.object({
   id: z.string().uuid().optional(),
-  key: z.string().min(2).max(80).regex(/^[a-z0-9_]+$/),
+  key: z
+    .string()
+    .min(2)
+    .max(80)
+    .regex(/^[a-z0-9_]+$/),
   name: z.string().min(1).max(200),
   subject: z.string().max(300),
   blocks: z.array(z.any()),
@@ -116,22 +170,39 @@ export const saveEmailTemplate = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     if (data.id) {
-      const { error } = await supabaseAdmin.from("email_templates").update({
-        key: data.key, name: data.name, subject: data.subject, blocks: data.blocks, description: data.description,
-      }).eq("id", data.id);
+      const { error } = await supabaseAdmin
+        .from("email_templates")
+        .update({
+          key: data.key,
+          name: data.name,
+          subject: data.subject,
+          blocks: data.blocks,
+          description: data.description,
+        })
+        .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
-    const { data: ins, error } = await supabaseAdmin.from("email_templates").insert({
-      key: data.key, name: data.name, subject: data.subject, blocks: data.blocks, description: data.description,
-    }).select("id").single();
+    const { data: ins, error } = await supabaseAdmin
+      .from("email_templates")
+      .insert({
+        key: data.key,
+        name: data.name,
+        subject: data.subject,
+        blocks: data.blocks,
+        description: data.description,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
     return { ok: true, id: ins.id };
   });
 
 export const previewTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ blocks: z.array(z.any()), vars: z.record(z.string(), z.any()).optional() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ blocks: z.array(z.any()), vars: z.record(z.string(), z.any()).optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     return renderEmail(data.blocks as Block[], data.vars ?? {});
@@ -139,7 +210,15 @@ export const previewTemplate = createServerFn({ method: "POST" })
 
 export const sendTemplateTest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ key: z.string().min(2).max(80), to: z.string().email(), vars: z.record(z.string(), z.any()).optional() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        key: z.string().min(2).max(80),
+        to: z.string().email(),
+        vars: z.record(z.string(), z.any()).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     return sendTemplate(data.key, data.to, data.vars ?? {});

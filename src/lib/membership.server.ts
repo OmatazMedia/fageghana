@@ -16,11 +16,16 @@ function deterministicPassword(fullName: string, phone: string): string {
 }
 
 function siteOriginFromEnv(): string {
-  const base = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || "https://fageghana.lovable.app";
+  const base =
+    process.env.SITE_URL || process.env.PUBLIC_SITE_URL || "https://fageghana.lovable.app";
   return base.replace(/\/+$/, "");
 }
 
-async function ensureUserForEmail(email: string, fullName: string, phone: string): Promise<{ userId: string; created: boolean; tempPassword?: string }> {
+async function ensureUserForEmail(
+  email: string,
+  fullName: string,
+  phone: string,
+): Promise<{ userId: string; created: boolean; tempPassword?: string }> {
   // Try to find existing user by paginating admin.listUsers
   let page = 1;
   while (true) {
@@ -39,7 +44,8 @@ async function ensureUserForEmail(email: string, fullName: string, phone: string
     email_confirm: true,
     user_metadata: { full_name: fullName, must_change_password: true },
   });
-  if (createErr || !created.user) throw new Error(`createUser failed: ${createErr?.message ?? "unknown"}`);
+  if (createErr || !created.user)
+    throw new Error(`createUser failed: ${createErr?.message ?? "unknown"}`);
   return { userId: created.user.id, created: true, tempPassword };
 }
 
@@ -83,7 +89,11 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
       .eq("id", sub.pending_application_id)
       .maybeSingle();
     if (pending) {
-      const { userId: uid, created, tempPassword } = await ensureUserForEmail(pending.email, pending.full_name, pending.phone ?? "");
+      const {
+        userId: uid,
+        created,
+        tempPassword,
+      } = await ensureUserForEmail(pending.email, pending.full_name, pending.phone ?? "");
       userId = uid;
 
       // Link submission to user
@@ -114,7 +124,9 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
           member_id: "(set after activation)",
           login_url: loginLink ?? `${siteOriginFromEnv()}/dashboard`,
         });
-      } catch (e: any) { console.error("welcome email failed:", e?.message ?? e); }
+      } catch (e: any) {
+        console.error("welcome email failed:", e?.message ?? e);
+      }
     }
   }
 
@@ -129,12 +141,20 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
       .eq("id", sub.pending_application_id)
       .maybeSingle();
     if (pa?.plan_id) {
-      const { data: p } = await supabaseAdmin.from("subscription_plans").select("*").eq("id", pa.plan_id).maybeSingle();
+      const { data: p } = await supabaseAdmin
+        .from("subscription_plans")
+        .select("*")
+        .eq("id", pa.plan_id)
+        .maybeSingle();
       plan = p ?? null;
     }
   }
   if (!plan && tier) {
-    const { data: p } = await supabaseAdmin.from("subscription_plans").select("*").eq("tier", tier).maybeSingle();
+    const { data: p } = await supabaseAdmin
+      .from("subscription_plans")
+      .select("*")
+      .eq("tier", tier)
+      .maybeSingle();
     plan = p ?? null;
   }
   const months = plan?.duration_months ?? 12;
@@ -156,7 +176,9 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
 
   if (!existing) {
     // brand-new profile
-    const { data: idRow } = await supabaseAdmin.rpc("generate_member_id", { _tier: planTier ?? "associate" });
+    const { data: idRow } = await supabaseAdmin.rpc("generate_member_id", {
+      _tier: planTier ?? "associate",
+    });
     const memberId = (idRow as unknown as string) ?? null;
     let email = "";
     let fullName = "";
@@ -183,7 +205,11 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
       status: "approved",
       member_id: memberId,
       subscription_start: now.toISOString(),
-      subscription_expiry: new Date(now.getFullYear(), now.getMonth() + months, now.getDate()).toISOString(),
+      subscription_expiry: new Date(
+        now.getFullYear(),
+        now.getMonth() + months,
+        now.getDate(),
+      ).toISOString(),
     });
   } else if (isRenew) {
     if (planTier && planTier !== existing.tier) {
@@ -192,19 +218,25 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
       const memberId = (idRow as unknown as string) ?? existing.member_id;
       const reset = new Date();
       reset.setMonth(reset.getMonth() + months);
-      await supabaseAdmin.from("member_profiles").update({
-        tier: planTier,
-        member_id: memberId,
-        subscription_start: now.toISOString(),
-        subscription_expiry: reset.toISOString(),
-        status: "approved",
-      }).eq("user_id", userId);
+      await supabaseAdmin
+        .from("member_profiles")
+        .update({
+          tier: planTier,
+          member_id: memberId,
+          subscription_start: now.toISOString(),
+          subscription_expiry: reset.toISOString(),
+          status: "approved",
+        })
+        .eq("user_id", userId);
     } else {
       // same tier → extend expiry only
-      await supabaseAdmin.from("member_profiles").update({
-        subscription_expiry: newExpiry.toISOString(),
-        status: "approved",
-      }).eq("user_id", userId);
+      await supabaseAdmin
+        .from("member_profiles")
+        .update({
+          subscription_expiry: newExpiry.toISOString(),
+          status: "approved",
+        })
+        .eq("user_id", userId);
     }
   }
 }

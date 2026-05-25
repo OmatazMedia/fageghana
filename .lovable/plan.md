@@ -1,4 +1,3 @@
-
 ## Scope
 
 Four additions to the public site:
@@ -69,6 +68,7 @@ Fixed bottom-right. Stack: Chat bubble (bottom), Back-to-top above it. When scro
 **Online vs offline**: Office hours = Mon–Fri 08:00–17:00 Accra time. Outside that → "We're currently offline" banner, but quick replies still work.
 
 **Quick-reply menu** (chips, bot-driven; selecting one shows reply with optional link):
+
 - About FAGE → `/about/who-we-are`
 - Services → `/services`
 - Products → `/products`
@@ -85,6 +85,7 @@ Fixed bottom-right. Stack: Chat bubble (bottom), Back-to-top above it. When scro
 After any reply, wait ~4 s then prompt: "Anything else? Pick an option or type 'menu'." Typing `menu` or clicking **Back to menu** returns to quick replies.
 
 **WhatsApp handoff**:
+
 1. User clicks "Chat with a real person"
 2. Bot asks: "Please type your request — I'll forward it to our team."
 3. After they reply, bot shows "Transferring you now…" for ~5 s
@@ -92,6 +93,7 @@ After any reply, wait ~4 s then prompt: "Anything else? Pick an option or type '
 5. Open `https://wa.me/233535170780?text=<encoded transcript>` in a new tab
 
 **Offline "Leave a message" flow**:
+
 1. Ask Name → Phone → Email (validated with regex) → Message
 2. Save to `contact_messages` table (same one used by Contact page, with `source = 'chat'`)
 3. Show "Sending…" spinner for ~5 s mock, then "Your message has been sent — we'll reach out within working days."
@@ -116,6 +118,7 @@ State stored in component state + localStorage so the conversation persists acro
 ## File changes
 
 **New**
+
 - `src/routes/contact.tsx`
 - `src/components/site/SearchOverlay.tsx`
 - `src/components/site/ChatWidget.tsx`
@@ -123,6 +126,7 @@ State stored in component state + localStorage so the conversation persists acro
 - `supabase/migrations/<ts>_contact_and_reactions.sql`
 
 **Edited**
+
 - `src/components/site/SiteHeader.tsx` — add Contact link, wire Search button to overlay
 - `src/components/site/SiteFooter.tsx` — add Contact link in Explore
 - `src/components/site/SiteLayout.tsx` — mount `<ChatWidget />` + `<BackToTop />` + `<SearchOverlay />` provider

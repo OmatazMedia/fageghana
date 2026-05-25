@@ -16,17 +16,29 @@ function makeReference(tier: string) {
 }
 
 async function loadGateway(gatewayId: string) {
-  const { data: gateway } = await supabaseAdmin.from("payment_gateways").select("*").eq("id", gatewayId).maybeSingle();
+  const { data: gateway } = await supabaseAdmin
+    .from("payment_gateways")
+    .select("*")
+    .eq("id", gatewayId)
+    .maybeSingle();
   if (!gateway || !gateway.enabled) throw new Error("Gateway not available");
   return gateway;
 }
 
 function paystackSecret(gateway: any) {
-  return (((gateway.config as any)?.secret_key as string | undefined) || process.env.PAYSTACK_SECRET_KEY || "").trim();
+  return (
+    ((gateway.config as any)?.secret_key as string | undefined) ||
+    process.env.PAYSTACK_SECRET_KEY ||
+    ""
+  ).trim();
 }
 
 function paystackPublicKey(gateway: any) {
-  return (((gateway.config as any)?.public_key as string | undefined) || process.env.PAYSTACK_PUBLIC_KEY || "").trim();
+  return (
+    ((gateway.config as any)?.public_key as string | undefined) ||
+    process.env.PAYSTACK_PUBLIC_KEY ||
+    ""
+  ).trim();
 }
 
 async function initializePaystack(input: {
@@ -42,7 +54,8 @@ async function initializePaystack(input: {
   const secret = paystackSecret(input.gateway);
   const publicKey = paystackPublicKey(input.gateway);
   if (!secret) throw new Error("Paystack is not configured — add a secret key in Admin → Gateways");
-  if (!publicKey) throw new Error("Paystack is not configured — add a public key in Admin → Gateways");
+  if (!publicKey)
+    throw new Error("Paystack is not configured — add a public key in Admin → Gateways");
   const res = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
@@ -61,7 +74,10 @@ async function initializePaystack(input: {
     const friendly = /currency not supported/i.test(msg)
       ? `Paystack rejected currency "${input.currency}". Your Paystack account is registered in a different country/currency. Either change the plan currency in Admin → Plans to match your Paystack account (e.g. NGN for a Nigerian account, GHS for a Ghanaian account), or contact Paystack Support to enable multi-currency on your account.`
       : `Paystack init failed: ${msg}`;
-    await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: friendly }).eq("id", input.submissionId);
+    await supabaseAdmin
+      .from("payment_submissions")
+      .update({ status: "rejected", admin_notes: friendly })
+      .eq("id", input.submissionId);
     throw new Error(friendly);
   }
   return {
@@ -99,8 +115,10 @@ async function initializeFlutterwave(input: {
 }) {
   const secret = flutterwaveSecret(input.gateway);
   const publicKey = flutterwavePublicKey(input.gateway);
-  if (!secret) throw new Error("Flutterwave is not configured — add a secret key in Admin → Gateways");
-  if (!publicKey) throw new Error("Flutterwave is not configured — add a public key in Admin → Gateways");
+  if (!secret)
+    throw new Error("Flutterwave is not configured — add a secret key in Admin → Gateways");
+  if (!publicKey)
+    throw new Error("Flutterwave is not configured — add a public key in Admin → Gateways");
   const res = await fetch("https://api.flutterwave.com/v3/payments", {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
@@ -109,7 +127,11 @@ async function initializeFlutterwave(input: {
       amount: Number(input.amount),
       currency: input.currency || "GHS",
       redirect_url: input.callbackUrl,
-      customer: { email: input.email, name: input.name || input.email, phonenumber: input.phone || "" },
+      customer: {
+        email: input.email,
+        name: input.name || input.email,
+        phonenumber: input.phone || "",
+      },
       customizations: { title: "FAGE Ghana Membership", description: "Membership payment" },
       meta: input.metadata,
     }),
@@ -120,7 +142,10 @@ async function initializeFlutterwave(input: {
     const friendly = /currency/i.test(msg)
       ? `Flutterwave rejected currency "${input.currency}". Either change the plan currency in Admin → Plans to one your Flutterwave account supports, or enable that currency in your Flutterwave dashboard.`
       : `Flutterwave init failed: ${msg}`;
-    await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: friendly }).eq("id", input.submissionId);
+    await supabaseAdmin
+      .from("payment_submissions")
+      .update({ status: "rejected", admin_notes: friendly })
+      .eq("id", input.submissionId);
     throw new Error(friendly);
   }
   return {
@@ -139,11 +164,19 @@ async function initializeFlutterwave(input: {
 
 async function loadPlan(planId: string | null, tier: string | null) {
   if (planId) {
-    const { data } = await supabaseAdmin.from("subscription_plans").select("*").eq("id", planId).maybeSingle();
+    const { data } = await supabaseAdmin
+      .from("subscription_plans")
+      .select("*")
+      .eq("id", planId)
+      .maybeSingle();
     if (data) return data;
   }
   if (tier) {
-    const { data } = await supabaseAdmin.from("subscription_plans").select("*").eq("tier", tier as any).maybeSingle();
+    const { data } = await supabaseAdmin
+      .from("subscription_plans")
+      .select("*")
+      .eq("tier", tier as any)
+      .maybeSingle();
     if (data) return data;
   }
   throw new Error("Plan not found");
@@ -167,7 +200,8 @@ export const initApplicationPayment = createServerFn({ method: "POST" })
       .eq("id", data.pending_application_id)
       .maybeSingle();
     if (!pending) throw new Error("Application not found");
-    if (pending.status === "claimed") throw new Error("This application has already been completed");
+    if (pending.status === "claimed")
+      throw new Error("This application has already been completed");
 
     const gateway = await loadGateway(data.gateway_id);
     const plan = await loadPlan(pending.plan_id, pending.tier);
@@ -231,9 +265,16 @@ export const initApplicationPayment = createServerFn({ method: "POST" })
         }),
       });
       const json: any = await res.json();
-      const checkoutUrl: string | undefined = json?.data?.checkoutUrl ?? json?.data?.checkoutDirectUrl;
+      const checkoutUrl: string | undefined =
+        json?.data?.checkoutUrl ?? json?.data?.checkoutDirectUrl;
       if (!res.ok || !checkoutUrl) {
-        await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${JSON.stringify(json).slice(0, 300)}` }).eq("id", sub.id);
+        await supabaseAdmin
+          .from("payment_submissions")
+          .update({
+            status: "rejected",
+            admin_notes: `init failed: ${JSON.stringify(json).slice(0, 300)}`,
+          })
+          .eq("id", sub.id);
         throw new Error(`Hubtel init failed: ${json?.message ?? res.status}`);
       }
       return { redirect_url: checkoutUrl, reference };
@@ -274,7 +315,11 @@ export const initRenewalPayment = createServerFn({ method: "POST" })
     const plan = await loadPlan(data.plan_id, null);
     if (plan.active === false) throw new Error("Plan unavailable");
 
-    const { data: profile } = await supabaseAdmin.from("member_profiles").select("email,contact_name,phone").eq("user_id", context.userId).maybeSingle();
+    const { data: profile } = await supabaseAdmin
+      .from("member_profiles")
+      .select("email,contact_name,phone")
+      .eq("user_id", context.userId)
+      .maybeSingle();
     const email = profile?.email || (context.claims as any)?.email;
     if (!email) throw new Error("Email missing on profile");
 
@@ -307,7 +352,12 @@ export const initRenewalPayment = createServerFn({ method: "POST" })
         currency: plan.currency || "GHS",
         reference,
         callbackUrl: `${origin}/payment/callback`,
-        metadata: { user_id: context.userId, tier: plan.tier, kind: "renew", submission_id: sub.id },
+        metadata: {
+          user_id: context.userId,
+          tier: plan.tier,
+          kind: "renew",
+          submission_id: sub.id,
+        },
         submissionId: sub.id,
       });
     }
@@ -334,9 +384,16 @@ export const initRenewalPayment = createServerFn({ method: "POST" })
         }),
       });
       const json: any = await res.json();
-      const checkoutUrl: string | undefined = json?.data?.checkoutUrl ?? json?.data?.checkoutDirectUrl;
+      const checkoutUrl: string | undefined =
+        json?.data?.checkoutUrl ?? json?.data?.checkoutDirectUrl;
       if (!res.ok || !checkoutUrl) {
-        await supabaseAdmin.from("payment_submissions").update({ status: "rejected", admin_notes: `init failed: ${JSON.stringify(json).slice(0, 300)}` }).eq("id", sub.id);
+        await supabaseAdmin
+          .from("payment_submissions")
+          .update({
+            status: "rejected",
+            admin_notes: `init failed: ${JSON.stringify(json).slice(0, 300)}`,
+          })
+          .eq("id", sub.id);
         throw new Error(`Hubtel init failed: ${json?.message ?? res.status}`);
       }
       return { redirect_url: checkoutUrl, reference };
@@ -352,7 +409,12 @@ export const initRenewalPayment = createServerFn({ method: "POST" })
         currency: plan.currency || "GHS",
         reference,
         callbackUrl: `${origin}/payment/callback`,
-        metadata: { user_id: context.userId, tier: plan.tier, kind: "renew", submission_id: sub.id },
+        metadata: {
+          user_id: context.userId,
+          tier: plan.tier,
+          kind: "renew",
+          submission_id: sub.id,
+        },
         submissionId: sub.id,
       });
     }
@@ -367,7 +429,11 @@ export const initRenewalPayment = createServerFn({ method: "POST" })
 export const verifyPayment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ reference: z.string().min(8).max(120) }).parse(d))
   .handler(async ({ data }) => {
-    const { data: sub } = await supabaseAdmin.from("payment_submissions").select("*").eq("reference", data.reference).maybeSingle();
+    const { data: sub } = await supabaseAdmin
+      .from("payment_submissions")
+      .select("*")
+      .eq("reference", data.reference)
+      .maybeSingle();
     if (!sub) throw new Error("Payment not found");
     if (sub.status === "confirmed") {
       return { status: "confirmed" as const, submission: sub };
@@ -377,39 +443,69 @@ export const verifyPayment = createServerFn({ method: "POST" })
     if (sub.method === "paystack") {
       let key = process.env.PAYSTACK_SECRET_KEY;
       if (sub.gateway_id) {
-        const { data: gw } = await supabaseAdmin.from("payment_gateways").select("config").eq("id", sub.gateway_id).maybeSingle();
+        const { data: gw } = await supabaseAdmin
+          .from("payment_gateways")
+          .select("config")
+          .eq("id", sub.gateway_id)
+          .maybeSingle();
         const fromRow = (gw?.config as any)?.secret_key as string | undefined;
         if (fromRow) key = fromRow;
       }
       if (!key) throw new Error("Paystack secret key not configured");
-      const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(data.reference)}`, {
-        headers: { Authorization: `Bearer ${key}` },
-      });
+      const res = await fetch(
+        `https://api.paystack.co/transaction/verify/${encodeURIComponent(data.reference)}`,
+        {
+          headers: { Authorization: `Bearer ${key}` },
+        },
+      );
       const json: any = await res.json();
-      confirmed = !!(res.ok && json?.status && json?.data?.status === "success" && Number(json.data.amount) >= Math.round(Number(sub.amount) * 100));
-      if (!confirmed) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
+      confirmed = !!(
+        res.ok &&
+        json?.status &&
+        json?.data?.status === "success" &&
+        Number(json.data.amount) >= Math.round(Number(sub.amount) * 100)
+      );
+      if (!confirmed)
+        return { status: "pending" as const, submission: sub, raw: json?.data?.status };
     } else if (sub.method === "hubtel") {
       const id = process.env.HUBTEL_CLIENT_ID!;
       const secret = process.env.HUBTEL_CLIENT_SECRET!;
       const merchant = process.env.HUBTEL_MERCHANT_ACCOUNT!;
       const auth = "Basic " + Buffer.from(`${id}:${secret}`).toString("base64");
-      const res = await fetch(`https://api-txnstatus.hubtel.com/transactions/${merchant}/status?clientReference=${encodeURIComponent(data.reference)}`, { headers: { Authorization: auth } });
+      const res = await fetch(
+        `https://api-txnstatus.hubtel.com/transactions/${merchant}/status?clientReference=${encodeURIComponent(data.reference)}`,
+        { headers: { Authorization: auth } },
+      );
       const json: any = await res.json();
       confirmed = json?.data?.status === "Paid";
-      if (!confirmed) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
+      if (!confirmed)
+        return { status: "pending" as const, submission: sub, raw: json?.data?.status };
     } else if (sub.method === "flutterwave") {
       let key = "";
       if (sub.gateway_id) {
-        const { data: gw } = await supabaseAdmin.from("payment_gateways").select("config").eq("id", sub.gateway_id).maybeSingle();
+        const { data: gw } = await supabaseAdmin
+          .from("payment_gateways")
+          .select("config")
+          .eq("id", sub.gateway_id)
+          .maybeSingle();
         key = ((gw?.config as any)?.secret_key as string | undefined) ?? "";
       }
       if (!key) throw new Error("Flutterwave secret key not configured");
-      const res = await fetch(`https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(data.reference)}`, {
-        headers: { Authorization: `Bearer ${key}` },
-      });
+      const res = await fetch(
+        `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(data.reference)}`,
+        {
+          headers: { Authorization: `Bearer ${key}` },
+        },
+      );
       const json: any = await res.json().catch(() => ({}));
-      confirmed = !!(res.ok && json?.status === "success" && json?.data?.status === "successful" && Number(json.data.amount) >= Number(sub.amount));
-      if (!confirmed) return { status: "pending" as const, submission: sub, raw: json?.data?.status };
+      confirmed = !!(
+        res.ok &&
+        json?.status === "success" &&
+        json?.data?.status === "successful" &&
+        Number(json.data.amount) >= Number(sub.amount)
+      );
+      if (!confirmed)
+        return { status: "pending" as const, submission: sub, raw: json?.data?.status };
     } else {
       throw new Error(`Unsupported method: ${sub.method}`);
     }
@@ -433,16 +529,25 @@ export const testPaymentGateway = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ gateway_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: role } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
+    const { data: role } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
     if (!role) throw new Error("Admin only");
     const gateway = await loadGateway(data.gateway_id);
     if (gateway.provider === "paystack") {
       const secret = paystackSecret(gateway);
       const publicKey = paystackPublicKey(gateway);
-      if (!secret || !publicKey) return { ok: false, message: "Add both Paystack public and secret keys first." };
-      const res = await fetch("https://api.paystack.co/bank?currency=GHS", { headers: { Authorization: `Bearer ${secret}` } });
+      if (!secret || !publicKey)
+        return { ok: false, message: "Add both Paystack public and secret keys first." };
+      const res = await fetch("https://api.paystack.co/bank?currency=GHS", {
+        headers: { Authorization: `Bearer ${secret}` },
+      });
       const json: any = await res.json().catch(() => ({}));
-      if (!res.ok || !json?.status) return { ok: false, message: json?.message ?? `Paystack returned ${res.status}` };
+      if (!res.ok || !json?.status)
+        return { ok: false, message: json?.message ?? `Paystack returned ${res.status}` };
       return {
         ok: true,
         message: "Paystack keys are valid and can reach the gateway.",
@@ -453,10 +558,14 @@ export const testPaymentGateway = createServerFn({ method: "POST" })
     if (gateway.provider === "flutterwave") {
       const secret = flutterwaveSecret(gateway);
       const publicKey = flutterwavePublicKey(gateway);
-      if (!secret || !publicKey) return { ok: false, message: "Add both Flutterwave public and secret keys first." };
-      const res = await fetch("https://api.flutterwave.com/v3/banks/GH", { headers: { Authorization: `Bearer ${secret}` } });
+      if (!secret || !publicKey)
+        return { ok: false, message: "Add both Flutterwave public and secret keys first." };
+      const res = await fetch("https://api.flutterwave.com/v3/banks/GH", {
+        headers: { Authorization: `Bearer ${secret}` },
+      });
       const json: any = await res.json().catch(() => ({}));
-      if (!res.ok || json?.status !== "success") return { ok: false, message: json?.message ?? `Flutterwave returned ${res.status}` };
+      if (!res.ok || json?.status !== "success")
+        return { ok: false, message: json?.message ?? `Flutterwave returned ${res.status}` };
       return {
         ok: true,
         message: "Flutterwave keys are valid and can reach the gateway.",
