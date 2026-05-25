@@ -2205,6 +2205,10 @@ function SupportTab({ userId }: { userId: string }) {
 
 function ProfileTab({ profile, onSaved }: { profile: any; onSaved: () => void }) {
   const [saving, setSaving] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(profile.directory_logo_url ?? null);
+  const [visible, setVisible] = useState<boolean>(!!profile.directory_visible);
+
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -2219,6 +2223,10 @@ function ProfileTab({ profile, onSaved }: { profile: any; onSaved: () => void })
         industry: String(fd.get("industry") ?? "") || null,
         products_exported: String(fd.get("products_exported") ?? "") || null,
         tier: String(fd.get("tier") ?? "associate") as any,
+        directory_visible: visible,
+        directory_bio: (String(fd.get("directory_bio") ?? "") || null),
+        directory_website: (String(fd.get("directory_website") ?? "") || null),
+        directory_logo_url: logoUrl,
       })
       .eq("id", profile.id);
     setSaving(false);
@@ -2228,80 +2236,95 @@ function ProfileTab({ profile, onSaved }: { profile: any; onSaved: () => void })
       onSaved();
     }
   }
+
+  async function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoBusy(true);
+    try {
+      const { uploadImage } = await import("@/lib/uploadImage");
+      const url = await uploadImage(file, "directory-logos");
+      setLogoUrl(url);
+      toast.success("Logo uploaded — remember to save");
+    } catch (err: any) {
+      toast.error(err.message ?? "Upload failed");
+    } finally {
+      setLogoBusy(false);
+    }
+  }
+
   return (
-    <form
-      onSubmit={save}
-      className="rounded-2xl bg-card p-6 shadow-sm grid grid-cols-1 gap-4 md:grid-cols-2"
-    >
-      <Field
-        icon={<Building2 className="h-4 w-4" />}
-        label="Company name"
-        name="company_name"
-        defaultValue={profile.company_name}
-        required
-      />
-      <Field
-        label="Contact name"
-        name="contact_name"
-        defaultValue={profile.contact_name}
-        required
-      />
-      <Field
-        icon={<Mail className="h-4 w-4" />}
-        label="Email"
-        name="email"
-        defaultValue={profile.email}
-        disabled
-      />
-      <Field
-        icon={<Phone className="h-4 w-4" />}
-        label="Phone"
-        name="phone"
-        defaultValue={profile.phone}
-        required
-      />
-      <Field
-        icon={<MapPin className="h-4 w-4" />}
-        label="Country"
-        name="country"
-        defaultValue={profile.country}
-        required
-      />
-      <Field
-        icon={<Briefcase className="h-4 w-4" />}
-        label="Industry"
-        name="industry"
-        defaultValue={profile.industry ?? ""}
-      />
-      <div className="md:col-span-2">
-        <label className="mb-1.5 block text-sm font-medium">Products you export</label>
-        <textarea
-          name="products_exported"
-          rows={2}
-          defaultValue={profile.products_exported ?? ""}
-          className={inputCls}
-        />
+    <form onSubmit={save} className="space-y-6">
+      <div className="rounded-2xl bg-card p-6 shadow-sm grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Field icon={<Building2 className="h-4 w-4" />} label="Company name" name="company_name" defaultValue={profile.company_name} required />
+        <Field label="Contact name" name="contact_name" defaultValue={profile.contact_name} required />
+        <Field icon={<Mail className="h-4 w-4" />} label="Email" name="email" defaultValue={profile.email} disabled />
+        <Field icon={<Phone className="h-4 w-4" />} label="Phone" name="phone" defaultValue={profile.phone} required />
+        <Field icon={<MapPin className="h-4 w-4" />} label="Country" name="country" defaultValue={profile.country} required />
+        <Field icon={<Briefcase className="h-4 w-4" />} label="Industry" name="industry" defaultValue={profile.industry ?? ""} />
+        <div className="md:col-span-2">
+          <label className="mb-1.5 block text-sm font-medium">Products you export</label>
+          <textarea name="products_exported" rows={2} defaultValue={profile.products_exported ?? ""} className={inputCls} />
+        </div>
+        <div className="md:col-span-2">
+          <label className="mb-1.5 block text-sm font-medium">Membership tier</label>
+          <select name="tier" defaultValue={profile.tier} className={inputCls}>
+            <option value="associate">Associate</option>
+            <option value="standard">Standard</option>
+            <option value="corporate">Corporate</option>
+          </select>
+        </div>
       </div>
-      <div className="md:col-span-2">
-        <label className="mb-1.5 block text-sm font-medium">Membership tier</label>
-        <select name="tier" defaultValue={profile.tier} className={inputCls}>
-          <option value="associate">Associate</option>
-          <option value="standard">Standard</option>
-          <option value="corporate">Corporate</option>
-        </select>
+
+      <div className="rounded-2xl bg-card p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold">Public Member Directory</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Choose whether your company appears in the directory other FAGE members can browse.</p>
+          </div>
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} className="h-4 w-4" />
+            Show my company in the directory
+          </label>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <label className="mb-1.5 block text-sm font-medium">Short bio (max 400 chars)</label>
+            <textarea name="directory_bio" rows={3} maxLength={400} defaultValue={profile.directory_bio ?? ""} className={inputCls} placeholder="What does your company do? Who are your customers?" />
+          </div>
+          <Field icon={<Globe className="h-4 w-4" />} label="Website" name="directory_website" defaultValue={profile.directory_website ?? ""} />
+          <div>
+            <label className="mb-1.5 block text-sm font-medium flex items-center gap-1.5"><ImageIcon className="h-4 w-4" /> Company logo</label>
+            <div className="flex items-center gap-3">
+              {logoUrl ? (
+                <img src={logoUrl} alt="logo" className="h-14 w-14 rounded-lg border border-border object-cover" />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <Building2 className="h-6 w-6" />
+                </div>
+              )}
+              <label className="cursor-pointer rounded-full border border-input bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted">
+                {logoBusy ? "Uploading…" : logoUrl ? "Replace" : "Upload"}
+                <input type="file" accept="image/*" className="hidden" onChange={onLogo} disabled={logoBusy} />
+              </label>
+              {logoUrl && (
+                <button type="button" onClick={() => setLogoUrl(null)} className="text-xs text-muted-foreground hover:text-destructive">Remove</button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="md:col-span-2 flex justify-end">
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-        >
+
+      <div className="flex justify-end">
+        <button type="submit" disabled={saving} className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60">
           {saving ? "Saving…" : "Save profile"}
         </button>
       </div>
     </form>
   );
 }
+
 
 function Field({ icon, label, name, defaultValue, required, disabled }: any) {
   return (
