@@ -265,7 +265,12 @@ export function normalizeSigners(template: any): Signer[] {
   return [];
 }
 
-export function fieldValue(key: FieldKey, cert: any, template: any): string {
+export function fieldValue(
+  key: FieldKey,
+  cert: any,
+  template: any,
+  dateFormat?: string,
+): string {
   switch (key) {
     case "name":
       return cert.full_name ?? "";
@@ -274,9 +279,9 @@ export function fieldValue(key: FieldKey, cert: any, template: any): string {
     case "tier":
       return String(cert.tier ?? "").toUpperCase();
     case "issued":
-      return new Date(cert.issued_at).toLocaleDateString();
+      return formatCertDate(cert.issued_at, dateFormat);
     case "expires":
-      return new Date(cert.expires_at).toLocaleDateString();
+      return formatCertDate(cert.expires_at, dateFormat);
     case "authorized_name":
       return template?.authorized_name ?? "FAGE President";
   }
