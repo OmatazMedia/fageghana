@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — FAGE Ghana" }] }),
@@ -104,6 +105,12 @@ function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isLoginRoute = location.pathname === "/admin/login";
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("You have been successfully signed out");
+    navigate({ to: "/admin/login", replace: true });
+  };
 
   useEffect(() => {
     if (isLoginRoute) return;
@@ -186,7 +193,7 @@ function AdminLayout() {
             <ExternalLink className="h-4 w-4" /> View site
           </Link>
           <button
-            onClick={() => signOut()}
+            onClick={handleSignOut}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white transition-all"
           >
             <LogOut className="h-4 w-4" /> Sign out
@@ -234,7 +241,7 @@ function AdminLayout() {
               {initials}
             </div>
             <button
-              onClick={() => signOut()}
+              onClick={handleSignOut}
               className="hidden lg:flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition"
             >
               <LogOut className="h-3.5 w-3.5" /> Sign out
