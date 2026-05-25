@@ -79,7 +79,7 @@ export function SiteFooter() {
             <ul className="space-y-2 text-sm text-white/70">
               <li>
                 <Link to="/news" className="hover:text-primary">
-                  News
+                  News & Blog
                 </Link>
               </li>
               <li>
