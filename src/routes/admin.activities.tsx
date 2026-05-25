@@ -117,7 +117,14 @@ function ActivitiesAdmin() {
                       {r.published ? "Published" : "Draft"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => setAttendeesFor(r)}
+                      title="View attendees"
+                      className="mr-2 rounded p-1.5 hover:bg-accent"
+                    >
+                      <Users className="h-4 w-4" />
+                    </button>
                     <button
                       onClick={() => setEditing(r)}
                       className="mr-2 rounded p-1.5 hover:bg-accent"
