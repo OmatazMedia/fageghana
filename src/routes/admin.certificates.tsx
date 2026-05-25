@@ -786,26 +786,26 @@ function SliderRow({
 function PreviewCanvas({
   layout,
   imageUrl,
-  signatureUrl,
-  authorizedName,
+  signers,
+  activeSignerId,
+  setActiveSignerId,
   sampleCert,
   active,
   onSelect,
   onMoveField,
   onMoveQr,
-  onMoveSig,
+  onMoveSigner,
 }: any) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [qrUrl, setQrUrl] = useState<string>("");
   const [drag, setDrag] = useState<null | {
-    type: "field" | "qr" | "sig";
+    type: "field" | "qr" | "signer";
     key?: string;
     offX: number;
     offY: number;
   }>(null);
 
-  // Compute scale based on container
   useEffect(() => {
     const update = () => {
       if (!wrapRef.current) return;
@@ -818,7 +818,6 @@ function PreviewCanvas({
     return () => ro.disconnect();
   }, [layout.canvas.w]);
 
-  // Build QR preview
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -850,16 +849,22 @@ function PreviewCanvas({
     };
   }, [layout.qr]);
 
-  function startDrag(e: React.PointerEvent, type: "field" | "qr" | "sig", key?: string) {
+  function startDrag(e: React.PointerEvent, type: "field" | "qr" | "signer", key?: string) {
     e.stopPropagation();
-    const target =
-      type === "field" ? layout.fields[key!] : type === "qr" ? layout.qr : layout.signature;
+    let target: { x: number; y: number };
+    if (type === "field") target = layout.fields[key!];
+    else if (type === "qr") target = layout.qr;
+    else target = signers.find((s: Signer) => s.id === key) ?? { x: 0, y: 0 };
     const rect = wrapRef.current!.getBoundingClientRect();
     const px = (e.clientX - rect.left) / scale;
     const py = (e.clientY - rect.top) / scale;
     setDrag({ type, key, offX: px - target.x, offY: py - target.y });
     if (type === "field") onSelect(key);
-    else onSelect(type);
+    else if (type === "qr") onSelect("qr");
+    else {
+      onSelect("signers");
+      setActiveSignerId(key!);
+    }
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }
   function onPointerMove(e: React.PointerEvent) {
@@ -871,7 +876,7 @@ function PreviewCanvas({
     const y = Math.round(py);
     if (drag.type === "field") onMoveField(drag.key as FieldKey, x, y);
     else if (drag.type === "qr") onMoveQr(x, y);
-    else onMoveSig(x, y);
+    else onMoveSigner(drag.key!, x, y);
   }
   function endDrag() {
     setDrag(null);
@@ -890,14 +895,11 @@ function PreviewCanvas({
       onPointerUp={endDrag}
       onPointerLeave={endDrag}
     >
-      {/* Fields */}
       {FIELD_KEYS.map((k) => {
         const f = layout.fields[k];
         if (!f.visible) return null;
-        const text =
-          k === "authorized_name"
-            ? authorizedName
-            : fieldValue(k, sampleCert, { authorized_name: authorizedName });
+        if (k === "authorized_name" && signers.length > 0) return null;
+        const text = fieldValue(k, sampleCert, { authorized_name: "" });
         const transform =
           f.align === "center"
             ? "translate(-50%, -100%)"
@@ -924,22 +926,52 @@ function PreviewCanvas({
           </div>
         );
       })}
-      {/* Signature */}
-      {signatureUrl && (
-        <img
-          src={signatureUrl}
-          draggable={false}
-          onPointerDown={(e) => startDrag(e, "sig")}
-          className={`absolute cursor-move object-contain ${active === "signature" ? "outline outline-2 outline-primary" : ""}`}
-          style={{
-            left: `${(layout.signature.x / layout.canvas.w) * 100}%`,
-            top: `${(layout.signature.y / layout.canvas.h) * 100}%`,
-            width: `${(layout.signature.w / layout.canvas.w) * 100}%`,
-            height: `${(layout.signature.h / layout.canvas.h) * 100}%`,
-          }}
-        />
-      )}
-      {/* QR */}
+
+      {signers.map((s: Signer) => {
+        if (!s.visible) return null;
+        const isActive = active === "signers" && activeSignerId === s.id;
+        return (
+          <div
+            key={s.id}
+            onPointerDown={(e) => startDrag(e, "signer", s.id)}
+            className={`absolute cursor-move ${isActive ? "outline outline-2 outline-primary" : ""}`}
+            style={{
+              left: `${(s.x / layout.canvas.w) * 100}%`,
+              top: `${(s.y / layout.canvas.h) * 100}%`,
+              width: `${(s.w / layout.canvas.w) * 100}%`,
+              height: `${(s.h / layout.canvas.h) * 100}%`,
+            }}
+          >
+            {s.signature_url ? (
+              <img
+                src={s.signature_url}
+                draggable={false}
+                className="h-full w-full object-contain pointer-events-none"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded border border-dashed border-primary/60 bg-primary/5 text-[10px] text-primary">
+                {s.label}
+              </div>
+            )}
+            {s.name && (
+              <div
+                className="absolute left-1/2 whitespace-nowrap"
+                style={{
+                  top: `calc(100% + ${s.nameOffsetY * scale - s.nameFontSize * scale}px)`,
+                  transform: "translateX(-50%)",
+                  fontSize: `${s.nameFontSize * scale}px`,
+                  fontFamily: s.nameFontFamily,
+                  fontWeight: s.nameFontWeight,
+                  color: s.nameColor,
+                }}
+              >
+                {s.name}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
       {qrUrl && (
         <div
           onPointerDown={(e) => startDrag(e, "qr")}
