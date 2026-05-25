@@ -492,6 +492,39 @@ export type Database = {
         }
         Relationships: []
       }
+      member_email_preferences: {
+        Row: {
+          created_at: string
+          event_alerts: boolean
+          id: string
+          newsletters: boolean
+          payment_reminders: boolean
+          trade_notices: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_alerts?: boolean
+          id?: string
+          newsletters?: boolean
+          payment_reminders?: boolean
+          trade_notices?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_alerts?: boolean
+          id?: string
+          newsletters?: boolean
+          payment_reminders?: boolean
+          trade_notices?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       member_profiles: {
         Row: {
           company_name: string
@@ -1009,6 +1042,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trade_opportunities: {
+        Row: {
+          category: string | null
+          country: string | null
+          created_at: string
+          deadline: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          posted_at: string
+          source: string | null
+          source_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          country?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          posted_at?: string
+          source?: string | null
+          source_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          country?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          posted_at?: string
+          source?: string | null
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
