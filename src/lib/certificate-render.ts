@@ -377,7 +377,7 @@ export async function renderCertificate(canvas: HTMLCanvasElement, cert: any, te
     ctx.font = `${f.weight} ${f.fontSize}px ${f.font}`;
     ctx.textAlign = f.align;
     ctx.textBaseline = "bottom";
-    ctx.fillText(fieldValue(key, cert, template), f.x, f.y);
+    ctx.fillText(fieldValue(key, cert, template, layout.dateFormat), f.x, f.y);
   }
 
   // QR
