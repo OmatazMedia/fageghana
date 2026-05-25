@@ -610,55 +610,144 @@ function QrControls({ layout, setLayout, onUploadLogo }: any) {
   );
 }
 
-function SignatureControls({
-  sigUrl,
-  onUpload,
-  layout,
-  setLayout,
-  authorizedName,
-  setAuthorizedName,
-}: any) {
-  const upd = (patch: any) =>
-    setLayout((l: TemplateLayout) => ({ ...l, signature: { ...l.signature, ...patch } }));
+function SignersControls({
+  signers,
+  activeSignerId,
+  setActiveSignerId,
+  canvas,
+  onAdd,
+  onRemove,
+  onUpdate,
+  onUploadFile,
+}: {
+  signers: Signer[];
+  activeSignerId: string | null;
+  setActiveSignerId: (id: string | null) => void;
+  canvas: { w: number; h: number };
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  onUpdate: (id: string, patch: Partial<Signer>) => void;
+  onUploadFile: (id: string, file: File) => void;
+}) {
+  const active = signers.find((s) => s.id === activeSignerId) ?? null;
   return (
     <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-      <h3 className="text-sm font-bold">Signature</h3>
-      <input type="file" accept="image/*" onChange={onUpload} className="text-xs" />
-      {sigUrl && <img src={sigUrl} className="h-16 rounded border bg-white object-contain p-1" />}
-      <div>
-        <label className="mb-1 block text-xs font-medium">Authorized name</label>
-        <input
-          value={authorizedName}
-          onChange={(e) => setAuthorizedName(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
-        />
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold">Signers</h3>
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
+        >
+          <Plus className="h-3 w-3" /> Add
+        </button>
       </div>
-      <SliderRow
-        label={`X: ${layout.signature.x}`}
-        value={layout.signature.x}
-        max={layout.canvas.w}
-        onChange={(v) => upd({ x: v })}
-      />
-      <SliderRow
-        label={`Y: ${layout.signature.y}`}
-        value={layout.signature.y}
-        max={layout.canvas.h}
-        onChange={(v) => upd({ y: v })}
-      />
-      <SliderRow
-        label={`Width: ${layout.signature.w}`}
-        value={layout.signature.w}
-        min={50}
-        max={500}
-        onChange={(v) => upd({ w: v })}
-      />
-      <SliderRow
-        label={`Height: ${layout.signature.h}`}
-        value={layout.signature.h}
-        min={20}
-        max={200}
-        onChange={(v) => upd({ h: v })}
-      />
+      <p className="text-xs text-muted-foreground">
+        Label is admin-only (which file is whose). Name is what appears on the certificate.
+      </p>
+      <div className="space-y-1.5">
+        {signers.length === 0 && (
+          <div className="text-xs text-muted-foreground">No signers yet. Click Add.</div>
+        )}
+        {signers.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setActiveSignerId(s.id)}
+            className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs ${activeSignerId === s.id ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
+          >
+            <span className="truncate">
+              {s.label || "Unlabeled"} — <span className="opacity-80">{s.name || "(no name)"}</span>
+            </span>
+            <Trash2
+              className="h-3 w-3 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Remove signer "${s.label}"?`)) onRemove(s.id);
+              }}
+            />
+          </button>
+        ))}
+      </div>
+
+      {active && (
+        <div className="space-y-3 border-t border-border pt-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium">Label (admin only)</label>
+            <input
+              value={active.label}
+              onChange={(e) => onUpdate(active.id, { label: e.target.value })}
+              placeholder="e.g. CEO, President"
+              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium">Name on certificate</label>
+            <input
+              value={active.name}
+              onChange={(e) => onUpdate(active.id, { name: e.target.value })}
+              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium">Signature image</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onUploadFile(active.id, f);
+              }}
+              className="text-xs"
+            />
+            {active.signature_url && (
+              <img
+                src={active.signature_url}
+                className="mt-2 h-14 rounded border bg-white object-contain p-1"
+              />
+            )}
+          </div>
+          <SliderRow
+            label={`X: ${active.x}`}
+            value={active.x}
+            max={canvas.w}
+            onChange={(v) => onUpdate(active.id, { x: v })}
+          />
+          <SliderRow
+            label={`Y: ${active.y}`}
+            value={active.y}
+            max={canvas.h}
+            onChange={(v) => onUpdate(active.id, { y: v })}
+          />
+          <SliderRow
+            label={`Width: ${active.w}`}
+            value={active.w}
+            min={50}
+            max={500}
+            onChange={(v) => onUpdate(active.id, { w: v })}
+          />
+          <SliderRow
+            label={`Height: ${active.h}`}
+            value={active.h}
+            min={20}
+            max={200}
+            onChange={(v) => onUpdate(active.id, { h: v })}
+          />
+          <SliderRow
+            label={`Name size: ${active.nameFontSize}px`}
+            value={active.nameFontSize}
+            min={10}
+            max={60}
+            onChange={(v) => onUpdate(active.id, { nameFontSize: v })}
+          />
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={active.visible}
+              onChange={(e) => onUpdate(active.id, { visible: e.target.checked })}
+            />
+            Visible on certificate
+          </label>
+        </div>
+      )}
     </div>
   );
 }
