@@ -47,7 +47,9 @@ function DesignerPage() {
   const [authorizedName, setAuthorizedName] = useState("FAGE President");
   const [imageUrl, setImageUrl] = useState<string>("");
   const [signatureUrl, setSignatureUrl] = useState<string>("");
-  const [active, setActive] = useState<FieldKey | "qr" | "signature" | null>("name");
+  const [signers, setSigners] = useState<Signer[]>([]);
+  const [activeSignerId, setActiveSignerId] = useState<string | null>(null);
+  const [active, setActive] = useState<FieldKey | "qr" | "signers" | null>("name");
   const [saving, setSaving] = useState(false);
 
   // Sample preview values
@@ -73,6 +75,9 @@ function DesignerPage() {
       setAuthorizedName(data.authorized_name ?? "FAGE President");
       setImageUrl(data.image_url ?? "");
       setSignatureUrl(data.signature_url ?? "");
+      const s = normalizeSigners(data);
+      setSigners(s);
+      setActiveSignerId(s[0]?.id ?? null);
     } else {
       setTemplate(null);
       setLayout(defaultLayout());
@@ -80,6 +85,8 @@ function DesignerPage() {
       setAuthorizedName("FAGE President");
       setImageUrl("");
       setSignatureUrl("");
+      setSigners([]);
+      setActiveSignerId(null);
     }
   }
   useEffect(() => {
