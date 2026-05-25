@@ -31,6 +31,7 @@ import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
 import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminReadinessRouteImport } from './routes/admin.readiness'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminPlansRouteImport } from './routes/admin.plans'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
@@ -164,6 +165,11 @@ const AdminTicketsRoute = AdminTicketsRouteImport.update({
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReadinessRoute = AdminReadinessRouteImport.update({
+  id: '/readiness',
+  path: '/readiness',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProductsRoute = AdminProductsRouteImport.update({
@@ -324,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
@@ -372,6 +379,7 @@ export interface FileRoutesByTo {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
@@ -421,6 +429,7 @@ export interface FileRoutesById {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
@@ -471,6 +480,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/products'
+    | '/admin/readiness'
     | '/admin/reports'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
@@ -519,6 +529,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/products'
+    | '/admin/readiness'
     | '/admin/reports'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
@@ -567,6 +578,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/products'
+    | '/admin/readiness'
     | '/admin/reports'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
@@ -762,6 +774,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReportsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/readiness': {
+      id: '/admin/readiness'
+      path: '/readiness'
+      fullPath: '/admin/readiness'
+      preLoaderRoute: typeof AdminReadinessRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/products': {
       id: '/admin/products'
       path: '/products'
@@ -953,6 +972,7 @@ interface AdminRouteChildren {
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPlansRoute: typeof AdminPlansRoute
   AdminProductsRoute: typeof AdminProductsRoute
+  AdminReadinessRoute: typeof AdminReadinessRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
   AdminTradeOpportunitiesRoute: typeof AdminTradeOpportunitiesRoute
@@ -978,6 +998,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPlansRoute: AdminPlansRoute,
   AdminProductsRoute: AdminProductsRoute,
+  AdminReadinessRoute: AdminReadinessRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminTicketsRoute: AdminTicketsRoute,
   AdminTradeOpportunitiesRoute: AdminTradeOpportunitiesRoute,

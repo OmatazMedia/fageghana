@@ -57,6 +57,8 @@ const navSections: NavSection[] = [
     items: [
       { to: "/admin/applications", label: "Applications", icon: Users },
       { to: "/admin/members", label: "Members", icon: UserPlus },
+      { to: "/admin/directory", label: "Directory", icon: Users },
+      { to: "/admin/readiness", label: "Readiness", icon: ListChecks },
       { to: "/admin/payments", label: "Payments", icon: CreditCard },
       { to: "/admin/tickets", label: "Support", icon: MessageCircle },
     ],
