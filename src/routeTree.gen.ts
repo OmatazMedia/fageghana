@@ -28,6 +28,7 @@ import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
+import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
@@ -148,6 +149,11 @@ const ApplyTierRoute = ApplyTierRouteImport.update({
   id: '/apply/$tier',
   path: '/apply/$tier',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTradeOpportunitiesRoute = AdminTradeOpportunitiesRouteImport.update({
+  id: '/trade-opportunities',
+  path: '/trade-opportunities',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminTicketsRoute = AdminTicketsRouteImport.update({
   id: '/tickets',
@@ -313,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/admin/products': typeof AdminProductsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -359,6 +366,7 @@ export interface FileRoutesByTo {
   '/admin/products': typeof AdminProductsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -406,6 +414,7 @@ export interface FileRoutesById {
   '/admin/products': typeof AdminProductsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -454,6 +463,7 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/reports'
     | '/admin/tickets'
+    | '/admin/trade-opportunities'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/reports'
     | '/admin/tickets'
+    | '/admin/trade-opportunities'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
@@ -546,6 +557,7 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/reports'
     | '/admin/tickets'
+    | '/admin/trade-opportunities'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
@@ -716,6 +728,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/apply/$tier'
       preLoaderRoute: typeof ApplyTierRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/trade-opportunities': {
+      id: '/admin/trade-opportunities'
+      path: '/trade-opportunities'
+      fullPath: '/admin/trade-opportunities'
+      preLoaderRoute: typeof AdminTradeOpportunitiesRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/tickets': {
       id: '/admin/tickets'
@@ -916,6 +935,7 @@ interface AdminRouteChildren {
   AdminProductsRoute: typeof AdminProductsRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
+  AdminTradeOpportunitiesRoute: typeof AdminTradeOpportunitiesRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -939,6 +959,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProductsRoute: AdminProductsRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminTicketsRoute: AdminTicketsRoute,
+  AdminTradeOpportunitiesRoute: AdminTradeOpportunitiesRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
