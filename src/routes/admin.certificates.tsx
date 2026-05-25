@@ -899,7 +899,7 @@ function PreviewCanvas({
         const f = layout.fields[k];
         if (!f.visible) return null;
         if (k === "authorized_name" && signers.length > 0) return null;
-        const text = fieldValue(k, sampleCert, { authorized_name: "" });
+        const text = fieldValue(k, sampleCert, { authorized_name: "" }, layout.dateFormat);
         const transform =
           f.align === "center"
             ? "translate(-50%, -100%)"
