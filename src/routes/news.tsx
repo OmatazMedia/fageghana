@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Search, Calendar, User, Tag, ArrowRight, TrendingUp } from "lucide-react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
@@ -36,6 +36,7 @@ type News = {
 };
 
 function NewsPage() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [news, setNews] = useState<News[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [active, setActive] = useState("All");
@@ -70,6 +71,10 @@ function NewsPage() {
   const featured = filtered[0];
   const rest = filtered.slice(1);
   const recent = [...news].slice(0, 5);
+
+  if (pathname.replace(/\/$/, "") !== "/news") {
+    return <Outlet />;
+  }
 
   return (
     <SiteLayout>
