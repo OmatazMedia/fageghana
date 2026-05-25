@@ -516,6 +516,25 @@ function FieldControls({
           Visible
         </label>
       </div>
+      {isDate && (
+        <div>
+          <label className="mb-1 block text-xs font-medium">Date format</label>
+          <select
+            value={dateFormat ?? "D MMMM YYYY"}
+            onChange={(e) => onDateFormatChange(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
+          >
+            {DATE_FORMAT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Applies to both issue and expiry dates.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
