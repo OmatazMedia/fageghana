@@ -452,7 +452,7 @@ function EmailPrefsTab({ userId, email }: { userId: string; email: string }) {
       .select("*")
       .eq("user_id", userId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         if (data) {
           setPrefs({
             newsletters: data.newsletters ?? true,
