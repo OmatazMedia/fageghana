@@ -36,6 +36,11 @@ import {
   Trash2,
   Download,
   MailCheck,
+  CalendarDays,
+  Users,
+  Globe,
+  TrendingUp,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
