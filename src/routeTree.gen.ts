@@ -43,6 +43,7 @@ import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
 import { Route as AdminEmailTemplatesRouteImport } from './routes/admin.email-templates'
 import { Route as AdminEmailSettingsRouteImport } from './routes/admin.email-settings'
+import { Route as AdminDirectoryRouteImport } from './routes/admin.directory'
 import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
 import { Route as AdminCertIssuedRouteImport } from './routes/admin.cert-issued'
 import { Route as AdminCertBatchRouteImport } from './routes/admin.cert-batch'
@@ -225,6 +226,11 @@ const AdminEmailSettingsRoute = AdminEmailSettingsRouteImport.update({
   path: '/email-settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDirectoryRoute = AdminDirectoryRouteImport.update({
+  id: '/directory',
+  path: '/directory',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
   id: '/certificates',
   path: '/certificates',
@@ -305,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/admin/cert-batch': typeof AdminCertBatchRoute
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/directory': typeof AdminDirectoryRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -352,6 +359,7 @@ export interface FileRoutesByTo {
   '/admin/cert-batch': typeof AdminCertBatchRoute
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/directory': typeof AdminDirectoryRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -400,6 +408,7 @@ export interface FileRoutesById {
   '/admin/cert-batch': typeof AdminCertBatchRoute
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/directory': typeof AdminDirectoryRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -449,6 +458,7 @@ export interface FileRouteTypes {
     | '/admin/cert-batch'
     | '/admin/cert-issued'
     | '/admin/certificates'
+    | '/admin/directory'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -496,6 +506,7 @@ export interface FileRouteTypes {
     | '/admin/cert-batch'
     | '/admin/cert-issued'
     | '/admin/certificates'
+    | '/admin/directory'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -543,6 +554,7 @@ export interface FileRouteTypes {
     | '/admin/cert-batch'
     | '/admin/cert-issued'
     | '/admin/certificates'
+    | '/admin/directory'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -834,6 +846,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEmailSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/directory': {
+      id: '/admin/directory'
+      path: '/directory'
+      fullPath: '/admin/directory'
+      preLoaderRoute: typeof AdminDirectoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/certificates': {
       id: '/admin/certificates'
       path: '/certificates'
@@ -921,6 +940,7 @@ interface AdminRouteChildren {
   AdminCertBatchRoute: typeof AdminCertBatchRoute
   AdminCertIssuedRoute: typeof AdminCertIssuedRoute
   AdminCertificatesRoute: typeof AdminCertificatesRoute
+  AdminDirectoryRoute: typeof AdminDirectoryRoute
   AdminEmailSettingsRoute: typeof AdminEmailSettingsRoute
   AdminEmailTemplatesRoute: typeof AdminEmailTemplatesRoute
   AdminFormsRoute: typeof AdminFormsRoute
@@ -945,6 +965,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCertBatchRoute: AdminCertBatchRoute,
   AdminCertIssuedRoute: AdminCertIssuedRoute,
   AdminCertificatesRoute: AdminCertificatesRoute,
+  AdminDirectoryRoute: AdminDirectoryRoute,
   AdminEmailSettingsRoute: AdminEmailSettingsRoute,
   AdminEmailTemplatesRoute: AdminEmailTemplatesRoute,
   AdminFormsRoute: AdminFormsRoute,
