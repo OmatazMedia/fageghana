@@ -40,7 +40,7 @@ function UsersPage() {
   const [open, setOpen] = useState(false);
   const [roleFor, setRoleFor] = useState<AdminUserRow | null>(null);
   const [deleting, setDeleting] = useState<AdminUserRow | null>(null);
-  const [menuFor, setMenuFor] = useState<string | null>(null);
+  
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
