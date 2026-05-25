@@ -1,135 +1,57 @@
-## Scope
+## 1. Certificate designer — render matches preview
 
-Four additions to the public site:
+**Problem:** the issued/downloaded certificate doesn't match the live designer preview (positions, font sizing, signature/QR scale all drift, especially when the background image's natural size differs from `layout.canvas.w/h`).
 
-1. **Contact page** (`/contact`) — sourced from fageghana.com/contact
-2. **Single-blog upgrades** — share, reactions, sidebar (prev/next already exists)
-3. **Site-wide search overlay** — triggered from the navbar search icon
-4. **Chat widget + Back-to-top button** — bot simulation, WhatsApp handoff, offline message form
+**Fix in `src/lib/certificate-render.ts`:**
+- Always render at `layout.canvas.w × layout.canvas.h` (never fall back to `bg.naturalWidth`), so positions stored in designer-space map 1:1 to output pixels.
+- Match the preview's text anchor: designer uses CSS `top: y` + `translate(0,-100%)` (bottom-of-text at y). Switch canvas rendering to `ctx.textBaseline = "bottom"` so the issued PNG/PDF lines up exactly with what was dragged in the designer.
+- Load Google Fonts (`Playfair Display`, `Inter`, plus any font used in `field.font`) via `document.fonts.load()` before drawing, so the issued cert uses the same typefaces shown in the preview instead of a system fallback.
+- For the signature image: respect the stored `w/h` box and draw with `object-fit: contain` math (same as the preview's `object-contain`) instead of stretching.
+- For the QR: use `layout.qr.size` directly, but compute border the same way the preview does (border padded outside the QR, not stretching it).
 
----
+**Fix in `src/routes/admin.certificates.tsx` preview pane:**
+- Make the preview text anchor explicit and identical to the renderer (single shared helper for `transform`/baseline) so the two stay in sync.
 
-## 1. Contact page — `src/routes/contact.tsx`
+## 2. Multiple authorized signers per template
 
-New route, premium layout, real info from fageghana.com/contact:
+Today a template stores a single `authorized_name` + `signature_url`. Replace with a list, each item: `{ id, label, name, signature_url, x, y, w, h, visible }`. `label` is admin-only ("CEO", "President", etc.) so admins know whose file is attached; the cert shows `name` next to its signature.
 
-- **Hero** — "Contact Us" with eyebrow "Get In Touch"
-- **Two-column section**
-  - Left: contact form (Name, Email, Subject, Message) → saves to a new `contact_messages` table and shows a success toast
-  - Right: info cards
-    - **Phone**: +233 (0) 53 517 0780 | +233 (0) 53 522 4555
-    - **Email**: info@fageghana.com
-    - **Location**: Number 22, Nii Tsatse Dzani Street, Adjiringanor, Accra (kept from footer — current accurate address; the old fageghana.com address is outdated)
-- **Embedded Google Map** (iframe) for the Accra office
-- **Social row** reusing footer socials
-- Add **Contact** link to `SiteHeader` nav and mobile menu
+**Database (migration):**
+- Add `signers jsonb not null default '[]'` to `certificate_templates`.
+- One-time backfill: build `[{id, label:'Primary', name: authorized_name, signature_url, x,y,w,h, visible:true}]` from existing columns for every row. Keep the old columns for now (read fallback) so nothing breaks; we can drop them later.
 
-DB: new `contact_messages` table (name, email, subject, message, created_at) with RLS — anyone can insert, admins can read.
+**Admin UI (`src/routes/admin.certificates.tsx`):**
+- Replace the single signer block with a "Signers" list: add/remove/reorder rows, each row has Label input, Name input, file upload (uses existing `certificate-assets` bucket), and a draggable box in the preview.
+- Each signer renders in the designer preview at its own `x/y/w/h` and is independently draggable.
 
-`head()` SEO with title/description/og.
+**Renderer (`src/lib/certificate-render.ts` + `verify_certificate` display):**
+- Iterate `template.signers`; for each visible signer, draw the signature image at its box and the `name` text under it (using a shared field-style block).
+- Verification page lists each signer's `name + label`.
 
----
+## 3. Admin sidebar label: "News" → "News & Blog"
 
-## 2. Single blog enhancements — `src/routes/news.$slug.tsx`
+In `src/routes/admin.tsx`:
+- Line 75: change `label: "News"` to `label: "News & Blog"`.
+- Line 420: change quick-action `label: "Add news article"` to `label: "Add news / blog post"`.
 
-Already has prev/next, related posts, recent posts sidebar. Add:
+Front-end nav already reads "News & Blog" (`SiteHeader.tsx`). Also update `SiteFooter.tsx` link text (line 82) for consistency.
 
-- **Share bar** at end of article — Facebook, X/Twitter, LinkedIn, WhatsApp, Copy link buttons (use `window.location.href` + share intents)
-- **Reactions bar** — 5 emoji reactions (👍 ❤️ 🎉 😮 👏) with counts. Stored in new `blog_reactions` table (`news_id`, `emoji`, `session_id`, `created_at`). One reaction per browser per post (localStorage `session_id`). Public insert/select RLS.
-- **Sidebar already exists** with recent posts + CTA — keep as-is.
+## 4. Blog post not displaying when slug link is clicked
 
----
+**Diagnosis steps (build mode):**
+1. Open one of the live slugs (e.g. `/news/ghana-horticulture-expo-2024`) in the preview and read console + network. The query in `news.$slug.tsx` is `from('news').select('*').eq('slug', slug).eq('published', true).maybeSingle()` and the DB shows all rows have `published = true`, so the most likely causes are:
+   - **RLS** blocking anon `SELECT` on `news` (no auth session on the public page) → fix by adding/verifying a policy `news_public_read` allowing `SELECT` where `published = true` to role `anon, authenticated`.
+   - **Empty `body`** on the row (designer never saved it) → fall back to rendering `excerpt` and log a warning.
+   - **TipTap HTML body** that begins with whitespace/comment so `isHtml` check (`startsWith('<')`) fails and it's split into `<p>` containing raw HTML → make the detector more robust (`/^\s*</.test(body)` or store a `body_format` column).
+2. Apply whichever of the above the diagnosis points to. Most likely fix: RLS policy + tightening the HTML detector.
 
-## 3. Site-wide search overlay
-
-New component `src/components/site/SearchOverlay.tsx`:
-
-- Triggered by Search icon in `SiteHeader` (and a mobile entry)
-- Full-screen dark overlay (`bg-background/95 backdrop-blur`), large input at top, ESC + click-outside to close
-- Debounced query (250 ms) runs parallel Supabase queries across:
-  - `news` (title, excerpt) → link `/news/$slug`
-  - `products` (name, description) → link `/products`
-  - `activities` (title, description) → link `/activities`
-  - `media` (title) → link `/media`
-  - Static routes registry (About, Services, Membership, Contact, Verify) — client-side title match
-- Grouped results with category headers; "No results found for '<query>'" empty state
-- Hooked into the existing navbar Search button
-
----
-
-## 4. Chat widget + Back-to-top — `src/components/site/ChatWidget.tsx` + `BackToTop.tsx`
-
-Fixed bottom-right. Stack: Chat bubble (bottom), Back-to-top above it. When scroll > 400 px, Back-to-top fades in and chat bubble slides up to make room; when it disappears, chat returns to the original position.
-
-**Onboarding**: 10 s after page load, play a soft "ding" (a small mp3/data-URI in `/public/sounds/`) and show a tooltip near the bubble: "Hi! We're here to help 👋" — auto-dismiss after 5 s.
-
-**Bot persona**: "Ama" — clearly introduces itself as a bot, greets with Ghana-time-aware greeting (`Intl.DateTimeFormat('en-GH', { timeZone: 'Africa/Accra' })`).
-
-**Online vs offline**: Office hours = Mon–Fri 08:00–17:00 Accra time. Outside that → "We're currently offline" banner, but quick replies still work.
-
-**Quick-reply menu** (chips, bot-driven; selecting one shows reply with optional link):
-
-- About FAGE → `/about/who-we-are`
-- Services → `/services`
-- Products → `/products`
-- Membership registration → message explains both options:
-  - **Online**: link to `/membership`
-  - **Manual**: download form + email proof of payment to `membership@fageghana.org`
-- Activities/Events → `/activities`
-- News → `/news`
-- Contact details → shows phone/email/address inline
-- Verify a member → `/verify`
-- Talk to a real person → WhatsApp handoff (see below)
-- Leave a message → offline form (see below)
-
-After any reply, wait ~4 s then prompt: "Anything else? Pick an option or type 'menu'." Typing `menu` or clicking **Back to menu** returns to quick replies.
-
-**WhatsApp handoff**:
-
-1. User clicks "Chat with a real person"
-2. Bot asks: "Please type your request — I'll forward it to our team."
-3. After they reply, bot shows "Transferring you now…" for ~5 s
-4. Build a transcript: `[FAGE Chat Transcript]\nAma (bot): ...\nYou: ...\n\nMy request: <last message>`
-5. Open `https://wa.me/233535170780?text=<encoded transcript>` in a new tab
-
-**Offline "Leave a message" flow**:
-
-1. Ask Name → Phone → Email (validated with regex) → Message
-2. Save to `contact_messages` table (same one used by Contact page, with `source = 'chat'`)
-3. Show "Sending…" spinner for ~5 s mock, then "Your message has been sent — we'll reach out within working days."
-
-State stored in component state + localStorage so the conversation persists across pages.
-
----
+**Layout polish on `news.$slug.tsx` (user request):**
+- Convert the current single-column flow into the requested layout: article on the left, **sticky right sidebar** (recent posts, categories, newsletter) — sidebar element gets `lg:sticky lg:top-24 self-start`.
+- Below the body keep the existing Share + Reactions and Prev/Next + Related blocks (already present).
+- Add a "← Back to News & Blog" button at the top of the article (links to `/news`).
 
 ## Technical notes
 
-- All new client UI in `src/components/site/` and `src/routes/contact.tsx`
-- New tables migration: `contact_messages` (public insert, admin select) and `blog_reactions` (public insert/select, dedup by `(news_id, session_id, emoji)` unique).
-- WhatsApp number from `SiteHeader`/footer: **+233 53 517 0780** → `233535170780`
-- Bot greetings localized via `Intl` with Africa/Accra timezone; greeting buckets: 05–11 Good morning, 12–16 Good afternoon, 17–21 Good evening, else Hello
-- Notification sound: tiny synthesized "ding" via WebAudio (no asset needed), respects `prefers-reduced-motion` and a one-time `localStorage` flag so it only plays once per session
-- No new packages required — use existing `lucide-react`, Supabase client, Tailwind
-- All new routes get `head()` SEO metadata
-- `ChatWidget` and `BackToTop` mount in `SiteLayout` so they appear on every public page
-
----
-
-## File changes
-
-**New**
-
-- `src/routes/contact.tsx`
-- `src/components/site/SearchOverlay.tsx`
-- `src/components/site/ChatWidget.tsx`
-- `src/components/site/BackToTop.tsx`
-- `supabase/migrations/<ts>_contact_and_reactions.sql`
-
-**Edited**
-
-- `src/components/site/SiteHeader.tsx` — add Contact link, wire Search button to overlay
-- `src/components/site/SiteFooter.tsx` — add Contact link in Explore
-- `src/components/site/SiteLayout.tsx` — mount `<ChatWidget />` + `<BackToTop />` + `<SearchOverlay />` provider
-- `src/routes/news.$slug.tsx` — add Share + Reactions bars
-
-After approval I'll confirm the WhatsApp handoff number and the manual-registration email before wiring.
+- No new packages required.
+- Migration is additive (`signers jsonb`), with a fallback read so old templates keep working until the UI saves them in the new shape.
+- All work stays in: `src/lib/certificate-render.ts`, `src/routes/admin.certificates.tsx`, `src/routes/admin.tsx`, `src/routes/news.$slug.tsx`, `src/components/site/SiteFooter.tsx`, plus one Supabase migration and (likely) one RLS policy migration for `public.news`.
