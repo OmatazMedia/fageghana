@@ -143,16 +143,30 @@ function MembersPage() {
     }
   }
 
-  const filtered = rows.filter((r) => {
-    if (!q) return true;
-    const s = q.toLowerCase();
-    return (
-      (r.contact_name ?? "").toLowerCase().includes(s) ||
-      (r.email ?? "").toLowerCase().includes(s) ||
-      (r.company_name ?? "").toLowerCase().includes(s) ||
-      (r.member_id ?? "").toLowerCase().includes(s)
-    );
-  });
+  const filtered = useMemo(
+    () =>
+      rows.filter((r) => {
+        if (!q) return true;
+        const s = q.toLowerCase();
+        return (
+          (r.contact_name ?? "").toLowerCase().includes(s) ||
+          (r.email ?? "").toLowerCase().includes(s) ||
+          (r.company_name ?? "").toLowerCase().includes(s) ||
+          (r.member_id ?? "").toLowerCase().includes(s)
+        );
+      }),
+    [rows, q],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, pageSize]);
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const pageRows = filtered.slice(start, start + pageSize);
 
   return (
     <AdminShell
