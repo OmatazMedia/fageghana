@@ -28,6 +28,7 @@ import {
   ExternalLink,
   TrendingUp,
   TrendingDown,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
