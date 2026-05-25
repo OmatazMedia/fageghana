@@ -118,15 +118,29 @@ function DesignerPage() {
       toast.error(err.message);
     }
   }
-  async function onUploadSig(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  async function onUploadSignerFile(signerId: string, file: File) {
     try {
-      setSignatureUrl(await uploadAsset(f, "signatures"));
+      const url = await uploadAsset(file, "signatures");
+      setSigners((arr) =>
+        arr.map((s) => (s.id === signerId ? { ...s, signature_url: url } : s)),
+      );
       toast.success("Signature uploaded");
     } catch (err: any) {
       toast.error(err.message);
     }
+  }
+  function updateSigner(signerId: string, patch: Partial<Signer>) {
+    setSigners((arr) => arr.map((s) => (s.id === signerId ? { ...s, ...patch } : s)));
+  }
+  function addSigner() {
+    const s = defaultSigner({ label: `Signer ${signers.length + 1}`, name: "" });
+    setSigners((arr) => [...arr, s]);
+    setActive("signers");
+    setActiveSignerId(s.id);
+  }
+  function removeSigner(signerId: string) {
+    setSigners((arr) => arr.filter((s) => s.id !== signerId));
+    if (activeSignerId === signerId) setActiveSignerId(null);
   }
   async function onUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
