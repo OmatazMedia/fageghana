@@ -99,23 +99,28 @@ function PlansPage() {
           </div>
 
           {/* ── Tab content ── */}
-          {activePlan && (
-            <form
-              key={activePlan.id}
-              onSubmit={(e) => {
-                e.preventDefault();
-                const fd = new FormData(e.currentTarget);
-                save(activePlan, {
-                  amount: Number(fd.get("amount")),
-                  currency: String(fd.get("currency")),
-                  duration_months: Number(fd.get("duration_months")),
-                  description: String(fd.get("description")),
-                  post_download_message: String(fd.get("post_download_message")),
-                  bank_deposit_email: String(fd.get("bank_deposit_email")),
-                });
-              }}
-              className="p-6 lg:p-8"
-            >
+          <AnimatePresence mode="wait" initial={false}>
+            {activePlan && (
+              <motion.form
+                key={activePlan.id}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
+                  save(activePlan, {
+                    amount: Number(fd.get("amount")),
+                    currency: String(fd.get("currency")),
+                    duration_months: Number(fd.get("duration_months")),
+                    description: String(fd.get("description")),
+                    post_download_message: String(fd.get("post_download_message")),
+                    bank_deposit_email: String(fd.get("bank_deposit_email")),
+                  });
+                }}
+                className="p-6 lg:p-8"
+              >
               {/* Plan header */}
               <div className="mb-6 flex items-center justify-between">
                 <div>
