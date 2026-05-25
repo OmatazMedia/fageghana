@@ -5,6 +5,12 @@ import { toast } from "sonner";
 import { Plus, X, Trash2, MoreHorizontal, ShieldCheck } from "lucide-react";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
   listAdminUsers,
   createAdminUser,
   changeUserRole,
