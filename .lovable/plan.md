@@ -1,48 +1,57 @@
-## Remaining work — member-side dashboard UI
+## 1. Members page improvements (`src/routes/admin.members.tsx`)
 
-Admin tools and DB are done. This plan covers the member-facing pieces in `src/routes/dashboard.tsx`.
+**Sticky table header + scrollable body**
+- Wrap the members table in a fixed-height scroll container (`max-h-[calc(100vh-280px)] overflow-auto`).
+- Apply `sticky top-0 z-10 bg-background` to `<thead>` so the header stays visible while rows scroll.
 
-### 1. Events tab (new)
-- Sidebar entry "Events".
-- List upcoming `activities` (event_date >= now, published) as cards: title, date, location, RSVP/Cancel button.
-- "My RSVPs" section above the list — query `event_rsvps` joined to `activities` for current user.
-- RSVP = insert into `event_rsvps`; Cancel = delete by `(user_id, activity_id)`.
-- Toast on success/error; optimistic refresh.
+**Create-member modal: fixed size, no expansion**
+- Remove any expand/animate-in scale transitions on the modal shell.
+- Render the dialog at its natural width/height immediately (no progressive grow). Keep all form fields visible on open at a fixed `max-w-2xl`.
 
-### 2. Trade Opportunities tab (new)
-- Sidebar entry "Trade Opportunities".
-- Filters: search, category, country.
-- List active `trade_opportunities` as cards with deadline badge and "I'm Interested" button.
-- Interest dialog: optional `message` textarea → insert into `trade_opportunity_interests`.
-- "My Interests" subsection showing previously expressed interests with withdraw action.
+**Pagination with page-size selector**
+- Add client-side pagination over the filtered rows.
+- Default page size = 50. Selector dropdown options: **25 / 50 / 100 / 200**, placed to the **left** of the prev/next pagination controls.
+- Show "Showing X–Y of Z" between selector and pagination buttons.
+- Reset to page 1 when search query or page size changes.
 
-### 3. Member Directory tab (new)
-- Sidebar entry "Directory".
-- Query `member_profiles` where `status='approved' AND directory_visible=true` (RLS already allows authenticated read of those rows).
-- Grid of cards: logo, company_name, contact_name, industry, country, website link, bio.
-- Search by company/industry; filter by country.
+## 2. New: Admin Users management
 
-### 4. Profile tab — directory preferences (enhance)
-- New "Public Directory" section in existing Profile tab with:
-  - `directory_visible` toggle ("Show my company in the member directory").
-  - `directory_bio` textarea (max 400 chars).
-  - `directory_website` url input.
-  - `directory_logo_url` upload (reuse `content` bucket + `uploadImage` helper).
-- Save → update own `member_profiles` row.
+**Roles**
+Extend the `app_role` enum to include two new roles in addition to existing `admin`:
+- `staff` — view + manage member records (no delete, no role changes)
+- `moderator` — content only (news, media, activities)
 
-### 5. Readiness Score tab (rewrite)
-- Replace the current static checklist with dynamic items from `readiness_checklist_items` (active=true), grouped by `category`.
-- Each item: status selector (Not started / In progress / Complete), optional notes, optional evidence document picker from `member_documents`.
-- Save upserts into `member_readiness_responses` keyed on `(user_id, item_id)` — needs unique constraint added (migration).
-- Display overall score via `get_readiness_score(auth.uid())` RPC; show progress bar + per-category breakdown.
+**Migration**
+- `ALTER TYPE public.app_role ADD VALUE 'staff';`
+- `ALTER TYPE public.app_role ADD VALUE 'moderator';`
+- Add RLS policies for `staff` on `member_profiles` (SELECT + UPDATE, no DELETE) and `moderator` on `news`, `media`, `activities` (ALL).
+- Keep existing `admin` policies untouched.
 
-### Technical details
-- All queries via browser `supabase` client; RLS already in place.
-- New migration: `unique(user_id, item_id)` on `member_readiness_responses`; `unique(user_id, activity_id)` on `event_rsvps` (confirm existence first via read_query).
-- No new packages, no new routes — all changes live inside `src/routes/dashboard.tsx` (plus small sub-components if file grows past ~800 lines, extracted into `src/components/dashboard/`).
-- Sidebar nav array in `dashboard.tsx` gets 3 new entries (Events, Trade Opportunities, Directory).
+**New route `/admin/users`**
+New file `src/routes/admin.users.tsx` listing every account that has a role in `user_roles` (joined with auth metadata via a new server fn). UI:
+- Table: Name / Email / Role badge / Created / Actions
+- "Add user" button → modal: email, full name, password OR invite, role selector (admin / staff / moderator)
+- Per-row actions: Change role, Delete account
+- Sticky header, search filter, same pagination pattern as Members
+- Self-protection: cannot demote or delete own account
 
-### Files touched
-- `src/routes/dashboard.tsx` (main edits)
-- `supabase/migrations/<ts>_dashboard_member_ui.sql` (unique constraints only)
-- Possibly: `src/components/dashboard/EventsTab.tsx`, `TradeTab.tsx`, `DirectoryTab.tsx`, `ReadinessTab.tsx` for code organization
+**Server functions — new file `src/server/users.functions.ts`**
+- `listAdminUsers()` — admin-only. Uses `supabaseAdmin.auth.admin.listUsers()` joined with `user_roles` to return only users that have any role.
+- `createAdminUser({ email, full_name, password?, mode, role })` — admin-only. Creates auth user (password or invite), inserts row in `user_roles`. No `member_profiles` entry.
+- `changeUserRole({ user_id, role })` — admin-only. Replaces the user's role row.
+- `deleteAdminUser({ user_id })` — admin-only. Removes role + auth user. Blocks self-delete.
+
+**Sidebar entry**
+Add "Users" item to the admin sidebar (`src/routes/admin.tsx`) pointing to `/admin/users`, visible to admins only.
+
+## Out of scope
+- Granular per-table permission editor (only the 3 fixed roles above)
+- Audit log of role changes
+- Inviting via OAuth (email/password and invite-by-email only)
+
+## Files touched
+- `src/routes/admin.members.tsx` (sticky header, modal sizing, pagination)
+- `src/routes/admin.users.tsx` (new)
+- `src/server/users.functions.ts` (new)
+- `src/routes/admin.tsx` (sidebar item)
+- One new SQL migration for enum values + RLS for staff/moderator
