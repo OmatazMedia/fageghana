@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import { uploadImage } from "@/lib/uploadImage";
@@ -58,46 +59,68 @@ function PlansPage() {
       ) : (
         <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
           {/* ── Tabs ── */}
-          <div className="flex border-b border-border bg-muted/30">
-            {plans.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setActiveTab(p.id)}
-                className={`relative px-6 py-4 text-sm font-semibold capitalize transition-colors focus:outline-none ${
-                  activeTab === p.id
-                    ? "text-primary border-b-2 border-primary bg-white -mb-px"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                }`}
-              >
-                {p.tier} Membership
-                {activeTab === p.id && (
-                  <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wide">
-                    Active
+          <div className="relative flex border-b border-border bg-muted/30">
+            {plans.map((p) => {
+              const isActive = activeTab === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setActiveTab(p.id)}
+                  className={`relative flex-1 px-6 py-4 text-sm font-semibold capitalize transition-colors focus:outline-none ${
+                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="plan-tab-active"
+                      className="absolute inset-0 bg-[hsl(140_55%_92%)] dark:bg-[hsl(140_40%_22%)]"
+                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  {isActive && (
+                    <motion.span
+                      layoutId="plan-tab-underline"
+                      className="absolute inset-x-0 bottom-0 h-0.5 bg-primary"
+                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  <span className="relative z-10 inline-flex items-center gap-2">
+                    {p.tier} Membership
+                    {isActive && (
+                      <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wide">
+                        Active
+                      </span>
+                    )}
                   </span>
-                )}
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
 
           {/* ── Tab content ── */}
-          {activePlan && (
-            <form
-              key={activePlan.id}
-              onSubmit={(e) => {
-                e.preventDefault();
-                const fd = new FormData(e.currentTarget);
-                save(activePlan, {
-                  amount: Number(fd.get("amount")),
-                  currency: String(fd.get("currency")),
-                  duration_months: Number(fd.get("duration_months")),
-                  description: String(fd.get("description")),
-                  post_download_message: String(fd.get("post_download_message")),
-                  bank_deposit_email: String(fd.get("bank_deposit_email")),
-                });
-              }}
-              className="p-6 lg:p-8"
-            >
+          <AnimatePresence mode="wait" initial={false}>
+            {activePlan && (
+              <motion.form
+                key={activePlan.id}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
+                  save(activePlan, {
+                    amount: Number(fd.get("amount")),
+                    currency: String(fd.get("currency")),
+                    duration_months: Number(fd.get("duration_months")),
+                    description: String(fd.get("description")),
+                    post_download_message: String(fd.get("post_download_message")),
+                    bank_deposit_email: String(fd.get("bank_deposit_email")),
+                  });
+                }}
+                className="p-6 lg:p-8"
+              >
               {/* Plan header */}
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -220,8 +243,9 @@ function PlansPage() {
                   Save plan
                 </button>
               </div>
-            </form>
-          )}
+              </motion.form>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </AdminShell>

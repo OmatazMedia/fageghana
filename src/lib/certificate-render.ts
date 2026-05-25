@@ -50,7 +50,58 @@ export type TemplateLayout = {
   signature: SignatureStyle;
   authorizedNameStyle?: FieldStyle;
   verification_display?: string[];
+  dateFormat?: string;
 };
+
+export const DATE_FORMAT_OPTIONS: { value: string; label: string }[] = [
+  { value: "D MMMM YYYY", label: "5 March 2027" },
+  { value: "Do MMM YYYY", label: "5th Mar 2027" },
+  { value: "Do MMMM YYYY", label: "5th March 2027" },
+  { value: "D MMM YYYY", label: "5 Mar 2027" },
+  { value: "MMMM D, YYYY", label: "March 5, 2027" },
+  { value: "MMM D, YYYY", label: "Mar 5, 2027" },
+  { value: "DD/MM/YYYY", label: "05/03/2027" },
+  { value: "MM/DD/YYYY", label: "03/05/2027" },
+  { value: "YYYY-MM-DD", label: "2027-03-05" },
+];
+
+const MONTHS_LONG = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const MONTHS_SHORT = MONTHS_LONG.map((m) => m.slice(0, 3));
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+export function formatCertDate(input: string | Date, fmt = "D MMMM YYYY"): string {
+  const d = typeof input === "string" ? new Date(input) : input;
+  if (isNaN(d.getTime())) return "";
+  const day = d.getDate();
+  const month = d.getMonth();
+  const year = d.getFullYear();
+  return fmt
+    .replace(/YYYY/g, String(year))
+    .replace(/MMMM/g, MONTHS_LONG[month])
+    .replace(/MMM/g, MONTHS_SHORT[month])
+    .replace(/MM/g, String(month + 1).padStart(2, "0"))
+    .replace(/DD/g, String(day).padStart(2, "0"))
+    .replace(/Do/g, ordinal(day))
+    .replace(/D/g, String(day));
+}
 
 export const FIELD_KEYS = [
   "name",
@@ -150,6 +201,7 @@ export function defaultLayout(): TemplateLayout {
     },
     signature: { x: 600, y: 760, w: 220, h: 80 },
     verification_display: ["name", "member_id", "tier", "issued", "expires"],
+    dateFormat: "D MMMM YYYY",
   };
 }
 
@@ -185,6 +237,7 @@ export function mergeLayout(stored: any): TemplateLayout {
     qr: { ...def.qr, ...(stored.qr ?? {}) },
     signature: { ...def.signature, ...(stored.signature ?? {}) },
     verification_display: stored.verification_display ?? def.verification_display,
+    dateFormat: stored.dateFormat ?? def.dateFormat,
   };
 }
 
@@ -212,7 +265,12 @@ export function normalizeSigners(template: any): Signer[] {
   return [];
 }
 
-export function fieldValue(key: FieldKey, cert: any, template: any): string {
+export function fieldValue(
+  key: FieldKey,
+  cert: any,
+  template: any,
+  dateFormat?: string,
+): string {
   switch (key) {
     case "name":
       return cert.full_name ?? "";
@@ -221,9 +279,9 @@ export function fieldValue(key: FieldKey, cert: any, template: any): string {
     case "tier":
       return String(cert.tier ?? "").toUpperCase();
     case "issued":
-      return new Date(cert.issued_at).toLocaleDateString();
+      return formatCertDate(cert.issued_at, dateFormat);
     case "expires":
-      return new Date(cert.expires_at).toLocaleDateString();
+      return formatCertDate(cert.expires_at, dateFormat);
     case "authorized_name":
       return template?.authorized_name ?? "FAGE President";
   }
@@ -319,7 +377,7 @@ export async function renderCertificate(canvas: HTMLCanvasElement, cert: any, te
     ctx.font = `${f.weight} ${f.fontSize}px ${f.font}`;
     ctx.textAlign = f.align;
     ctx.textBaseline = "bottom";
-    ctx.fillText(fieldValue(key, cert, template), f.x, f.y);
+    ctx.fillText(fieldValue(key, cert, template, layout.dateFormat), f.x, f.y);
   }
 
   // QR

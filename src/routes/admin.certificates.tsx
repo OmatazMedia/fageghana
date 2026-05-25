@@ -13,6 +13,7 @@ import {
   FIELD_KEYS,
   FIELD_LABELS,
   fieldValue,
+  DATE_FORMAT_OPTIONS,
   type TemplateLayout,
   type FieldKey,
   type Signer,
@@ -361,9 +362,12 @@ function DesignerPage() {
           {/* Active controls */}
           {active && active !== "qr" && active !== "signers" && (
             <FieldControls
+              fieldKey={active}
               field={layout.fields[active]}
               canvas={layout.canvas}
+              dateFormat={layout.dateFormat}
               onChange={(patch) => updField(active, patch)}
+              onDateFormatChange={(v) => setLayout((l) => ({ ...l, dateFormat: v }))}
             />
           )}
           {active === "qr" && (
@@ -417,14 +421,21 @@ function DesignerPage() {
 }
 
 function FieldControls({
+  fieldKey,
   field,
   canvas,
+  dateFormat,
   onChange,
+  onDateFormatChange,
 }: {
+  fieldKey: FieldKey;
   field: any;
   canvas: { w: number; h: number };
+  dateFormat?: string;
   onChange: (p: any) => void;
+  onDateFormatChange: (v: string) => void;
 }) {
+  const isDate = fieldKey === "issued" || fieldKey === "expires";
   return (
     <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
       <h3 className="text-sm font-bold">Position & style</h3>
@@ -506,6 +517,25 @@ function FieldControls({
           Visible
         </label>
       </div>
+      {isDate && (
+        <div>
+          <label className="mb-1 block text-xs font-medium">Date format</label>
+          <select
+            value={dateFormat ?? "D MMMM YYYY"}
+            onChange={(e) => onDateFormatChange(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
+          >
+            {DATE_FORMAT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Applies to both issue and expiry dates.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -899,7 +929,7 @@ function PreviewCanvas({
         const f = layout.fields[k];
         if (!f.visible) return null;
         if (k === "authorized_name" && signers.length > 0) return null;
-        const text = fieldValue(k, sampleCert, { authorized_name: "" });
+        const text = fieldValue(k, sampleCert, { authorized_name: "" }, layout.dateFormat);
         const transform =
           f.align === "center"
             ? "translate(-50%, -100%)"
