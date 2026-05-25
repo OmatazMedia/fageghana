@@ -41,6 +41,8 @@ function MembersPage() {
   const [deleting, setDeleting] = useState<Member | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   const create = useServerFn(createMemberAccount);
   const update = useServerFn(updateMember);
