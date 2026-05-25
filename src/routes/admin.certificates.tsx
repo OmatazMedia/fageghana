@@ -306,8 +306,9 @@ function DesignerPage() {
             <PreviewCanvas
               layout={layout}
               imageUrl={imageUrl}
-              signatureUrl={signatureUrl}
-              authorizedName={authorizedName}
+              signers={signers}
+              activeSignerId={activeSignerId}
+              setActiveSignerId={setActiveSignerId}
               sampleCert={sampleCert}
               active={active}
               onSelect={setActive}
@@ -315,9 +316,7 @@ function DesignerPage() {
               onMoveQr={(x: number, y: number) =>
                 setLayout((l) => ({ ...l, qr: { ...l.qr, x, y } }))
               }
-              onMoveSig={(x: number, y: number) =>
-                setLayout((l) => ({ ...l, signature: { ...l.signature, x, y } }))
-              }
+              onMoveSigner={(id: string, x: number, y: number) => updateSigner(id, { x, y })}
             />
           )}
           {imageUrl && (
