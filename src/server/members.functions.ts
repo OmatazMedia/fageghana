@@ -160,7 +160,7 @@ export const changeMemberTier = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin
       .from("member_profiles")
-      .update(patch)
+      .update(patch as any)
       .eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
 
