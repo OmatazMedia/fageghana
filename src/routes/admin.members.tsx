@@ -218,51 +218,27 @@ function MembersPage() {
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="relative inline-block">
-                      <button
-                        onClick={() => setMenuFor(menuFor === r.id ? null : r.id)}
-                        className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs hover:bg-muted"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                      {menuFor === r.id && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-10"
-                            onClick={() => setMenuFor(null)}
-                          />
-                          <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-                            <button
-                              onClick={() => {
-                                setEditing(r);
-                                setMenuFor(null);
-                              }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
-                            >
-                              <Pencil className="h-4 w-4" /> Edit details
-                            </button>
-                            <button
-                              onClick={() => {
-                                setTierFor(r);
-                                setMenuFor(null);
-                              }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
-                            >
-                              <ArrowUpDown className="h-4 w-4" /> Change tier
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDeleting(r);
-                                setMenuFor(null);
-                              }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" /> Delete
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs hover:bg-muted">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => setEditing(r)}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTierFor(r)}>
+                          <ArrowUpDown className="mr-2 h-4 w-4" /> Change tier
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setDeleting(r)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
