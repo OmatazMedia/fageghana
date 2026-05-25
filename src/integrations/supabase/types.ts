@@ -25,9 +25,12 @@ export type Database = {
           is_featured: boolean
           location: string | null
           published: boolean
+          register_button_link: string | null
+          register_button_text: string | null
           spots_remaining: number | null
           title: string
           updated_at: string
+          view_count: number | null
         }
         Insert: {
           category?: string
@@ -39,9 +42,12 @@ export type Database = {
           is_featured?: boolean
           location?: string | null
           published?: boolean
+          register_button_link?: string | null
+          register_button_text?: string | null
           spots_remaining?: number | null
           title: string
           updated_at?: string
+          view_count?: number | null
         }
         Update: {
           category?: string
@@ -53,9 +59,12 @@ export type Database = {
           is_featured?: boolean
           location?: string | null
           published?: boolean
+          register_button_link?: string | null
+          register_button_text?: string | null
           spots_remaining?: number | null
           title?: string
           updated_at?: string
+          view_count?: number | null
         }
         Relationships: []
       }
@@ -385,6 +394,35 @@ export type Database = {
         }
         Relationships: []
       }
+      event_rsvps: {
+        Row: {
+          activity_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media: {
         Row: {
           category: string
@@ -421,6 +459,36 @@ export type Database = {
           title?: string
           updated_at?: string
           url?: string
+        }
+        Relationships: []
+      }
+      member_documents: {
+        Row: {
+          doc_type: string
+          file_path: string
+          file_size: number | null
+          id: string
+          name: string
+          uploaded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          doc_type: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          name: string
+          uploaded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          doc_type?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          name?: string
+          uploaded_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -965,6 +1033,27 @@ export type Database = {
       }
     }
     Views: {
+      member_invoices: {
+        Row: {
+          amount: number | null
+          company_name: string | null
+          confirmed_at: string | null
+          contact_name: string | null
+          created_at: string | null
+          currency: string | null
+          duration_months: number | null
+          gateway_name: string | null
+          id: string | null
+          kind: string | null
+          member_id: string | null
+          method: string | null
+          reference: string | null
+          status: Database["public"]["Enums"]["payment_status"] | null
+          tier: Database["public"]["Enums"]["membership_tier"] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       payment_gateways_public: {
         Row: {
           bank_details: Json | null
@@ -1033,6 +1122,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_activity_views: {
+        Args: { activity_id: string }
+        Returns: number
       }
       list_enabled_gateways: {
         Args: never
