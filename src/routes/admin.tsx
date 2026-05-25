@@ -106,6 +106,12 @@ function AdminLayout() {
   const location = useLocation();
   const isLoginRoute = location.pathname === "/admin/login";
 
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("You have been successfully signed out");
+    navigate({ to: "/admin/login", replace: true });
+  };
+
   useEffect(() => {
     if (isLoginRoute) return;
     if (!loading && !user) navigate({ to: "/", replace: true });
