@@ -243,8 +243,9 @@ function PlansPage() {
                   Save plan
                 </button>
               </div>
-            </form>
-          )}
+              </motion.form>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </AdminShell>
