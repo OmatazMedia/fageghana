@@ -47,6 +47,7 @@ function ActivitiesAdmin() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<ActivityRow | null>(null);
   const [creating, setCreating] = useState(false);
+  const [attendeesFor, setAttendeesFor] = useState<ActivityRow | null>(null);
 
   async function load() {
     setLoading(true);
