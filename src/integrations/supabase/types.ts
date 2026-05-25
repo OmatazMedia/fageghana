@@ -534,6 +534,10 @@ export type Database = {
           contact_name: string
           country: string
           created_at: string
+          directory_bio: string | null
+          directory_logo_url: string | null
+          directory_visible: boolean
+          directory_website: string | null
           email: string
           id: string
           industry: string | null
@@ -553,6 +557,10 @@ export type Database = {
           contact_name?: string
           country?: string
           created_at?: string
+          directory_bio?: string | null
+          directory_logo_url?: string | null
+          directory_visible?: boolean
+          directory_website?: string | null
           email?: string
           id?: string
           industry?: string | null
@@ -572,6 +580,10 @@ export type Database = {
           contact_name?: string
           country?: string
           created_at?: string
+          directory_bio?: string | null
+          directory_logo_url?: string | null
+          directory_visible?: boolean
+          directory_website?: string | null
           email?: string
           id?: string
           industry?: string | null
@@ -587,6 +599,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      member_readiness_responses: {
+        Row: {
+          created_at: string
+          evidence_doc_id: string | null
+          id: string
+          item_id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["readiness_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_doc_id?: string | null
+          id?: string
+          item_id: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["readiness_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence_doc_id?: string | null
+          id?: string
+          item_id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["readiness_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_readiness_responses_evidence_doc_id_fkey"
+            columns: ["evidence_doc_id"]
+            isOneToOne: false
+            referencedRelation: "member_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_readiness_responses_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "readiness_checklist_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       membership_applications: {
         Row: {
@@ -930,6 +990,42 @@ export type Database = {
         }
         Relationships: []
       }
+      readiness_checklist_items: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          label: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          label: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          label?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           active: boolean
@@ -1091,6 +1187,38 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_opportunity_interests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          opportunity_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          opportunity_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          opportunity_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_opportunity_interests_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "trade_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1114,6 +1242,48 @@ export type Database = {
       }
     }
     Views: {
+      member_directory: {
+        Row: {
+          company_name: string | null
+          contact_name: string | null
+          country: string | null
+          directory_bio: string | null
+          directory_logo_url: string | null
+          directory_website: string | null
+          industry: string | null
+          member_id: string | null
+          products_exported: string | null
+          tier: Database["public"]["Enums"]["membership_tier"] | null
+          user_id: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          contact_name?: string | null
+          country?: string | null
+          directory_bio?: string | null
+          directory_logo_url?: string | null
+          directory_website?: string | null
+          industry?: string | null
+          member_id?: string | null
+          products_exported?: string | null
+          tier?: Database["public"]["Enums"]["membership_tier"] | null
+          user_id?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          contact_name?: string | null
+          country?: string | null
+          directory_bio?: string | null
+          directory_logo_url?: string | null
+          directory_website?: string | null
+          industry?: string | null
+          member_id?: string | null
+          products_exported?: string | null
+          tier?: Database["public"]["Enums"]["membership_tier"] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       member_invoices: {
         Row: {
           amount: number | null
@@ -1197,6 +1367,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_readiness_score: { Args: { _user_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1239,6 +1410,7 @@ export type Database = {
       media_type: "photo" | "video"
       membership_tier: "associate" | "corporate" | "standard"
       payment_status: "pending" | "confirmed" | "rejected"
+      readiness_status: "not_started" | "in_progress" | "complete"
       ticket_status: "open" | "pending" | "resolved" | "closed"
     }
     CompositeTypes: {
@@ -1372,6 +1544,7 @@ export const Constants = {
       media_type: ["photo", "video"],
       membership_tier: ["associate", "corporate", "standard"],
       payment_status: ["pending", "confirmed", "rejected"],
+      readiness_status: ["not_started", "in_progress", "complete"],
       ticket_status: ["open", "pending", "resolved", "closed"],
     },
   },

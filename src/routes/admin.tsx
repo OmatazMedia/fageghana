@@ -57,6 +57,8 @@ const navSections: NavSection[] = [
     items: [
       { to: "/admin/applications", label: "Applications", icon: Users },
       { to: "/admin/members", label: "Members", icon: UserPlus },
+      { to: "/admin/directory", label: "Directory", icon: Users },
+      { to: "/admin/readiness", label: "Readiness", icon: ListChecks },
       { to: "/admin/payments", label: "Payments", icon: CreditCard },
       { to: "/admin/tickets", label: "Support", icon: MessageCircle },
     ],
@@ -75,6 +77,7 @@ const navSections: NavSection[] = [
       { to: "/admin/news", label: "News & Blog", icon: Newspaper },
       { to: "/admin/products", label: "Products", icon: Package },
       { to: "/admin/activities", label: "Events", icon: CalendarDays },
+      { to: "/admin/trade-opportunities", label: "Trade Opportunities", icon: TrendingUp },
       { to: "/admin/media", label: "Media", icon: ImageIcon },
       { to: "/admin/notifications", label: "Notifications", icon: Bell },
     ],

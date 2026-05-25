@@ -28,8 +28,10 @@ import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
+import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminReadinessRouteImport } from './routes/admin.readiness'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminPlansRouteImport } from './routes/admin.plans'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
@@ -42,6 +44,7 @@ import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
 import { Route as AdminEmailTemplatesRouteImport } from './routes/admin.email-templates'
 import { Route as AdminEmailSettingsRouteImport } from './routes/admin.email-settings'
+import { Route as AdminDirectoryRouteImport } from './routes/admin.directory'
 import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
 import { Route as AdminCertIssuedRouteImport } from './routes/admin.cert-issued'
 import { Route as AdminCertBatchRouteImport } from './routes/admin.cert-batch'
@@ -149,6 +152,11 @@ const ApplyTierRoute = ApplyTierRouteImport.update({
   path: '/apply/$tier',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminTradeOpportunitiesRoute = AdminTradeOpportunitiesRouteImport.update({
+  id: '/trade-opportunities',
+  path: '/trade-opportunities',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminTicketsRoute = AdminTicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
@@ -157,6 +165,11 @@ const AdminTicketsRoute = AdminTicketsRouteImport.update({
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReadinessRoute = AdminReadinessRouteImport.update({
+  id: '/readiness',
+  path: '/readiness',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProductsRoute = AdminProductsRouteImport.update({
@@ -217,6 +230,11 @@ const AdminEmailTemplatesRoute = AdminEmailTemplatesRouteImport.update({
 const AdminEmailSettingsRoute = AdminEmailSettingsRouteImport.update({
   id: '/email-settings',
   path: '/email-settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDirectoryRoute = AdminDirectoryRouteImport.update({
+  id: '/directory',
+  path: '/directory',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
@@ -299,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/admin/cert-batch': typeof AdminCertBatchRoute
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/directory': typeof AdminDirectoryRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -311,8 +330,10 @@ export interface FileRoutesByFullPath {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -345,6 +366,7 @@ export interface FileRoutesByTo {
   '/admin/cert-batch': typeof AdminCertBatchRoute
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/directory': typeof AdminDirectoryRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -357,8 +379,10 @@ export interface FileRoutesByTo {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -392,6 +416,7 @@ export interface FileRoutesById {
   '/admin/cert-batch': typeof AdminCertBatchRoute
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/directory': typeof AdminDirectoryRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -404,8 +429,10 @@ export interface FileRoutesById {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -440,6 +467,7 @@ export interface FileRouteTypes {
     | '/admin/cert-batch'
     | '/admin/cert-issued'
     | '/admin/certificates'
+    | '/admin/directory'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -452,8 +480,10 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/products'
+    | '/admin/readiness'
     | '/admin/reports'
     | '/admin/tickets'
+    | '/admin/trade-opportunities'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
@@ -486,6 +516,7 @@ export interface FileRouteTypes {
     | '/admin/cert-batch'
     | '/admin/cert-issued'
     | '/admin/certificates'
+    | '/admin/directory'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -498,8 +529,10 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/products'
+    | '/admin/readiness'
     | '/admin/reports'
     | '/admin/tickets'
+    | '/admin/trade-opportunities'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
@@ -532,6 +565,7 @@ export interface FileRouteTypes {
     | '/admin/cert-batch'
     | '/admin/cert-issued'
     | '/admin/certificates'
+    | '/admin/directory'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -544,8 +578,10 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/products'
+    | '/admin/readiness'
     | '/admin/reports'
     | '/admin/tickets'
+    | '/admin/trade-opportunities'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/news/$slug'
@@ -717,6 +753,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApplyTierRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/trade-opportunities': {
+      id: '/admin/trade-opportunities'
+      path: '/trade-opportunities'
+      fullPath: '/admin/trade-opportunities'
+      preLoaderRoute: typeof AdminTradeOpportunitiesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/tickets': {
       id: '/admin/tickets'
       path: '/tickets'
@@ -729,6 +772,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/admin/reports'
       preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/readiness': {
+      id: '/admin/readiness'
+      path: '/readiness'
+      fullPath: '/admin/readiness'
+      preLoaderRoute: typeof AdminReadinessRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/products': {
@@ -813,6 +863,13 @@ declare module '@tanstack/react-router' {
       path: '/email-settings'
       fullPath: '/admin/email-settings'
       preLoaderRoute: typeof AdminEmailSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/directory': {
+      id: '/admin/directory'
+      path: '/directory'
+      fullPath: '/admin/directory'
+      preLoaderRoute: typeof AdminDirectoryRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/certificates': {
@@ -902,6 +959,7 @@ interface AdminRouteChildren {
   AdminCertBatchRoute: typeof AdminCertBatchRoute
   AdminCertIssuedRoute: typeof AdminCertIssuedRoute
   AdminCertificatesRoute: typeof AdminCertificatesRoute
+  AdminDirectoryRoute: typeof AdminDirectoryRoute
   AdminEmailSettingsRoute: typeof AdminEmailSettingsRoute
   AdminEmailTemplatesRoute: typeof AdminEmailTemplatesRoute
   AdminFormsRoute: typeof AdminFormsRoute
@@ -914,8 +972,10 @@ interface AdminRouteChildren {
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPlansRoute: typeof AdminPlansRoute
   AdminProductsRoute: typeof AdminProductsRoute
+  AdminReadinessRoute: typeof AdminReadinessRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
+  AdminTradeOpportunitiesRoute: typeof AdminTradeOpportunitiesRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -925,6 +985,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCertBatchRoute: AdminCertBatchRoute,
   AdminCertIssuedRoute: AdminCertIssuedRoute,
   AdminCertificatesRoute: AdminCertificatesRoute,
+  AdminDirectoryRoute: AdminDirectoryRoute,
   AdminEmailSettingsRoute: AdminEmailSettingsRoute,
   AdminEmailTemplatesRoute: AdminEmailTemplatesRoute,
   AdminFormsRoute: AdminFormsRoute,
@@ -937,8 +998,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPlansRoute: AdminPlansRoute,
   AdminProductsRoute: AdminProductsRoute,
+  AdminReadinessRoute: AdminReadinessRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminTicketsRoute: AdminTicketsRoute,
+  AdminTradeOpportunitiesRoute: AdminTradeOpportunitiesRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -991,13 +1054,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
