@@ -100,7 +100,31 @@ where ps.status = 'confirmed';
 -- PENDING — Run when ready
 -- ============================================================
 
--- [004] Event RSVPs (for "Events I'm Attending" dashboard tab)
+-- [004] Member Email Preferences (deployed via Lovable edge function)
+-- Table created by Supabase edge function: manage-email-preferences
+--
+-- create table if not exists member_email_preferences (
+--   id                 uuid primary key default gen_random_uuid(),
+--   user_id            uuid references auth.users(id) on delete cascade not null unique,
+--   newsletters        boolean default true,
+--   event_alerts       boolean default true,
+--   trade_notices      boolean default true,
+--   payment_reminders  boolean default true,
+--   updated_at         timestamptz default now()
+-- );
+--
+-- alter table member_email_preferences enable row level security;
+--
+-- create policy "members manage own email prefs"
+--   on member_email_preferences for all
+--   using (auth.uid() = user_id);
+--
+-- Edge function: manage-email-preferences
+--   POST { user_id, newsletters, event_alerts, trade_notices, payment_reminders }
+--   Returns { success: true, updated: <preferences object> }
+
+
+-- [005] Event RSVPs (for "Events I'm Attending" dashboard tab)
 -- Requires: activities table to exist
 --
 -- create table if not exists event_rsvps (

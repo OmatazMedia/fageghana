@@ -35,6 +35,7 @@ import {
   FileText,
   Trash2,
   Download,
+  MailCheck,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -48,7 +49,7 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices";
+type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices" | "email-prefs";
 
 const inputCls =
   "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -135,6 +136,7 @@ function Dashboard() {
     { id: "documents", label: "My Documents", icon: FolderOpen },
     { id: "invoices", label: "Invoice History", icon: Receipt },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unread },
+    { id: "email-prefs", label: "Email Preferences", icon: MailCheck },
     { id: "support", label: "Support", icon: MessageCircle },
     { id: "profile", label: "Profile", icon: Settings },
   ];
@@ -396,10 +398,148 @@ function Dashboard() {
           {tab === "resources" && <ResourcesTab />}
           {tab === "documents" && <DocumentsTab userId={user!.id} />}
           {tab === "invoices" && <InvoicesTab userId={user!.id} profile={profile} />}
+          {tab === "email-prefs" && <EmailPrefsTab userId={user!.id} email={profile.email} />}
           {tab === "notifications" && <NotificationsTab userId={user!.id} />}
           {tab === "support" && <SupportTab userId={user!.id} />}
           {tab === "profile" && <ProfileTab profile={profile} onSaved={loadProfile} />}
         </main>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Email Preferences
+───────────────────────────────────────────────────────────────────────── */
+const EMAIL_PREFS_META = [
+  {
+    key: "newsletters",
+    label: "Newsletter & Updates",
+    desc: "Monthly FAGE newsletter, export news and industry updates.",
+  },
+  {
+    key: "event_alerts",
+    label: "Event & Activity Alerts",
+    desc: "Notifications about upcoming trade fairs, workshops and missions.",
+  },
+  {
+    key: "trade_notices",
+    label: "Trade Opportunity Notices",
+    desc: "New buyer leads, RFQs and export tender opportunities.",
+  },
+  {
+    key: "payment_reminders",
+    label: "Payment & Renewal Reminders",
+    desc: "Reminders when your membership is due for renewal or payment is pending.",
+  },
+] as const;
+
+type PrefKey = (typeof EMAIL_PREFS_META)[number]["key"];
+
+function EmailPrefsTab({ userId, email }: { userId: string; email: string }) {
+  const [prefs, setPrefs] = useState<Record<PrefKey, boolean>>({
+    newsletters: true,
+    event_alerts: true,
+    trade_notices: true,
+    payment_reminders: true,
+  });
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    void supabase
+      .from("member_email_preferences" as any)
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setPrefs({
+            newsletters: data.newsletters ?? true,
+            event_alerts: data.event_alerts ?? true,
+            trade_notices: data.trade_notices ?? true,
+            payment_reminders: data.payment_reminders ?? true,
+          });
+        }
+        setLoaded(true);
+      });
+  }, [userId]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-email-preferences", {
+        body: { user_id: userId, ...prefs },
+      });
+      if (error) throw error;
+      setPrefs(data.updated);
+      toast.success("Email preferences saved.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not save preferences.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground p-6">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl bg-card p-6 shadow-sm">
+        <h2 className="text-xl font-bold">Email Preferences</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Choose which emails you receive at{" "}
+          <span className="font-medium text-foreground">{email}</span>.
+        </p>
+
+        <div className="mt-6 space-y-4">
+          {EMAIL_PREFS_META.map(({ key, label, desc }) => (
+            <div
+              key={key}
+              className="flex items-start justify-between gap-4 rounded-xl border border-border p-4"
+            >
+              <div className="min-w-0">
+                <div className="text-sm font-semibold">{label}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">{desc}</div>
+              </div>
+              {/* Toggle switch */}
+              <button
+                role="switch"
+                aria-checked={prefs[key]}
+                onClick={() => setPrefs((p) => ({ ...p, [key]: !p[key] }))}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                  prefs[key] ? "bg-primary" : "bg-muted"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                    prefs[key] ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex items-center justify-between gap-4 rounded-xl bg-accent/50 p-4">
+          <p className="text-xs text-muted-foreground">
+            Transactional emails (payment confirmations, certificate issuance) are always sent
+            regardless of these settings.
+          </p>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="shrink-0 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save preferences"}
+          </button>
+        </div>
       </div>
     </div>
   );
