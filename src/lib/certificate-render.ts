@@ -237,6 +237,7 @@ export function mergeLayout(stored: any): TemplateLayout {
     qr: { ...def.qr, ...(stored.qr ?? {}) },
     signature: { ...def.signature, ...(stored.signature ?? {}) },
     verification_display: stored.verification_display ?? def.verification_display,
+    dateFormat: stored.dateFormat ?? def.dateFormat,
   };
 }
 
