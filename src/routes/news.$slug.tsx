@@ -212,7 +212,7 @@ function NewsDetail() {
               {isHtml ? (
                 <div
                   className="blog-body text-foreground/90"
-                  dangerouslySetInnerHTML={{ __html: article.body }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.body) }}
                 />
               ) : (
                 <div className="blog-body text-foreground/90">
