@@ -185,6 +185,12 @@ function AdminLayout() {
         {/* Footer */}
         <div className="border-t border-white/10 p-3 space-y-0.5">
           <Link
+            to="/account/security"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/60 hover:bg-white/8 hover:text-white transition-all"
+          >
+            <ShieldCheck className="h-4 w-4" /> Account & Security
+          </Link>
+          <Link
             to="/"
             target="_blank"
             rel="noopener noreferrer"

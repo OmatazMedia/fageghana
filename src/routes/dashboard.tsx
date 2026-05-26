@@ -372,6 +372,13 @@ function Dashboard() {
                     <CreditCard className="h-4 w-4" /> Subscription
                   </button>
                   <Link
+                    to="/account/security"
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <ShieldCheck className="h-4 w-4" /> Account & security
+                  </Link>
+                  <Link
                     to="/"
                     className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent"
                     onClick={() => setMenuOpen(false)}
