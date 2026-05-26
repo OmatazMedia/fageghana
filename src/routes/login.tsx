@@ -489,6 +489,20 @@ function MemberLogin() {
           <TypingPanel />
         </div>
       </div>
+      {mfaFactorId && (
+        <MfaChallengeDialog
+          factorId={mfaFactorId}
+          onSuccess={() => {
+            setMfaFactorId(null);
+            toast.success("Welcome back!");
+            navigate({ to: "/dashboard" });
+          }}
+          onCancel={async () => {
+            await supabase.auth.signOut();
+            setMfaFactorId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
