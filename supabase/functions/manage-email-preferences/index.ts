@@ -82,24 +82,34 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
-    const user_id: string | undefined = body?.user_id;
-    if (!user_id || typeof user_id !== "string") {
-      return new Response(JSON.stringify({ success: false, error: "user_id required" }), {
-        status: 400,
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const requested: Partial<Prefs> = {};
-    (Object.keys(TEMPLATE_KEYS) as PrefKey[]).forEach((k) => {
-      if (typeof body?.[k] === "boolean") requested[k] = body[k];
-    });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const user_id = userData.user.id;
+
+    const body = await req.json().catch(() => ({}));
+    const requested: Partial<Prefs> = {};
+    (Object.keys(TEMPLATE_KEYS) as PrefKey[]).forEach((k) => {
+      if (typeof body?.[k] === "boolean") requested[k] = body[k];
+    });
 
     // Load existing prefs to detect changes
     const { data: existing } = await supabase

@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "isomorphic-dompurify";
 
 export const Route = createFileRoute("/news/$slug")({
   component: NewsDetail,
@@ -211,7 +212,7 @@ function NewsDetail() {
               {isHtml ? (
                 <div
                   className="blog-body text-foreground/90"
-                  dangerouslySetInnerHTML={{ __html: article.body }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.body) }}
                 />
               ) : (
                 <div className="blog-body text-foreground/90">
@@ -438,12 +439,11 @@ function ShareAndReactions({ newsId, title }: { newsId: string; title: string })
       next.delete(emoji);
       setMine(next);
       setCounts((c) => ({ ...c, [emoji]: Math.max(0, (c[emoji] ?? 1) - 1) }));
-      await supabase
-        .from("blog_reactions")
-        .delete()
-        .eq("news_id", newsId)
-        .eq("session_id", sessionId)
-        .eq("emoji", emoji);
+      await supabase.rpc("delete_blog_reaction", {
+        p_news_id: newsId,
+        p_session_id: sessionId,
+        p_emoji: emoji,
+      });
     } else {
       const next = new Set(mine);
       next.add(emoji);
