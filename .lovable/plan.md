@@ -1,57 +1,73 @@
-## 1. Members page improvements (`src/routes/admin.members.tsx`)
+# Account Self-Service for All Users
 
-**Sticky table header + scrollable body**
-- Wrap the members table in a fixed-height scroll container (`max-h-[calc(100vh-280px)] overflow-auto`).
-- Apply `sticky top-0 z-10 bg-background` to `<thead>` so the header stays visible while rows scroll.
+Give every authenticated user (admin, staff, moderator, member) a unified **Account Settings** area to manage their own credentials and security — regardless of which dashboard they log into.
 
-**Create-member modal: fixed size, no expansion**
-- Remove any expand/animate-in scale transitions on the modal shell.
-- Render the dialog at its natural width/height immediately (no progressive grow). Keep all form fields visible on open at a fixed `max-w-2xl`.
+## Scope
 
-**Pagination with page-size selector**
-- Add client-side pagination over the filtered rows.
-- Default page size = 50. Selector dropdown options: **25 / 50 / 100 / 200**, placed to the **left** of the prev/next pagination controls.
-- Show "Showing X–Y of Z" between selector and pagination buttons.
-- Reset to page 1 when search query or page size changes.
+A single shared route `/account` with tabbed sub-routes, accessible from both the admin shell (`/admin`) and the member dashboard (`/dashboard`) via a user menu / avatar dropdown.
 
-## 2. New: Admin Users management
+## Tabs
 
-**Roles**
-Extend the `app_role` enum to include two new roles in addition to existing `admin`:
-- `staff` — view + manage member records (no delete, no role changes)
-- `moderator` — content only (news, media, activities)
+### 1. Profile
+- Edit full name, phone, avatar (upload to existing `content` storage bucket)
+- For members: also company name, position, country, bio
+- Email shown read-only here (change handled in Security tab — requires verification)
 
-**Migration**
-- `ALTER TYPE public.app_role ADD VALUE 'staff';`
-- `ALTER TYPE public.app_role ADD VALUE 'moderator';`
-- Add RLS policies for `staff` on `member_profiles` (SELECT + UPDATE, no DELETE) and `moderator` on `news`, `media`, `activities` (ALL).
-- Keep existing `admin` policies untouched.
+### 2. Security
+- **Change password** (already exists at `/account/change-password` — fold into this tab)
+- **Change email** — uses `supabase.auth.updateUser({ email })`, sends confirmation to both old + new addresses
+- **Two-Factor Authentication (TOTP)** — enroll/disable via `supabase.auth.mfa.enroll()` + `verify()`; show QR code + recovery codes. Use Supabase's native TOTP MFA (already supported on the project).
+- **MFA on login** — once enrolled, the login flow prompts for the 6-digit code (extend `/admin/login` and `/login` to handle `aal2` challenge via `supabase.auth.mfa.challengeAndVerify`).
+- Optional: enforce MFA for admin/staff/moderator roles (flag in `user_roles`-adjacent settings table, or simple check on admin layout)
 
-**New route `/admin/users`**
-New file `src/routes/admin.users.tsx` listing every account that has a role in `user_roles` (joined with auth metadata via a new server fn). UI:
-- Table: Name / Email / Role badge / Created / Actions
-- "Add user" button → modal: email, full name, password OR invite, role selector (admin / staff / moderator)
-- Per-row actions: Change role, Delete account
-- Sticky header, search filter, same pagination pattern as Members
-- Self-protection: cannot demote or delete own account
+### 3. Sessions & Devices
+- List active sessions (via `supabase.auth.admin.listUserSessions` through a `createServerFn` with admin client scoped to `auth.uid()`)
+- "Sign out of this device" / "Sign out everywhere" buttons
 
-**Server functions — new file `src/server/users.functions.ts`**
-- `listAdminUsers()` — admin-only. Uses `supabaseAdmin.auth.admin.listUsers()` joined with `user_roles` to return only users that have any role.
-- `createAdminUser({ email, full_name, password?, mode, role })` — admin-only. Creates auth user (password or invite), inserts row in `user_roles`. No `member_profiles` entry.
-- `changeUserRole({ user_id, role })` — admin-only. Replaces the user's role row.
-- `deleteAdminUser({ user_id })` — admin-only. Removes role + auth user. Blocks self-delete.
+### 4. Notifications (suggested addition)
+- Toggle email notifications (already a `notification_preferences` pattern in the codebase — wire up here)
+- Choose digest frequency
 
-**Sidebar entry**
-Add "Users" item to the admin sidebar (`src/routes/admin.tsx`) pointing to `/admin/users`, visible to admins only.
+### 5. Danger Zone (member-only)
+- Request account deletion (soft-delete flag → admin reviews in `/admin/users`)
+- Admin/staff/moderator accounts cannot self-delete (must be removed by another admin)
 
-## Out of scope
-- Granular per-table permission editor (only the 3 fixed roles above)
-- Audit log of role changes
-- Inviting via OAuth (email/password and invite-by-email only)
+## Additional suggestions worth including
 
-## Files touched
-- `src/routes/admin.members.tsx` (sticky header, modal sizing, pagination)
-- `src/routes/admin.users.tsx` (new)
-- `src/server/users.functions.ts` (new)
-- `src/routes/admin.tsx` (sidebar item)
-- One new SQL migration for enum values + RLS for staff/moderator
+- **Last login + login history** — small audit log table (`auth_events`: user_id, event, ip, user_agent, created_at) populated via `onAuthStateChange`, shown in Security tab
+- **Connected accounts** — if Google OAuth is enabled, show linked providers with unlink option
+- **Recovery codes download** — generated alongside TOTP enrollment, downloadable as .txt
+- **Password strength meter + HIBP check** — enable `password_hibp_enabled` via `configure_auth` so leaked passwords are rejected
+- **Session timeout warning** — toast 2 min before token refresh fails
+
+## Technical changes
+
+**New files**
+- `src/routes/account.tsx` — layout with sidebar tabs + `<Outlet />`
+- `src/routes/account.profile.tsx`
+- `src/routes/account.security.tsx` (absorbs existing change-password logic)
+- `src/routes/account.sessions.tsx`
+- `src/routes/account.notifications.tsx`
+- `src/lib/account.functions.ts` — server fns: `updateProfile`, `listSessions`, `revokeSession`, `revokeAllOtherSessions`, `getLoginHistory`
+- `src/components/account/MfaEnrollDialog.tsx`
+- `src/components/account/MfaChallengeForm.tsx`
+
+**Edited files**
+- `src/routes/admin.login.tsx` & `src/routes/login.tsx` — handle MFA challenge after password success
+- `src/routes/admin.tsx` — add user menu with "Account Settings" + "Sign out"
+- `src/routes/dashboard.tsx` — same user menu
+- `src/components/auth/AuthProvider.tsx` — expose MFA helpers, AAL level
+
+**Database migration**
+- `auth_events` table (user_id, event_type, ip, user_agent, created_at) + RLS: user can read own
+- Optional `account_preferences` table (user_id, require_mfa, notification_email_enabled, …)
+
+**Auth config**
+- Enable `password_hibp_enabled: true` via `configure_auth`
+- MFA (TOTP) is enabled by default on Supabase — no config change needed
+
+## Open questions
+
+1. Should MFA be **required** for admin/staff/moderator on next login, or **optional** (recommended only)?
+2. Should the existing `/account/change-password` URL stay (redirect to `/account/security`) or be removed?
+3. For members specifically: do you want the Profile tab to write to the existing `members` table fields, or a separate `profiles` table?
