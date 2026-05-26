@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "isomorphic-dompurify";
 
 export const Route = createFileRoute("/news/$slug")({
   component: NewsDetail,
