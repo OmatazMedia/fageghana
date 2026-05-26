@@ -3,6 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import { Mail, Lock, Eye, EyeOff, CheckCircle2, ArrowLeft, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
+import { MfaChallengeDialog, getRequiredMfaFactorId } from "@/components/auth/MfaChallengeDialog";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Member Login — FAGE Ghana" }] }),
@@ -250,10 +252,11 @@ function MemberLogin() {
   const [shake, setShake] = useState(false);
   const [cardFocused, setCardFocused] = useState(false);
   const [visible, setVisible] = useState(true);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/dashboard" });
-  }, [loading, user, navigate]);
+    if (!loading && user && !mfaFactorId) navigate({ to: "/dashboard" });
+  }, [loading, user, navigate, mfaFactorId]);
 
   function switchMode(next: "login" | "reset") {
     setVisible(false);
@@ -267,11 +270,17 @@ function MemberLogin() {
     e.preventDefault();
     setBusy(true);
     const { error } = await signIn(email, password);
-    setBusy(false);
     if (error) {
+      setBusy(false);
       setShake(true);
       setTimeout(() => setShake(false), 500);
       return toast.error(error);
+    }
+    const factorId = await getRequiredMfaFactorId();
+    setBusy(false);
+    if (factorId) {
+      setMfaFactorId(factorId);
+      return;
     }
     toast.success("Welcome back!");
   }
@@ -480,6 +489,20 @@ function MemberLogin() {
           <TypingPanel />
         </div>
       </div>
+      {mfaFactorId && (
+        <MfaChallengeDialog
+          factorId={mfaFactorId}
+          onSuccess={() => {
+            setMfaFactorId(null);
+            toast.success("Welcome back!");
+            navigate({ to: "/dashboard" });
+          }}
+          onCancel={async () => {
+            await supabase.auth.signOut();
+            setMfaFactorId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
