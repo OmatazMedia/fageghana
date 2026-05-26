@@ -1346,6 +1346,10 @@ export type Database = {
       admin_list_policies: { Args: never; Returns: Json }
       admin_list_sequences: { Args: never; Returns: Json }
       admin_list_tables: { Args: never; Returns: Json }
+      delete_blog_reaction: {
+        Args: { p_emoji: string; p_news_id: string; p_session_id: string }
+        Returns: undefined
+      }
       generate_member_id: {
         Args: { _tier: Database["public"]["Enums"]["membership_tier"] }
         Returns: string
