@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { ShieldCheck, Eye, EyeOff, Lock, Mail, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
+import { MfaChallengeDialog, getRequiredMfaFactorId } from "@/components/auth/MfaChallengeDialog";
 
 export const Route = createFileRoute("/admin/login")({
   head: () => ({ meta: [{ title: "Admin Login — FAGE Ghana" }] }),
@@ -20,10 +22,11 @@ function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(() => !!localStorage.getItem(REMEMBER_KEY));
   const [busy, setBusy] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && user && isAdmin) navigate({ to: "/admin" });
-  }, [loading, user, isAdmin, navigate]);
+    if (!loading && user && isAdmin && !mfaFactorId) navigate({ to: "/admin" });
+  }, [loading, user, isAdmin, navigate, mfaFactorId]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,8 +39,16 @@ function AdminLogin() {
     }
 
     const { error } = await signIn(email, password);
+    if (error) {
+      setBusy(false);
+      return toast.error(error);
+    }
+    const factorId = await getRequiredMfaFactorId();
     setBusy(false);
-    if (error) return toast.error(error);
+    if (factorId) {
+      setMfaFactorId(factorId);
+      return;
+    }
     toast.success("Welcome back");
   }
 

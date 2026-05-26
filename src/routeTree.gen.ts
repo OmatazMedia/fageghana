@@ -21,6 +21,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivitiesRouteImport } from './routes/activities'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
 import { Route as ReceiptIdRouteImport } from './routes/receipt.$id'
@@ -52,6 +53,7 @@ import { Route as AdminCertBatchRouteImport } from './routes/admin.cert-batch'
 import { Route as AdminBackupRouteImport } from './routes/admin.backup'
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
+import { Route as AccountSecurityRouteImport } from './routes/account.security'
 import { Route as AccountChangePasswordRouteImport } from './routes/account.change-password'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
@@ -116,6 +118,11 @@ const AdminRoute = AdminRouteImport.update({
 const ActivitiesRoute = ActivitiesRouteImport.update({
   id: '/activities',
   path: '/activities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -273,10 +280,15 @@ const AdminActivitiesRoute = AdminActivitiesRouteImport.update({
   path: '/activities',
   getParentRoute: () => AdminRoute,
 } as any)
+const AccountSecurityRoute = AccountSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AccountRoute,
+} as any)
 const AccountChangePasswordRoute = AccountChangePasswordRouteImport.update({
-  id: '/account/change-password',
-  path: '/account/change-password',
-  getParentRoute: () => rootRouteImport,
+  id: '/change-password',
+  path: '/change-password',
+  getParentRoute: () => AccountRoute,
 } as any)
 const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
   id: '/about/who-we-are',
@@ -303,6 +315,7 @@ const ApiPublicFlutterwaveWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
   '/activities': typeof ActivitiesRoute
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
@@ -317,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/account/change-password': typeof AccountChangePasswordRoute
+  '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
@@ -353,6 +367,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
   '/activities': typeof ActivitiesRoute
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
@@ -367,6 +382,7 @@ export interface FileRoutesByTo {
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/account/change-password': typeof AccountChangePasswordRoute
+  '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
@@ -404,6 +420,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
   '/activities': typeof ActivitiesRoute
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
@@ -418,6 +435,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/account/change-password': typeof AccountChangePasswordRoute
+  '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
@@ -456,6 +474,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/activities'
     | '/admin'
     | '/contact'
@@ -470,6 +489,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/about/who-we-are'
     | '/account/change-password'
+    | '/account/security'
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/backup'
@@ -506,6 +526,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
     | '/activities'
     | '/admin'
     | '/contact'
@@ -520,6 +541,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/about/who-we-are'
     | '/account/change-password'
+    | '/account/security'
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/backup'
@@ -556,6 +578,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/activities'
     | '/admin'
     | '/contact'
@@ -570,6 +593,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/about/who-we-are'
     | '/account/change-password'
+    | '/account/security'
     | '/admin/activities'
     | '/admin/applications'
     | '/admin/backup'
@@ -607,6 +631,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRouteWithChildren
   ActivitiesRoute: typeof ActivitiesRoute
   AdminRoute: typeof AdminRouteWithChildren
   ContactRoute: typeof ContactRoute
@@ -620,7 +645,6 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   VerifyRoute: typeof VerifyRouteWithChildren
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
-  AccountChangePasswordRoute: typeof AccountChangePasswordRoute
   ApplyTierRoute: typeof ApplyTierRoute
   CertificateIdRoute: typeof CertificateIdRoute
   PaymentCallbackRoute: typeof PaymentCallbackRoute
@@ -714,6 +738,13 @@ declare module '@tanstack/react-router' {
       path: '/activities'
       fullPath: '/activities'
       preLoaderRoute: typeof ActivitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -933,12 +964,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminActivitiesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/account/security': {
+      id: '/account/security'
+      path: '/security'
+      fullPath: '/account/security'
+      preLoaderRoute: typeof AccountSecurityRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/account/change-password': {
       id: '/account/change-password'
-      path: '/account/change-password'
+      path: '/change-password'
       fullPath: '/account/change-password'
       preLoaderRoute: typeof AccountChangePasswordRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AccountRoute
     }
     '/about/who-we-are': {
       id: '/about/who-we-are'
@@ -970,6 +1008,19 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AccountRouteChildren {
+  AccountChangePasswordRoute: typeof AccountChangePasswordRoute
+  AccountSecurityRoute: typeof AccountSecurityRoute
+}
+
+const AccountRouteChildren: AccountRouteChildren = {
+  AccountChangePasswordRoute: AccountChangePasswordRoute,
+  AccountSecurityRoute: AccountSecurityRoute,
+}
+
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
 
 interface AdminRouteChildren {
   AdminActivitiesRoute: typeof AdminActivitiesRoute
@@ -1050,6 +1101,7 @@ const VerifyRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRouteWithChildren,
   ActivitiesRoute: ActivitiesRoute,
   AdminRoute: AdminRouteWithChildren,
   ContactRoute: ContactRoute,
@@ -1063,7 +1115,6 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   VerifyRoute: VerifyRouteWithChildren,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
-  AccountChangePasswordRoute: AccountChangePasswordRoute,
   ApplyTierRoute: ApplyTierRoute,
   CertificateIdRoute: CertificateIdRoute,
   PaymentCallbackRoute: PaymentCallbackRoute,
