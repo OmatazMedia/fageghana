@@ -229,6 +229,20 @@ function AdminLogin() {
           </p>
         </div>
       </div>
+      {mfaFactorId && (
+        <MfaChallengeDialog
+          factorId={mfaFactorId}
+          onSuccess={() => {
+            setMfaFactorId(null);
+            toast.success("Welcome back");
+            navigate({ to: "/admin" });
+          }}
+          onCancel={async () => {
+            await supabase.auth.signOut();
+            setMfaFactorId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
