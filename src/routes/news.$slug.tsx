@@ -439,12 +439,11 @@ function ShareAndReactions({ newsId, title }: { newsId: string; title: string })
       next.delete(emoji);
       setMine(next);
       setCounts((c) => ({ ...c, [emoji]: Math.max(0, (c[emoji] ?? 1) - 1) }));
-      await supabase
-        .from("blog_reactions")
-        .delete()
-        .eq("news_id", newsId)
-        .eq("session_id", sessionId)
-        .eq("emoji", emoji);
+      await supabase.rpc("delete_blog_reaction", {
+        p_news_id: newsId,
+        p_session_id: sessionId,
+        p_emoji: emoji,
+      });
     } else {
       const next = new Set(mine);
       next.add(emoji);
