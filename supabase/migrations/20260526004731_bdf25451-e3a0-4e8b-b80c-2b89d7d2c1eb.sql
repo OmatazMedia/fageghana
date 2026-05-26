@@ -1,0 +1,1 @@
+ALTER FUNCTION public.increment_activity_views(activity_id uuid) SET search_path = public;
