@@ -1335,6 +1335,91 @@ export type Database = {
       }
     }
     Views: {
+      directory_entries_public: {
+        Row: {
+          category: string | null
+          company_name: string | null
+          country: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          director_name: string | null
+          display_order: number | null
+          entry_type: Database["public"]["Enums"]["directory_entry_type"] | null
+          featured: boolean | null
+          id: string | null
+          logo_url: string | null
+          long_description: string | null
+          mission: string | null
+          physical_address: string | null
+          postal_address: string | null
+          products: string[] | null
+          published: boolean | null
+          region: string | null
+          services: string[] | null
+          short_description: string | null
+          slug: string | null
+          updated_at: string | null
+          vision: string | null
+          website: string | null
+        }
+        Insert: {
+          category?: string | null
+          company_name?: string | null
+          country?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          director_name?: string | null
+          display_order?: number | null
+          entry_type?:
+            | Database["public"]["Enums"]["directory_entry_type"]
+            | null
+          featured?: boolean | null
+          id?: string | null
+          logo_url?: string | null
+          long_description?: string | null
+          mission?: string | null
+          physical_address?: string | null
+          postal_address?: string | null
+          products?: string[] | null
+          published?: boolean | null
+          region?: string | null
+          services?: string[] | null
+          short_description?: string | null
+          slug?: string | null
+          updated_at?: string | null
+          vision?: string | null
+          website?: string | null
+        }
+        Update: {
+          category?: string | null
+          company_name?: string | null
+          country?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          director_name?: string | null
+          display_order?: number | null
+          entry_type?:
+            | Database["public"]["Enums"]["directory_entry_type"]
+            | null
+          featured?: boolean | null
+          id?: string | null
+          logo_url?: string | null
+          long_description?: string | null
+          mission?: string | null
+          physical_address?: string | null
+          postal_address?: string | null
+          products?: string[] | null
+          published?: boolean | null
+          region?: string | null
+          services?: string[] | null
+          short_description?: string | null
+          slug?: string | null
+          updated_at?: string | null
+          vision?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       member_directory: {
         Row: {
           company_name: string | null
@@ -1447,6 +1532,10 @@ export type Database = {
         Args: { _tier: Database["public"]["Enums"]["membership_tier"] }
         Returns: string
       }
+      get_certificate_with_template: {
+        Args: { _cert_id: string }
+        Returns: Json
+      }
       get_pending_application: {
         Args: { _token: string }
         Returns: {
@@ -1499,6 +1588,10 @@ export type Database = {
           tier: Database["public"]["Enums"]["membership_tier"]
           verification_code: string
         }[]
+      }
+      verify_certificate_with_template: {
+        Args: { _code: string }
+        Returns: Json
       }
     }
     Enums: {
