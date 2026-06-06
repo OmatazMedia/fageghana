@@ -1,73 +1,93 @@
-# Account Self-Service for All Users
+# FAGE Exporter Directory
 
-Give every authenticated user (admin, staff, moderator, member) a unified **Account Settings** area to manage their own credentials and security — regardless of which dashboard they log into.
+Build a public directory at `/directory` that combines admin-curated entries with approved member profiles, plus an admin manager for the curated entries. Seed it with everything from the uploaded PDF and DOCX.
 
-## Scope
+## What the visitor sees
 
-A single shared route `/account` with tabbed sub-routes, accessible from both the admin shell (`/admin`) and the member dashboard (`/dashboard`) via a user menu / avatar dropdown.
+`/directory` (public, no login required):
 
-## Tabs
+- Sticky search bar with **live search** on company name, contact name/director, email, phone, products, country.
+- Filters: type (All / Associations / Corporate Members), category/products.
+- Result grid of cards: logo, company name, type badge, products, country, "View details" button.
+- Detail view (modal or `/directory/$slug`): logo, full description, mission/vision (associations), services, executives (associations), director (corporate), products, full contact block (address, phone, email, website).
+- SEO: per-route `head()` with title, meta description, OG image (entry logo).
+- Empty state + skeleton loaders.
 
-### 1. Profile
-- Edit full name, phone, avatar (upload to existing `content` storage bucket)
-- For members: also company name, position, country, bio
-- Email shown read-only here (change handled in Security tab — requires verification)
+## Data source
 
-### 2. Security
-- **Change password** (already exists at `/account/change-password` — fold into this tab)
-- **Change email** — uses `supabase.auth.updateUser({ email })`, sends confirmation to both old + new addresses
-- **Two-Factor Authentication (TOTP)** — enroll/disable via `supabase.auth.mfa.enroll()` + `verify()`; show QR code + recovery codes. Use Supabase's native TOTP MFA (already supported on the project).
-- **MFA on login** — once enrolled, the login flow prompts for the 6-digit code (extend `/admin/login` and `/login` to handle `aal2` challenge via `supabase.auth.mfa.challengeAndVerify`).
-- Optional: enforce MFA for admin/staff/moderator roles (flag in `user_roles`-adjacent settings table, or simple check on admin layout)
+Union of:
+1. New `directory_entries` table (admin-managed, seeded from docs).
+2. Existing `member_profiles` rows where `status='approved' AND directory_visible=true` (already wired in `admin.directory.tsx`).
 
-### 3. Sessions & Devices
-- List active sessions (via `supabase.auth.admin.listUserSessions` through a `createServerFn` with admin client scoped to `auth.uid()`)
-- "Sign out of this device" / "Sign out everywhere" buttons
+A single public server fn `listDirectory()` merges, de-duplicates by email, and returns one normalized shape so the UI doesn't care which source a row came from.
 
-### 4. Notifications (suggested addition)
-- Toggle email notifications (already a `notification_preferences` pattern in the codebase — wire up here)
-- Choose digest frequency
+## Database
 
-### 5. Danger Zone (member-only)
-- Request account deletion (soft-delete flag → admin reviews in `/admin/users`)
-- Admin/staff/moderator accounts cannot self-delete (must be removed by another admin)
+New table `public.directory_entries`:
 
-## Additional suggestions worth including
+- `entry_type` enum: `association` | `corporate`
+- `slug` (unique, used in detail URL)
+- `company_name`, `short_description`, `long_description`
+- `mission`, `vision` (associations)
+- `services` (text[]), `products` (text[])
+- `executives` jsonb — `[{role, name}]` (associations: President, VP, Secretary, Treasurer)
+- `director_name` (corporate)
+- `contact_name`, `phone`, `email`, `website`
+- `physical_address`, `postal_address`, `country` (default Ghana), `region`
+- `logo_url`, `cover_image_url`
+- `category` (e.g. Pineapples, Vegetables, Mangoes, Coconut, Roots & Tubers, Consultancy)
+- `featured` boolean, `display_order` int, `published` boolean
 
-- **Last login + login history** — small audit log table (`auth_events`: user_id, event, ip, user_agent, created_at) populated via `onAuthStateChange`, shown in Security tab
-- **Connected accounts** — if Google OAuth is enabled, show linked providers with unlink option
-- **Recovery codes download** — generated alongside TOTP enrollment, downloadable as .txt
-- **Password strength meter + HIBP check** — enable `password_hibp_enabled` via `configure_auth` so leaked passwords are rejected
-- **Session timeout warning** — toast 2 min before token refresh fails
+RLS:
+- Public `SELECT` where `published = true`.
+- Admin manages all (insert/update/delete) via `has_role(auth.uid(),'admin')`.
+- Explicit `GRANT SELECT TO anon, authenticated`; full grants to `authenticated` gated by admin policy; `service_role` ALL.
 
-## Technical changes
+Storage: reuse existing public `content` bucket for logos under `directory/logos/`.
 
-**New files**
-- `src/routes/account.tsx` — layout with sidebar tabs + `<Outlet />`
-- `src/routes/account.profile.tsx`
-- `src/routes/account.security.tsx` (absorbs existing change-password logic)
-- `src/routes/account.sessions.tsx`
-- `src/routes/account.notifications.tsx`
-- `src/lib/account.functions.ts` — server fns: `updateProfile`, `listSessions`, `revokeSession`, `revokeAllOtherSessions`, `getLoginHistory`
-- `src/components/account/MfaEnrollDialog.tsx`
-- `src/components/account/MfaChallengeForm.tsx`
+## Admin manager
 
-**Edited files**
-- `src/routes/admin.login.tsx` & `src/routes/login.tsx` — handle MFA challenge after password success
-- `src/routes/admin.tsx` — add user menu with "Account Settings" + "Sign out"
-- `src/routes/dashboard.tsx` — same user menu
-- `src/components/auth/AuthProvider.tsx` — expose MFA helpers, AAL level
+New route `/admin/directory-entries` (linked from admin sidebar; rename existing `/admin/directory` link to "Member visibility" to avoid confusion, or fold it into a tabbed page — see Open Question 1):
 
-**Database migration**
-- `auth_events` table (user_id, event_type, ip, user_agent, created_at) + RLS: user can read own
-- Optional `account_preferences` table (user_id, require_mfa, notification_email_enabled, …)
+- List with live search, type filter, published toggle, drag-style display order, "Featured" toggle.
+- Create / Edit modal with all fields above; logo upload via existing `uploadImage` helper.
+- Dynamic executives editor (add/remove rows).
+- Products / services as tag inputs.
+- Delete with confirmation.
 
-**Auth config**
-- Enable `password_hibp_enabled: true` via `configure_auth`
-- MFA (TOTP) is enabled by default on Supabase — no config change needed
+Server fns in `src/lib/directory.functions.ts`:
+- `listDirectory()` — public, merges curated + approved members.
+- `getDirectoryEntry(slug)` — public.
+- `upsertDirectoryEntry(...)` — admin only (`requireSupabaseAuth` + role check).
+- `deleteDirectoryEntry(id)` — admin only.
+
+## Seed data
+
+Insert migration that loads all entries from the uploaded files:
+
+- **6 Associations**: SPEG, GROCTEU, GAVEX, VEPEAG, Yilo Krobo Mango Farmers Association, Coconut Federation Ghana — with mission, vision, services, executives, full contacts.
+- **~25 Corporate Members**: Mount Sunset Farms, Farm 360, Iribov West Africa, Kaleawo, Touch Skies, Green Earth, Panaasa, Rosswood, Yeboah Kwesi Farms, S.K. Essel Farms, De-Vault Farms, Conyx Merchantile, Vivifos, Martinkings, Shrigan Farms, RBD Organic Agro, Yea Ecstasy, HJA Africa, Adinkrah-Heritage, Shapes PRO, Vedent, Veroni Ventures, Gyarko Farms, Mitish Farms, Eco Supreme, Tiwaa Farms, Plantation Hub Africa, GAPS Consults, Aseda Foods.
+
+Logos left null — admin uploads them later (the parsed images are low-res page extracts, not clean logos).
+
+## Files
+
+Created:
+- `supabase/migrations/<ts>_directory_entries.sql` — table, enum, RLS, grants, seed inserts.
+- `src/lib/directory.functions.ts` — server fns.
+- `src/routes/directory.tsx` — public list + live search.
+- `src/routes/directory.$slug.tsx` — public detail page (SEO-friendly).
+- `src/routes/admin.directory-entries.tsx` — admin manager.
+- `src/components/directory/DirectoryCard.tsx`, `DirectoryFilters.tsx`, `ExecutivesEditor.tsx`.
+
+Edited:
+- `src/routes/admin.tsx` — add sidebar link "Directory Entries".
+- `src/components/site/SiteHeader.tsx` — add "Directory" nav link.
+- `src/integrations/supabase/types.ts` — auto-regenerated after migration.
+
+No edits to `client.ts`, `client.server.ts`, `auth-middleware.ts`, `.env`, or `config.toml`.
 
 ## Open questions
 
-1. Should MFA be **required** for admin/staff/moderator on next login, or **optional** (recommended only)?
-2. Should the existing `/account/change-password` URL stay (redirect to `/account/security`) or be removed?
-3. For members specifically: do you want the Profile tab to write to the existing `members` table fields, or a separate `profiles` table?
+1. The existing `/admin/directory` page toggles visibility of member_profiles in the directory. Keep it as-is and add `/admin/directory-entries` separately, or merge both into one tabbed page (`Curated entries` | `Member visibility`)? **Default: merge into one tabbed page** unless you say otherwise.
+2. Detail view: full page at `/directory/$slug` (better SEO, shareable) vs modal-only (faster, no extra route). **Default: full page** for SEO.
