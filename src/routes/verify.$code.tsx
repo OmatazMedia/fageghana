@@ -17,17 +17,13 @@ function VerifyPage() {
 
   useEffect(() => {
     void (async () => {
-      const { data: rows } = await supabase.rpc("verify_certificate" as any, { _code: code });
-      const data = Array.isArray(rows) ? rows[0] : rows;
-      setCert(data);
-      if (data?.template_id) {
-        const { data: t } = await supabase
-          .from("certificate_templates")
-          .select("*")
-          .eq("id", data.template_id)
-          .maybeSingle();
-        setTemplate(t);
-      }
+      const { data } = await supabase.rpc(
+        "verify_certificate_with_template" as any,
+        { _code: code },
+      );
+      const payload = data as { certificate: any; template: any } | null;
+      setCert(payload?.certificate ?? null);
+      setTemplate(payload?.template ?? null);
       setLoading(false);
     })();
   }, [code]);
