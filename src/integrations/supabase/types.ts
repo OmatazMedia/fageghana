@@ -277,6 +277,99 @@ export type Database = {
         }
         Relationships: []
       }
+      directory_entries: {
+        Row: {
+          category: string | null
+          company_name: string
+          contact_name: string | null
+          country: string
+          cover_image_url: string | null
+          created_at: string
+          director_name: string | null
+          display_order: number
+          email: string | null
+          entry_type: Database["public"]["Enums"]["directory_entry_type"]
+          executives: Json
+          featured: boolean
+          id: string
+          logo_url: string | null
+          long_description: string | null
+          mission: string | null
+          phone: string | null
+          physical_address: string | null
+          postal_address: string | null
+          products: string[]
+          published: boolean
+          region: string | null
+          services: string[]
+          short_description: string | null
+          slug: string
+          updated_at: string
+          vision: string | null
+          website: string | null
+        }
+        Insert: {
+          category?: string | null
+          company_name: string
+          contact_name?: string | null
+          country?: string
+          cover_image_url?: string | null
+          created_at?: string
+          director_name?: string | null
+          display_order?: number
+          email?: string | null
+          entry_type?: Database["public"]["Enums"]["directory_entry_type"]
+          executives?: Json
+          featured?: boolean
+          id?: string
+          logo_url?: string | null
+          long_description?: string | null
+          mission?: string | null
+          phone?: string | null
+          physical_address?: string | null
+          postal_address?: string | null
+          products?: string[]
+          published?: boolean
+          region?: string | null
+          services?: string[]
+          short_description?: string | null
+          slug: string
+          updated_at?: string
+          vision?: string | null
+          website?: string | null
+        }
+        Update: {
+          category?: string | null
+          company_name?: string
+          contact_name?: string | null
+          country?: string
+          cover_image_url?: string | null
+          created_at?: string
+          director_name?: string | null
+          display_order?: number
+          email?: string | null
+          entry_type?: Database["public"]["Enums"]["directory_entry_type"]
+          executives?: Json
+          featured?: boolean
+          id?: string
+          logo_url?: string | null
+          long_description?: string | null
+          mission?: string | null
+          phone?: string | null
+          physical_address?: string | null
+          postal_address?: string | null
+          products?: string[]
+          published?: boolean
+          region?: string | null
+          services?: string[]
+          short_description?: string | null
+          slug?: string
+          updated_at?: string
+          vision?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       email_log: {
         Row: {
           created_at: string
@@ -1411,6 +1504,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "editor" | "user" | "staff" | "moderator"
       application_status: "new" | "reviewing" | "approved" | "rejected"
+      directory_entry_type: "association" | "corporate"
       media_type: "photo" | "video"
       membership_tier: "associate" | "corporate" | "standard"
       payment_status: "pending" | "confirmed" | "rejected"
@@ -1545,6 +1639,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "editor", "user", "staff", "moderator"],
       application_status: ["new", "reviewing", "approved", "rejected"],
+      directory_entry_type: ["association", "corporate"],
       media_type: ["photo", "video"],
       membership_tier: ["associate", "corporate", "standard"],
       payment_status: ["pending", "confirmed", "rejected"],
