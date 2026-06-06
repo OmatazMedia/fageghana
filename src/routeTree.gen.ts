@@ -17,6 +17,7 @@ import { Route as NewsRouteImport } from './routes/news'
 import { Route as MembershipRouteImport } from './routes/membership'
 import { Route as MediaRouteImport } from './routes/media'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DirectoryRouteImport } from './routes/directory'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -27,6 +28,7 @@ import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
 import { Route as ReceiptIdRouteImport } from './routes/receipt.$id'
 import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
+import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -46,6 +48,7 @@ import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
 import { Route as AdminEmailTemplatesRouteImport } from './routes/admin.email-templates'
 import { Route as AdminEmailSettingsRouteImport } from './routes/admin.email-settings'
+import { Route as AdminDirectoryEntriesRouteImport } from './routes/admin.directory-entries'
 import { Route as AdminDirectoryRouteImport } from './routes/admin.directory'
 import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
 import { Route as AdminCertIssuedRouteImport } from './routes/admin.cert-issued'
@@ -100,6 +103,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DirectoryRoute = DirectoryRouteImport.update({
+  id: '/directory',
+  path: '/directory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -149,6 +157,11 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => NewsRoute,
+} as any)
+const DirectorySlugRoute = DirectorySlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => DirectoryRoute,
 } as any)
 const CertificateIdRoute = CertificateIdRouteImport.update({
   id: '/certificate/$id',
@@ -245,6 +258,11 @@ const AdminEmailSettingsRoute = AdminEmailSettingsRouteImport.update({
   path: '/email-settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDirectoryEntriesRoute = AdminDirectoryEntriesRouteImport.update({
+  id: '/directory-entries',
+  path: '/directory-entries',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDirectoryRoute = AdminDirectoryRouteImport.update({
   id: '/directory',
   path: '/directory',
@@ -320,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
+  '/directory': typeof DirectoryRouteWithChildren
   '/login': typeof LoginRoute
   '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
@@ -338,6 +357,7 @@ export interface FileRoutesByFullPath {
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/directory': typeof AdminDirectoryRoute
+  '/admin/directory-entries': typeof AdminDirectoryEntriesRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -357,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
+  '/directory/$slug': typeof DirectorySlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/payment/callback': typeof PaymentCallbackRoute
   '/receipt/$id': typeof ReceiptIdRoute
@@ -372,6 +393,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
+  '/directory': typeof DirectoryRouteWithChildren
   '/login': typeof LoginRoute
   '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
@@ -390,6 +412,7 @@ export interface FileRoutesByTo {
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/directory': typeof AdminDirectoryRoute
+  '/admin/directory-entries': typeof AdminDirectoryEntriesRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -409,6 +432,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
+  '/directory/$slug': typeof DirectorySlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/payment/callback': typeof PaymentCallbackRoute
   '/receipt/$id': typeof ReceiptIdRoute
@@ -425,6 +449,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
+  '/directory': typeof DirectoryRouteWithChildren
   '/login': typeof LoginRoute
   '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
@@ -443,6 +468,7 @@ export interface FileRoutesById {
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/directory': typeof AdminDirectoryRoute
+  '/admin/directory-entries': typeof AdminDirectoryEntriesRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -462,6 +488,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
+  '/directory/$slug': typeof DirectorySlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/payment/callback': typeof PaymentCallbackRoute
   '/receipt/$id': typeof ReceiptIdRoute
@@ -479,6 +506,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/contact'
     | '/dashboard'
+    | '/directory'
     | '/login'
     | '/media'
     | '/membership'
@@ -497,6 +525,7 @@ export interface FileRouteTypes {
     | '/admin/cert-issued'
     | '/admin/certificates'
     | '/admin/directory'
+    | '/admin/directory-entries'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -516,6 +545,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/apply/$tier'
     | '/certificate/$id'
+    | '/directory/$slug'
     | '/news/$slug'
     | '/payment/callback'
     | '/receipt/$id'
@@ -531,6 +561,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/contact'
     | '/dashboard'
+    | '/directory'
     | '/login'
     | '/media'
     | '/membership'
@@ -549,6 +580,7 @@ export interface FileRouteTypes {
     | '/admin/cert-issued'
     | '/admin/certificates'
     | '/admin/directory'
+    | '/admin/directory-entries'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -568,6 +600,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/apply/$tier'
     | '/certificate/$id'
+    | '/directory/$slug'
     | '/news/$slug'
     | '/payment/callback'
     | '/receipt/$id'
@@ -583,6 +616,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/contact'
     | '/dashboard'
+    | '/directory'
     | '/login'
     | '/media'
     | '/membership'
@@ -601,6 +635,7 @@ export interface FileRouteTypes {
     | '/admin/cert-issued'
     | '/admin/certificates'
     | '/admin/directory'
+    | '/admin/directory-entries'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -620,6 +655,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/apply/$tier'
     | '/certificate/$id'
+    | '/directory/$slug'
     | '/news/$slug'
     | '/payment/callback'
     | '/receipt/$id'
@@ -636,6 +672,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRoute
+  DirectoryRoute: typeof DirectoryRouteWithChildren
   LoginRoute: typeof LoginRoute
   MediaRoute: typeof MediaRoute
   MembershipRoute: typeof MembershipRoute
@@ -712,6 +749,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/directory': {
+      id: '/directory'
+      path: '/directory'
+      fullPath: '/directory'
+      preLoaderRoute: typeof DirectoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -781,6 +825,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/news/$slug'
       preLoaderRoute: typeof NewsSlugRouteImport
       parentRoute: typeof NewsRoute
+    }
+    '/directory/$slug': {
+      id: '/directory/$slug'
+      path: '/$slug'
+      fullPath: '/directory/$slug'
+      preLoaderRoute: typeof DirectorySlugRouteImport
+      parentRoute: typeof DirectoryRoute
     }
     '/certificate/$id': {
       id: '/certificate/$id'
@@ -915,6 +966,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEmailSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/directory-entries': {
+      id: '/admin/directory-entries'
+      path: '/directory-entries'
+      fullPath: '/admin/directory-entries'
+      preLoaderRoute: typeof AdminDirectoryEntriesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/directory': {
       id: '/admin/directory'
       path: '/directory'
@@ -1030,6 +1088,7 @@ interface AdminRouteChildren {
   AdminCertIssuedRoute: typeof AdminCertIssuedRoute
   AdminCertificatesRoute: typeof AdminCertificatesRoute
   AdminDirectoryRoute: typeof AdminDirectoryRoute
+  AdminDirectoryEntriesRoute: typeof AdminDirectoryEntriesRoute
   AdminEmailSettingsRoute: typeof AdminEmailSettingsRoute
   AdminEmailTemplatesRoute: typeof AdminEmailTemplatesRoute
   AdminFormsRoute: typeof AdminFormsRoute
@@ -1057,6 +1116,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCertIssuedRoute: AdminCertIssuedRoute,
   AdminCertificatesRoute: AdminCertificatesRoute,
   AdminDirectoryRoute: AdminDirectoryRoute,
+  AdminDirectoryEntriesRoute: AdminDirectoryEntriesRoute,
   AdminEmailSettingsRoute: AdminEmailSettingsRoute,
   AdminEmailTemplatesRoute: AdminEmailTemplatesRoute,
   AdminFormsRoute: AdminFormsRoute,
@@ -1077,6 +1137,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface DirectoryRouteChildren {
+  DirectorySlugRoute: typeof DirectorySlugRoute
+}
+
+const DirectoryRouteChildren: DirectoryRouteChildren = {
+  DirectorySlugRoute: DirectorySlugRoute,
+}
+
+const DirectoryRouteWithChildren = DirectoryRoute._addFileChildren(
+  DirectoryRouteChildren,
+)
 
 interface NewsRouteChildren {
   NewsSlugRoute: typeof NewsSlugRoute
@@ -1106,6 +1178,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRoute,
+  DirectoryRoute: DirectoryRouteWithChildren,
   LoginRoute: LoginRoute,
   MediaRoute: MediaRoute,
   MembershipRoute: MembershipRoute,

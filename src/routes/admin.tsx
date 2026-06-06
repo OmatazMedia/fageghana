@@ -29,6 +29,7 @@ import {
   TrendingUp,
   TrendingDown,
   ShieldCheck,
+  Building2,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,7 +60,8 @@ const navSections: NavSection[] = [
     items: [
       { to: "/admin/applications", label: "Applications", icon: Users },
       { to: "/admin/members", label: "Members", icon: UserPlus },
-      { to: "/admin/directory", label: "Directory", icon: Users },
+      { to: "/admin/directory", label: "Member Visibility", icon: Users },
+      { to: "/admin/directory-entries", label: "Directory Entries", icon: Building2 },
       { to: "/admin/readiness", label: "Readiness", icon: ListChecks },
       { to: "/admin/payments", label: "Payments", icon: CreditCard },
       { to: "/admin/tickets", label: "Support", icon: MessageCircle },
