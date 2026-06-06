@@ -20,36 +20,22 @@ function CertificatePage() {
 
   useEffect(() => {
     void (async () => {
-      const { data: c } = await supabase
-        .from("certificates")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-      if (!c) {
+      const { data, error: rpcErr } = await supabase.rpc(
+        "get_certificate_with_template" as any,
+        { _cert_id: id },
+      );
+      if (rpcErr || !data) {
+        setError("Certificate not found or you are not authorized to view it");
+        return;
+      }
+      const payload = data as { certificate: any; template: any };
+      if (!payload.certificate) {
         setError("Certificate not found");
         return;
       }
-      setCert(c);
-      let tpl: any = null;
-      if (c.template_id) {
-        const { data } = await supabase
-          .from("certificate_templates")
-          .select("*")
-          .eq("id", c.template_id)
-          .maybeSingle();
-        tpl = data;
-      }
-      if (!tpl) {
-        const { data } = await supabase
-          .from("certificate_templates")
-          .select("*")
-          .eq("tier", c.tier)
-          .eq("is_active", true)
-          .maybeSingle();
-        tpl = data;
-      }
-      if (!tpl) setError("No template configured for this tier");
-      setTemplate(tpl);
+      setCert(payload.certificate);
+      if (!payload.template) setError("No template configured for this tier");
+      setTemplate(payload.template);
     })();
   }, [id]);
 
