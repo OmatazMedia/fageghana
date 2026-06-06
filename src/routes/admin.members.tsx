@@ -17,7 +17,7 @@ import {
   updateMember,
   changeMemberTier,
   deleteMember,
-} from "@/server/members.functions";
+} from "@/lib/members.functions";
 
 export const Route = createFileRoute("/admin/members")({
   head: () => ({ meta: [{ title: "Members — Admin" }] }),

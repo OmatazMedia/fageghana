@@ -16,7 +16,7 @@ import {
   changeUserRole,
   deleteAdminUser,
   type AdminUserRow,
-} from "@/server/users.functions";
+} from "@/lib/users.functions";
 
 export const Route = createFileRoute("/admin/users")({
   head: () => ({ meta: [{ title: "User Management — Admin" }] }),
