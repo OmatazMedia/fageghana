@@ -20,6 +20,7 @@ const aboutItems = [
 ] as const;
 
 const navItems = [
+  { to: "/directory", label: "Directory" },
   { to: "/news", label: "News & Blog" },
   { to: "/activities", label: "Events" },
   { to: "/media", label: "Media" },
