@@ -67,6 +67,20 @@ export const Route = createFileRoute("/directory/$slug")({
 function DetailPage() {
   const e = Route.useLoaderData() as any;
   const [related, setRelated] = useState<any[]>([]);
+  const [customDefs, setCustomDefs] = useState<CustomFieldDef[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("directory_custom_field_defs")
+      .select("*")
+      .eq("active", true)
+      .order("display_order")
+      .then(({ data }) =>
+        setCustomDefs(
+          (data ?? []).map((d: any) => ({ ...d, options: d.options ?? [] })) as CustomFieldDef[],
+        ),
+      );
+  }, []);
 
   useEffect(() => {
     supabase
