@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, X, Pencil, Trash2, Upload, MoreHorizontal, Star } from "lucide-react";
+import { Plus, X, Pencil, Trash2, Upload, MoreHorizontal, Star, Settings2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import {
@@ -11,6 +11,10 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { uploadImage } from "@/lib/uploadImage";
+import {
+  DynamicFieldRenderer,
+  type CustomFieldDef,
+} from "@/components/admin/DynamicFieldRenderer";
 
 export const Route = createFileRoute("/admin/directory-entries")({
   head: () => ({ meta: [{ title: "Directory Entries — Admin" }] }),
