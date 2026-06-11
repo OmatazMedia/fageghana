@@ -277,6 +277,51 @@ export type Database = {
         }
         Relationships: []
       }
+      directory_custom_field_defs: {
+        Row: {
+          active: boolean
+          applies_to: string
+          created_at: string
+          display_order: number
+          field_type: string
+          help_text: string | null
+          id: string
+          key: string
+          label: string
+          options: Json
+          required: boolean
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          applies_to?: string
+          created_at?: string
+          display_order?: number
+          field_type: string
+          help_text?: string | null
+          id?: string
+          key: string
+          label: string
+          options?: Json
+          required?: boolean
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          applies_to?: string
+          created_at?: string
+          display_order?: number
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          key?: string
+          label?: string
+          options?: Json
+          required?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       directory_entries: {
         Row: {
           category: string | null
@@ -285,6 +330,7 @@ export type Database = {
           country: string
           cover_image_url: string | null
           created_at: string
+          custom_fields: Json
           director_name: string | null
           display_order: number
           email: string | null
@@ -315,6 +361,7 @@ export type Database = {
           country?: string
           cover_image_url?: string | null
           created_at?: string
+          custom_fields?: Json
           director_name?: string | null
           display_order?: number
           email?: string | null
@@ -345,6 +392,7 @@ export type Database = {
           country?: string
           cover_image_url?: string | null
           created_at?: string
+          custom_fields?: Json
           director_name?: string | null
           display_order?: number
           email?: string | null
@@ -1518,10 +1566,12 @@ export type Database = {
       }
     }
     Functions: {
+      admin_dump_table: { Args: { _name: string }; Returns: Json }
       admin_exec_sql: { Args: { sql: string }; Returns: undefined }
       admin_list_enums: { Args: never; Returns: Json }
       admin_list_functions: { Args: never; Returns: Json }
       admin_list_policies: { Args: never; Returns: Json }
+      admin_list_public_tables: { Args: never; Returns: Json }
       admin_list_sequences: { Args: never; Returns: Json }
       admin_list_tables: { Args: never; Returns: Json }
       delete_blog_reaction: {
