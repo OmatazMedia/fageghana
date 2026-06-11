@@ -198,7 +198,22 @@ function DetailPage() {
                 </ul>
               </Section>
             )}
+            {customDefs
+              .filter(
+                (d) =>
+                  (d.applies_to === "both" || d.applies_to === e.entry_type) &&
+                  e.custom_fields &&
+                  e.custom_fields[d.key] !== undefined &&
+                  e.custom_fields[d.key] !== null &&
+                  e.custom_fields[d.key] !== "",
+              )
+              .map((d) => (
+                <Section key={d.id} title={d.label}>
+                  {renderCustomFieldValue(d, e.custom_fields[d.key])}
+                </Section>
+              ))}
           </div>
+
 
           <aside className="space-y-4">
             <Section title="Contact">
