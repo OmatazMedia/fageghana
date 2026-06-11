@@ -48,6 +48,7 @@ type Entry = {
   featured: boolean;
   display_order: number;
   published: boolean;
+  custom_fields: Record<string, any>;
 };
 
 const blank: Entry = {
