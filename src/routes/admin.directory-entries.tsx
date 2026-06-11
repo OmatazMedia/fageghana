@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, X, Pencil, Trash2, Upload, MoreHorizontal, Star } from "lucide-react";
+import { Plus, X, Pencil, Trash2, Upload, MoreHorizontal, Star, Settings2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import {
@@ -11,6 +11,10 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { uploadImage } from "@/lib/uploadImage";
+import {
+  DynamicFieldRenderer,
+  type CustomFieldDef,
+} from "@/components/admin/DynamicFieldRenderer";
 
 export const Route = createFileRoute("/admin/directory-entries")({
   head: () => ({ meta: [{ title: "Directory Entries — Admin" }] }),
@@ -44,6 +48,7 @@ type Entry = {
   featured: boolean;
   display_order: number;
   published: boolean;
+  custom_fields: Record<string, any>;
 };
 
 const blank: Entry = {
@@ -72,6 +77,7 @@ const blank: Entry = {
   featured: false,
   display_order: 0,
   published: true,
+  custom_fields: {},
 };
 
 function slugify(s: string) {
@@ -166,6 +172,7 @@ function DirectoryEntriesAdmin() {
       featured: e.featured,
       display_order: e.display_order,
       published: e.published,
+      custom_fields: e.custom_fields ?? {},
     };
     const res = e.id
       ? await supabase.from("directory_entries").update(payload).eq("id", e.id)
@@ -195,12 +202,20 @@ function DirectoryEntriesAdmin() {
       title="Directory Entries"
       description="Curated entries for the public exporter directory (associations & corporate members)."
       action={
-        <button
-          onClick={() => setEditing(blank)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" /> New entry
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/admin/directory-fields"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            <Settings2 className="h-4 w-4" /> Manage form fields
+          </Link>
+          <button
+            onClick={() => setEditing({ ...blank })}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" /> New entry
+          </button>
+        </div>
       }
     >
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -603,6 +618,12 @@ function EntryModal({
               Published
             </label>
           </div>
+
+          <CustomFieldsSection
+            entryType={e.entry_type}
+            value={e.custom_fields ?? {}}
+            onChange={(v) => update("custom_fields", v)}
+          />
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
@@ -672,6 +693,68 @@ function ExecutivesEditor({
     </div>
   );
 }
+
+function CustomFieldsSection({
+  entryType,
+  value,
+  onChange,
+}: {
+  entryType: "association" | "corporate";
+  value: Record<string, any>;
+  onChange: (v: Record<string, any>) => void;
+}) {
+  const [defs, setDefs] = useState<CustomFieldDef[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase
+        .from("directory_custom_field_defs")
+        .select("*")
+        .eq("active", true)
+        .order("display_order");
+      setDefs(
+        (data ?? []).map((d: any) => ({ ...d, options: d.options ?? [] })) as CustomFieldDef[],
+      );
+      setLoading(false);
+    })();
+  }, []);
+  const visible = defs.filter(
+    (d) => d.applies_to === "both" || d.applies_to === entryType,
+  );
+  if (loading) return null;
+  if (visible.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+        No custom fields defined.{" "}
+        <Link to="/admin/directory-fields" className="text-primary hover:underline">
+          Add fields →
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Custom fields</h3>
+        <Link
+          to="/admin/directory-fields"
+          className="text-xs text-primary hover:underline"
+        >
+          Manage fields
+        </Link>
+      </div>
+      {visible.map((def) => (
+        <DynamicFieldRenderer
+          key={def.id}
+          def={def}
+          value={value[def.key]}
+          onChange={(v) => onChange({ ...value, [def.key]: v })}
+        />
+      ))}
+    </div>
+  );
+}
+
 
 function ConfirmDialog({
   title,

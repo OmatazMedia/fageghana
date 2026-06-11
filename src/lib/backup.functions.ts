@@ -146,18 +146,34 @@ export const createBackup = createServerFn({ method: "POST" })
       `Schema: ${tables.length} tables, ${enums.length} enums, ${fns.length} functions, ${policies.length} policies`,
     );
 
-    // Data
-    for (const t of tables) {
-      const tableName = t.name as string;
-      // skip noisy/system-ish? None to skip in public schema for this app.
+    // Data — auto-discover every public table so newly-added tables are included
+    const discoveredRes = await supabaseAdmin.rpc("admin_list_public_tables");
+    const discoveredNames: string[] = Array.isArray(discoveredRes.data)
+      ? (discoveredRes.data as string[])
+      : (tables.map((t: any) => t.name) as string[]);
+    const allTableNames = Array.from(
+      new Set([...(tables.map((t: any) => t.name) as string[]), ...discoveredNames]),
+    ).sort();
+
+    for (const tableName of allTableNames) {
       let from = 0;
       const lines: string[] = [];
+      let usedFallback = false;
       while (true) {
         const { data, error } = await (supabaseAdmin as any)
           .from(tableName)
           .select("*")
           .range(from, from + PAGE - 1);
-        if (error) throw new Error(`dump ${tableName}: ${error.message}`);
+        if (error) {
+          const dumpRes = await supabaseAdmin.rpc("admin_dump_table", { _name: tableName });
+          if (dumpRes.error) {
+            log.push(`Skip ${tableName}: ${error.message}`);
+            break;
+          }
+          for (const row of (dumpRes.data as any[]) ?? []) lines.push(JSON.stringify(row));
+          usedFallback = true;
+          break;
+        }
         if (!data || data.length === 0) break;
         for (const row of data) lines.push(JSON.stringify(row));
         if (data.length < PAGE) break;
@@ -165,7 +181,7 @@ export const createBackup = createServerFn({ method: "POST" })
       }
       zip.file(`data/${tableName}.jsonl`, lines.join("\n"));
       counts[tableName] = lines.length;
-      log.push(`Data: ${tableName} → ${lines.length} rows`);
+      log.push(`Data: ${tableName} → ${lines.length} rows${usedFallback ? " (rpc)" : ""}`);
     }
 
     // Auth users

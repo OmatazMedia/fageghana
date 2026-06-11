@@ -48,6 +48,7 @@ import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
 import { Route as AdminEmailTemplatesRouteImport } from './routes/admin.email-templates'
 import { Route as AdminEmailSettingsRouteImport } from './routes/admin.email-settings'
+import { Route as AdminDirectoryFieldsRouteImport } from './routes/admin.directory-fields'
 import { Route as AdminDirectoryEntriesRouteImport } from './routes/admin.directory-entries'
 import { Route as AdminDirectoryRouteImport } from './routes/admin.directory'
 import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
@@ -258,6 +259,11 @@ const AdminEmailSettingsRoute = AdminEmailSettingsRouteImport.update({
   path: '/email-settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDirectoryFieldsRoute = AdminDirectoryFieldsRouteImport.update({
+  id: '/directory-fields',
+  path: '/directory-fields',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDirectoryEntriesRoute = AdminDirectoryEntriesRouteImport.update({
   id: '/directory-entries',
   path: '/directory-entries',
@@ -358,6 +364,7 @@ export interface FileRoutesByFullPath {
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/directory': typeof AdminDirectoryRoute
   '/admin/directory-entries': typeof AdminDirectoryEntriesRoute
+  '/admin/directory-fields': typeof AdminDirectoryFieldsRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -413,6 +420,7 @@ export interface FileRoutesByTo {
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/directory': typeof AdminDirectoryRoute
   '/admin/directory-entries': typeof AdminDirectoryEntriesRoute
+  '/admin/directory-fields': typeof AdminDirectoryFieldsRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -469,6 +477,7 @@ export interface FileRoutesById {
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/directory': typeof AdminDirectoryRoute
   '/admin/directory-entries': typeof AdminDirectoryEntriesRoute
+  '/admin/directory-fields': typeof AdminDirectoryFieldsRoute
   '/admin/email-settings': typeof AdminEmailSettingsRoute
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
@@ -526,6 +535,7 @@ export interface FileRouteTypes {
     | '/admin/certificates'
     | '/admin/directory'
     | '/admin/directory-entries'
+    | '/admin/directory-fields'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -581,6 +591,7 @@ export interface FileRouteTypes {
     | '/admin/certificates'
     | '/admin/directory'
     | '/admin/directory-entries'
+    | '/admin/directory-fields'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -636,6 +647,7 @@ export interface FileRouteTypes {
     | '/admin/certificates'
     | '/admin/directory'
     | '/admin/directory-entries'
+    | '/admin/directory-fields'
     | '/admin/email-settings'
     | '/admin/email-templates'
     | '/admin/forms'
@@ -966,6 +978,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEmailSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/directory-fields': {
+      id: '/admin/directory-fields'
+      path: '/directory-fields'
+      fullPath: '/admin/directory-fields'
+      preLoaderRoute: typeof AdminDirectoryFieldsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/directory-entries': {
       id: '/admin/directory-entries'
       path: '/directory-entries'
@@ -1089,6 +1108,7 @@ interface AdminRouteChildren {
   AdminCertificatesRoute: typeof AdminCertificatesRoute
   AdminDirectoryRoute: typeof AdminDirectoryRoute
   AdminDirectoryEntriesRoute: typeof AdminDirectoryEntriesRoute
+  AdminDirectoryFieldsRoute: typeof AdminDirectoryFieldsRoute
   AdminEmailSettingsRoute: typeof AdminEmailSettingsRoute
   AdminEmailTemplatesRoute: typeof AdminEmailTemplatesRoute
   AdminFormsRoute: typeof AdminFormsRoute
@@ -1117,6 +1137,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCertificatesRoute: AdminCertificatesRoute,
   AdminDirectoryRoute: AdminDirectoryRoute,
   AdminDirectoryEntriesRoute: AdminDirectoryEntriesRoute,
+  AdminDirectoryFieldsRoute: AdminDirectoryFieldsRoute,
   AdminEmailSettingsRoute: AdminEmailSettingsRoute,
   AdminEmailTemplatesRoute: AdminEmailTemplatesRoute,
   AdminFormsRoute: AdminFormsRoute,
@@ -1199,13 +1220,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
