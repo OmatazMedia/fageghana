@@ -172,6 +172,7 @@ function DirectoryEntriesAdmin() {
       featured: e.featured,
       display_order: e.display_order,
       published: e.published,
+      custom_fields: e.custom_fields ?? {},
     };
     const res = e.id
       ? await supabase.from("directory_entries").update(payload).eq("id", e.id)
