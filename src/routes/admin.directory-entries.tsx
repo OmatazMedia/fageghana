@@ -77,6 +77,7 @@ const blank: Entry = {
   featured: false,
   display_order: 0,
   published: true,
+  custom_fields: {},
 };
 
 function slugify(s: string) {
