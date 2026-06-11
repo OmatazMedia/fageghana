@@ -1,93 +1,53 @@
-# FAGE Exporter Directory
+## Goal
 
-Build a public directory at `/directory` that combines admin-curated entries with approved member profiles, plus an admin manager for the curated entries. Seed it with everything from the uploaded PDF and DOCX.
+1. Give admins a rich, **dynamic form** to create/edit a directory entry — including logo, mission, executives, products, etc. — plus the ability to **define extra custom fields** (text, textarea, number, email, URL, phone, dropdown, radio, checkboxes, image upload, file upload) without touching code or schema.
+2. Make the **backup system auto-discover every public table** so newly-created tables and columns are included automatically.
 
-## What the visitor sees
+## Approach
 
-`/directory` (public, no login required):
+### Part A — Directory form
 
-- Sticky search bar with **live search** on company name, contact name/director, email, phone, products, country.
-- Filters: type (All / Associations / Corporate Members), category/products.
-- Result grid of cards: logo, company name, type badge, products, country, "View details" button.
-- Detail view (modal or `/directory/$slug`): logo, full description, mission/vision (associations), services, executives (associations), director (corporate), products, full contact block (address, phone, email, website).
-- SEO: per-route `head()` with title, meta description, OG image (entry logo).
-- Empty state + skeleton loaders.
+- Keep the existing `directory_entries` columns as the "core" structured form (logo, cover, company_name, slug, mission, vision, services, products, executives, contact, address, etc.).
+- Add one new JSONB column `custom_fields` on `directory_entries` to store admin-defined extras. **No ALTER TABLE per field** = safe + auto-backed-up.
+- New table `directory_custom_field_defs` storing the schema of admin-defined fields:
+  - `key` (slug), `label`, `type` (text | textarea | number | email | url | phone | dropdown | radio | checkboxes | image | file), `options` (jsonb for choice fields), `required`, `display_order`, `active`.
+  - RLS: admins manage; public read (so the public directory detail page can render them).
 
-## Data source
+### Part B — Admin UI (`/admin/directory-entries`)
 
-Union of:
-1. New `directory_entries` table (admin-managed, seeded from docs).
-2. Existing `member_profiles` rows where `status='approved' AND directory_visible=true` (already wired in `admin.directory.tsx`).
+- Replace the current modal with a tabbed editor:
+  - **Tab 1 – Core details**: logo + cover upload, entry_type, company_name, slug, category, mission, vision, short/long description, website, email, phone, contact name, region/country, addresses, services (tag input), products (tag input), executives (existing editor), featured/published toggles, display_order.
+  - **Tab 2 – Custom fields**: renders every active field from `directory_custom_field_defs`, writes values into `custom_fields` JSONB. Image/file inputs upload to the `content` bucket and store the public URL.
+- New admin page **`/admin/directory-fields`** — a field-builder:
+  - List, reorder (display_order), add, edit, delete custom field definitions.
+  - When type is dropdown/radio/checkboxes, edit the options list.
+  - Toggle active.
 
-A single public server fn `listDirectory()` merges, de-duplicates by email, and returns one normalized shape so the UI doesn't care which source a row came from.
+### Part C — Public directory detail page
 
-## Database
+- Extend `/directory/$slug` to render any active custom fields below the core profile (image fields show as images, file fields as download links, choice fields as text/badges).
 
-New table `public.directory_entries`:
+### Part D — Auto-discovering backup
 
-- `entry_type` enum: `association` | `corporate`
-- `slug` (unique, used in detail URL)
-- `company_name`, `short_description`, `long_description`
-- `mission`, `vision` (associations)
-- `services` (text[]), `products` (text[])
-- `executives` jsonb — `[{role, name}]` (associations: President, VP, Secretary, Treasurer)
-- `director_name` (corporate)
-- `contact_name`, `phone`, `email`, `website`
-- `physical_address`, `postal_address`, `country` (default Ghana), `region`
-- `logo_url`, `cover_image_url`
-- `category` (e.g. Pineapples, Vegetables, Mangoes, Coconut, Roots & Tubers, Consultancy)
-- `featured` boolean, `display_order` int, `published` boolean
+- Replace the current backup function logic so it queries `information_schema.tables` for every table in `public` (excluding `*_migrations` style internals) and dumps each to JSON in the `backups` bucket under a single timestamped folder, with a `manifest.json` listing tables + row counts + column lists.
+- Implemented via a new `SECURITY DEFINER` RPC `admin_dump_table(table_name text)` that returns `jsonb_agg(t)` for any public table (admin-only), called from the existing backup server function which now iterates discovered tables.
+- Existing scheduled / on-demand backup trigger keeps working — only the table list is now dynamic.
 
-RLS:
-- Public `SELECT` where `published = true`.
-- Admin manages all (insert/update/delete) via `has_role(auth.uid(),'admin')`.
-- Explicit `GRANT SELECT TO anon, authenticated`; full grants to `authenticated` gated by admin policy; `service_role` ALL.
+## Technical Details
 
-Storage: reuse existing public `content` bucket for logos under `directory/logos/`.
+**Migrations**
+- `ALTER TABLE directory_entries ADD COLUMN custom_fields jsonb NOT NULL DEFAULT '{}'::jsonb;`
+- `CREATE TABLE directory_custom_field_defs(...)` + GRANTs + RLS (admin ALL, anon+authenticated SELECT where active).
+- `CREATE FUNCTION admin_list_public_tables()` and `admin_dump_table(_name text)` — both `SECURITY DEFINER`, admin-gated via `has_role(auth.uid(), 'admin')`.
 
-## Admin manager
+**Files**
+- New: `src/routes/admin.directory-fields.tsx`, `src/components/admin/DynamicFieldRenderer.tsx`.
+- Edited: `src/routes/admin.directory-entries.tsx` (tabbed editor + custom fields tab), `src/routes/directory.$slug.tsx` (render custom fields), `src/routes/admin.tsx` (sidebar link), `src/lib/backup.functions.ts` (auto-discover tables).
 
-New route `/admin/directory-entries` (linked from admin sidebar; rename existing `/admin/directory` link to "Member visibility" to avoid confusion, or fold it into a tabbed page — see Open Question 1):
+**Storage**
+- Reuse the existing public `content` bucket for custom image/file uploads under `directory/custom/<entryId>/...`.
 
-- List with live search, type filter, published toggle, drag-style display order, "Featured" toggle.
-- Create / Edit modal with all fields above; logo upload via existing `uploadImage` helper.
-- Dynamic executives editor (add/remove rows).
-- Products / services as tag inputs.
-- Delete with confirmation.
+## Out of scope
 
-Server fns in `src/lib/directory.functions.ts`:
-- `listDirectory()` — public, merges curated + approved members.
-- `getDirectoryEntry(slug)` — public.
-- `upsertDirectoryEntry(...)` — admin only (`requireSupabaseAuth` + role check).
-- `deleteDirectoryEntry(id)` — admin only.
-
-## Seed data
-
-Insert migration that loads all entries from the uploaded files:
-
-- **6 Associations**: SPEG, GROCTEU, GAVEX, VEPEAG, Yilo Krobo Mango Farmers Association, Coconut Federation Ghana — with mission, vision, services, executives, full contacts.
-- **~25 Corporate Members**: Mount Sunset Farms, Farm 360, Iribov West Africa, Kaleawo, Touch Skies, Green Earth, Panaasa, Rosswood, Yeboah Kwesi Farms, S.K. Essel Farms, De-Vault Farms, Conyx Merchantile, Vivifos, Martinkings, Shrigan Farms, RBD Organic Agro, Yea Ecstasy, HJA Africa, Adinkrah-Heritage, Shapes PRO, Vedent, Veroni Ventures, Gyarko Farms, Mitish Farms, Eco Supreme, Tiwaa Farms, Plantation Hub Africa, GAPS Consults, Aseda Foods.
-
-Logos left null — admin uploads them later (the parsed images are low-res page extracts, not clean logos).
-
-## Files
-
-Created:
-- `supabase/migrations/<ts>_directory_entries.sql` — table, enum, RLS, grants, seed inserts.
-- `src/lib/directory.functions.ts` — server fns.
-- `src/routes/directory.tsx` — public list + live search.
-- `src/routes/directory.$slug.tsx` — public detail page (SEO-friendly).
-- `src/routes/admin.directory-entries.tsx` — admin manager.
-- `src/components/directory/DirectoryCard.tsx`, `DirectoryFilters.tsx`, `ExecutivesEditor.tsx`.
-
-Edited:
-- `src/routes/admin.tsx` — add sidebar link "Directory Entries".
-- `src/components/site/SiteHeader.tsx` — add "Directory" nav link.
-- `src/integrations/supabase/types.ts` — auto-regenerated after migration.
-
-No edits to `client.ts`, `client.server.ts`, `auth-middleware.ts`, `.env`, or `config.toml`.
-
-## Open questions
-
-1. The existing `/admin/directory` page toggles visibility of member_profiles in the directory. Keep it as-is and add `/admin/directory-entries` separately, or merge both into one tabbed page (`Curated entries` | `Member visibility`)? **Default: merge into one tabbed page** unless you say otherwise.
-2. Detail view: full page at `/directory/$slug` (better SEO, shareable) vs modal-only (faster, no extra route). **Default: full page** for SEO.
+- True per-field SQL columns (rejected — chose JSON approach).
+- Reordering custom fields via drag-and-drop (will use a numeric order input; drag can come later).
