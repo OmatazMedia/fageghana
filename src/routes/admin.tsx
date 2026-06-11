@@ -62,6 +62,7 @@ const navSections: NavSection[] = [
       { to: "/admin/members", label: "Members", icon: UserPlus },
       { to: "/admin/directory", label: "Member Visibility", icon: Users },
       { to: "/admin/directory-entries", label: "Directory Entries", icon: Building2 },
+      { to: "/admin/directory-fields", label: "Directory Fields", icon: FormInput },
       { to: "/admin/readiness", label: "Readiness", icon: ListChecks },
       { to: "/admin/payments", label: "Payments", icon: CreditCard },
       { to: "/admin/tickets", label: "Support", icon: MessageCircle },
