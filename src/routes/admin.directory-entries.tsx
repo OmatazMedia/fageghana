@@ -202,12 +202,20 @@ function DirectoryEntriesAdmin() {
       title="Directory Entries"
       description="Curated entries for the public exporter directory (associations & corporate members)."
       action={
-        <button
-          onClick={() => setEditing(blank)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" /> New entry
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/admin/directory-fields"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            <Settings2 className="h-4 w-4" /> Manage form fields
+          </Link>
+          <button
+            onClick={() => setEditing({ ...blank })}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" /> New entry
+          </button>
+        </div>
       }
     >
       <div className="mb-4 flex flex-wrap items-center gap-3">
