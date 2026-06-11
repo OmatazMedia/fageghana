@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Mail, Phone, MapPin, Globe, Building2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import {
+  renderCustomFieldValue,
+  type CustomFieldDef,
+} from "@/components/admin/DynamicFieldRenderer";
 
 export const Route = createFileRoute("/directory/$slug")({
   head: ({ loaderData }) => {
