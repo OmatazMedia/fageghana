@@ -694,6 +694,68 @@ function ExecutivesEditor({
   );
 }
 
+function CustomFieldsSection({
+  entryType,
+  value,
+  onChange,
+}: {
+  entryType: "association" | "corporate";
+  value: Record<string, any>;
+  onChange: (v: Record<string, any>) => void;
+}) {
+  const [defs, setDefs] = useState<CustomFieldDef[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase
+        .from("directory_custom_field_defs")
+        .select("*")
+        .eq("active", true)
+        .order("display_order");
+      setDefs(
+        (data ?? []).map((d: any) => ({ ...d, options: d.options ?? [] })) as CustomFieldDef[],
+      );
+      setLoading(false);
+    })();
+  }, []);
+  const visible = defs.filter(
+    (d) => d.applies_to === "both" || d.applies_to === entryType,
+  );
+  if (loading) return null;
+  if (visible.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+        No custom fields defined.{" "}
+        <Link to="/admin/directory-fields" className="text-primary hover:underline">
+          Add fields →
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Custom fields</h3>
+        <Link
+          to="/admin/directory-fields"
+          className="text-xs text-primary hover:underline"
+        >
+          Manage fields
+        </Link>
+      </div>
+      {visible.map((def) => (
+        <DynamicFieldRenderer
+          key={def.id}
+          def={def}
+          value={value[def.key]}
+          onChange={(v) => onChange({ ...value, [def.key]: v })}
+        />
+      ))}
+    </div>
+  );
+}
+
+
 function ConfirmDialog({
   title,
   message,
