@@ -618,6 +618,12 @@ function EntryModal({
               Published
             </label>
           </div>
+
+          <CustomFieldsSection
+            entryType={e.entry_type}
+            value={e.custom_fields ?? {}}
+            onChange={(v) => update("custom_fields", v)}
+          />
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
