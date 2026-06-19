@@ -63,6 +63,7 @@ import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
 import { Route as ApiPublicHubtelCallbackRouteImport } from './routes/api/public/hubtel-callback'
 import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
+import { Route as ApiPublicHooksRunScheduledBackupRouteImport } from './routes/api/public/hooks/run-scheduled-backup'
 
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
@@ -336,6 +337,12 @@ const ApiPublicFlutterwaveWebhookRoute =
     path: '/api/public/flutterwave-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksRunScheduledBackupRoute =
+  ApiPublicHooksRunScheduledBackupRouteImport.update({
+    id: '/api/public/hooks/run-scheduled-backup',
+    path: '/api/public/hooks/run-scheduled-backup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -392,6 +399,7 @@ export interface FileRoutesByFullPath {
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
+  '/api/public/hooks/run-scheduled-backup': typeof ApiPublicHooksRunScheduledBackupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -448,6 +456,7 @@ export interface FileRoutesByTo {
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
+  '/api/public/hooks/run-scheduled-backup': typeof ApiPublicHooksRunScheduledBackupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -505,6 +514,7 @@ export interface FileRoutesById {
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
+  '/api/public/hooks/run-scheduled-backup': typeof ApiPublicHooksRunScheduledBackupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -563,6 +573,7 @@ export interface FileRouteTypes {
     | '/api/public/flutterwave-webhook'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
+    | '/api/public/hooks/run-scheduled-backup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -619,6 +630,7 @@ export interface FileRouteTypes {
     | '/api/public/flutterwave-webhook'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
+    | '/api/public/hooks/run-scheduled-backup'
   id:
     | '__root__'
     | '/'
@@ -675,6 +687,7 @@ export interface FileRouteTypes {
     | '/api/public/flutterwave-webhook'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
+    | '/api/public/hooks/run-scheduled-backup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -701,6 +714,7 @@ export interface RootRouteChildren {
   ApiPublicFlutterwaveWebhookRoute: typeof ApiPublicFlutterwaveWebhookRoute
   ApiPublicHubtelCallbackRoute: typeof ApiPublicHubtelCallbackRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
+  ApiPublicHooksRunScheduledBackupRoute: typeof ApiPublicHooksRunScheduledBackupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1083,6 +1097,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFlutterwaveWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/run-scheduled-backup': {
+      id: '/api/public/hooks/run-scheduled-backup'
+      path: '/api/public/hooks/run-scheduled-backup'
+      fullPath: '/api/public/hooks/run-scheduled-backup'
+      preLoaderRoute: typeof ApiPublicHooksRunScheduledBackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1216,6 +1237,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFlutterwaveWebhookRoute: ApiPublicFlutterwaveWebhookRoute,
   ApiPublicHubtelCallbackRoute: ApiPublicHubtelCallbackRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
+  ApiPublicHooksRunScheduledBackupRoute: ApiPublicHooksRunScheduledBackupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
