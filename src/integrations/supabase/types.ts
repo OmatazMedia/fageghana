@@ -128,6 +128,99 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          path: string | null
+          size_bytes: number | null
+          started_at: string
+          status: string
+          tables_count: number | null
+          trigger: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          path?: string | null
+          size_bytes?: number | null
+          started_at?: string
+          status?: string
+          tables_count?: number | null
+          trigger?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          path?: string | null
+          size_bytes?: number | null
+          started_at?: string
+          status?: string
+          tables_count?: number | null
+          trigger?: string
+        }
+        Relationships: []
+      }
+      backup_schedules: {
+        Row: {
+          created_at: string
+          cron_expression: string | null
+          day_of_month: number
+          day_of_week: number
+          enabled: boolean
+          frequency: string
+          hour_of_day: number
+          id: string
+          last_error: string | null
+          last_run_at: string | null
+          last_status: string | null
+          minute_of_hour: number
+          next_run_at: string | null
+          retention_days: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cron_expression?: string | null
+          day_of_month?: number
+          day_of_week?: number
+          enabled?: boolean
+          frequency?: string
+          hour_of_day?: number
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          minute_of_hour?: number
+          next_run_at?: string | null
+          retention_days?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cron_expression?: string | null
+          day_of_month?: number
+          day_of_week?: number
+          enabled?: boolean
+          frequency?: string
+          hour_of_day?: number
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          minute_of_hour?: number
+          next_run_at?: string | null
+          retention_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blog_reactions: {
         Row: {
           created_at: string
@@ -1173,6 +1266,7 @@ export type Database = {
           amount: number
           application_form_pdf_url: string | null
           bank_deposit_email: string | null
+          certificate_template_id: string | null
           currency: string
           description: string | null
           display_order: number
@@ -1189,6 +1283,7 @@ export type Database = {
           amount?: number
           application_form_pdf_url?: string | null
           bank_deposit_email?: string | null
+          certificate_template_id?: string | null
           currency?: string
           description?: string | null
           display_order?: number
@@ -1205,6 +1300,7 @@ export type Database = {
           amount?: number
           application_form_pdf_url?: string | null
           bank_deposit_email?: string | null
+          certificate_template_id?: string | null
           currency?: string
           description?: string | null
           display_order?: number
@@ -1216,7 +1312,15 @@ export type Database = {
           tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscription_plans_certificate_template_id_fkey"
+            columns: ["certificate_template_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_tickets: {
         Row: {
@@ -1568,12 +1672,14 @@ export type Database = {
     Functions: {
       admin_dump_table: { Args: { _name: string }; Returns: Json }
       admin_exec_sql: { Args: { sql: string }; Returns: undefined }
+      admin_get_member_id_next: { Args: never; Returns: number }
       admin_list_enums: { Args: never; Returns: Json }
       admin_list_functions: { Args: never; Returns: Json }
       admin_list_policies: { Args: never; Returns: Json }
       admin_list_public_tables: { Args: never; Returns: Json }
       admin_list_sequences: { Args: never; Returns: Json }
       admin_list_tables: { Args: never; Returns: Json }
+      admin_set_member_id_start: { Args: { _n: number }; Returns: number }
       delete_blog_reaction: {
         Args: { p_emoji: string; p_news_id: string; p_session_id: string }
         Returns: undefined
