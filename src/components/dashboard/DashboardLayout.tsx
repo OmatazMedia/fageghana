@@ -54,7 +54,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const search = useRouterState({ select: (s) => s.location.search }) as Record<string, unknown>;
+  const search = useRouterState({ select: (s) => s.location.search as Record<string, unknown> });
   const activeTab = typeof search?.tab === "string" ? (search.tab as string) : "overview";
 
   const [profile, setProfile] = useState<any>(null);
