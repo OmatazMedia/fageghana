@@ -59,6 +59,8 @@ function PlansPage() {
       title="Membership Plans"
       description="Configure pricing, application forms, and messaging for each membership tier."
     >
+      <MemberIdStartCard />
+
       {plans.length === 0 ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
           Loading plans…
