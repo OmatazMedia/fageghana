@@ -240,6 +240,26 @@ function PlansPage() {
                 </FormField>
               </div>
 
+              <div className="mb-6">
+                <FormField
+                  label="Certificate template"
+                  hint="Which certificate format issued members of this plan receive."
+                >
+                  <select
+                    name="certificate_template_id"
+                    defaultValue={activePlan.certificate_template_id ?? ""}
+                    className={inputCls}
+                  >
+                    <option value="">Auto (match by tier)</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} {t.tier ? `· ${t.tier}` : ""} {t.is_active ? "" : "(inactive)"}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+              </div>
+
               {/* Save */}
               <div className="flex justify-end border-t border-border pt-5">
                 <button
