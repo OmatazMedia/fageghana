@@ -85,8 +85,24 @@ function BackupPage() {
 
   async function refresh() {
     try {
-      const r = await runList();
+      const [r, s, rr] = await Promise.all([
+        runList(),
+        runGetSchedule().catch(() => ({ schedule: null })),
+        runListRuns().catch(() => ({ runs: [] })),
+      ]);
       setBackups(r.backups ?? []);
+      setSchedule(
+        s.schedule ?? {
+          enabled: false,
+          frequency: "daily",
+          hour_of_day: 2,
+          minute_of_hour: 0,
+          day_of_week: 1,
+          day_of_month: 1,
+          retention_days: 30,
+        },
+      );
+      setRuns(rr.runs ?? []);
     } catch (e: any) {
       console.error(e);
     }
@@ -94,6 +110,32 @@ function BackupPage() {
   useEffect(() => {
     void refresh();
   }, []);
+
+  async function saveSchedule() {
+    if (!schedule) return;
+    setScheduleBusy(true);
+    try {
+      const r = await runUpdateSchedule({
+        data: {
+          enabled: !!schedule.enabled,
+          frequency: schedule.frequency,
+          hour_of_day: Number(schedule.hour_of_day) || 0,
+          minute_of_hour: Number(schedule.minute_of_hour) || 0,
+          day_of_week: Number(schedule.day_of_week) || 0,
+          day_of_month: Number(schedule.day_of_month) || 1,
+          retention_days: Number(schedule.retention_days) || 30,
+        },
+      });
+      setSchedule(r.schedule);
+      toast.success(
+        schedule.enabled ? "Schedule saved — next run set" : "Schedule disabled",
+      );
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save schedule");
+    } finally {
+      setScheduleBusy(false);
+    }
+  }
 
   async function handleCreate() {
     setBusy("backing");
