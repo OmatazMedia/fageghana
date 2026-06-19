@@ -16,11 +16,16 @@ export const Route = createFileRoute("/admin/plans")({
 function PlansPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<any[]>([]);
 
   async function load() {
-    const { data } = await supabase.from("subscription_plans").select("*").order("amount");
+    const [{ data }, { data: tpl }] = await Promise.all([
+      supabase.from("subscription_plans").select("*").order("amount"),
+      supabase.from("certificate_templates").select("id,name,tier,is_active").order("name"),
+    ]);
     const rows = data ?? [];
     setPlans(rows);
+    setTemplates(tpl ?? []);
     if (rows.length > 0 && !activeTab) setActiveTab(rows[0].id);
   }
 
