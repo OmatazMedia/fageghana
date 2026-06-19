@@ -45,6 +45,13 @@ function BackupPage() {
   const runList = useServerFn(listBackups);
   const runParse = useServerFn(parseBackupManifest);
   const runRestore = useServerFn(restoreBackup);
+  const runGetSchedule = useServerFn(getBackupSchedule);
+  const runUpdateSchedule = useServerFn(updateBackupSchedule);
+  const runListRuns = useServerFn(listBackupRuns);
+
+  const [schedule, setSchedule] = useState<any>(null);
+  const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [runs, setRuns] = useState<any[]>([]);
 
   const [busy, setBusy] = useState<"idle" | "backing" | "uploading" | "parsing" | "restoring">(
     "idle",
