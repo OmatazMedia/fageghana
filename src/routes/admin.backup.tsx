@@ -616,6 +616,66 @@ function BackupPage() {
         )}
       </div>
 
+      {/* Recent runs */}
+      <div className="mt-6 rounded-2xl border border-border bg-card p-6">
+        <h2 className="mb-3 font-bold">Recent runs</h2>
+        {runs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No backup runs recorded yet.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-2 py-2 text-left">Started</th>
+                <th className="px-2 py-2 text-left">Trigger</th>
+                <th className="px-2 py-2 text-left">Status</th>
+                <th className="px-2 py-2 text-left">Tables</th>
+                <th className="px-2 py-2 text-left">Size</th>
+                <th className="px-2 py-2 text-left">File</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r) => (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="px-2 py-2">{new Date(r.started_at).toLocaleString()}</td>
+                  <td className="px-2 py-2 capitalize">{r.trigger}</td>
+                  <td className="px-2 py-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        r.status === "success"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : r.status === "error"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                    {r.error_message && (
+                      <div className="mt-1 text-[11px] text-destructive">{r.error_message}</div>
+                    )}
+                  </td>
+                  <td className="px-2 py-2">{r.tables_count ?? "—"}</td>
+                  <td className="px-2 py-2">{r.size_bytes ? fmtSize(r.size_bytes) : "—"}</td>
+                  <td className="px-2 py-2">
+                    {r.path ? (
+                      <button
+                        onClick={() => downloadBackup(r.path, r.path)}
+                        className="text-primary hover:underline"
+                      >
+                        Download
+                      </button>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+
       {/* Confirm modal */}
       {showConfirm && manifest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
