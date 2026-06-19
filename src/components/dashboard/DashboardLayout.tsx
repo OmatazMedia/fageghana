@@ -90,11 +90,13 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="space-y-0.5">
       {items.map((it) => {
         const active = isActive(it);
-        const to = it.tab ? `${it.to}?tab=${it.tab}` : it.to;
+        const linkProps: any = it.tab
+          ? { to: "/dashboard", search: { tab: it.tab } }
+          : { to: it.to };
         return (
           <Link
             key={it.label}
-            to={to}
+            {...linkProps}
             onClick={() => setSidebarOpen(false)}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
               active
