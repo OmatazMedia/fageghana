@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import { uploadImage } from "@/lib/uploadImage";
 import { downloadFile } from "@/lib/forceDownload";
-import { FileDown, Save, Upload } from "lucide-react";
+import { getMemberIdNext, setMemberIdStart } from "@/lib/backup.functions";
+import { FileDown, Save, Upload, Hash } from "lucide-react";
 
 export const Route = createFileRoute("/admin/plans")({
   head: () => ({ meta: [{ title: "Membership Plans — Admin" }] }),
@@ -16,11 +18,16 @@ export const Route = createFileRoute("/admin/plans")({
 function PlansPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<any[]>([]);
 
   async function load() {
-    const { data } = await supabase.from("subscription_plans").select("*").order("amount");
+    const [{ data }, { data: tpl }] = await Promise.all([
+      supabase.from("subscription_plans").select("*").order("amount"),
+      supabase.from("certificate_templates").select("id,name,tier,is_active").order("name"),
+    ]);
     const rows = data ?? [];
     setPlans(rows);
+    setTemplates(tpl ?? []);
     if (rows.length > 0 && !activeTab) setActiveTab(rows[0].id);
   }
 
@@ -52,6 +59,8 @@ function PlansPage() {
       title="Membership Plans"
       description="Configure pricing, application forms, and messaging for each membership tier."
     >
+      <MemberIdStartCard />
+
       {plans.length === 0 ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
           Loading plans…
@@ -110,6 +119,7 @@ function PlansPage() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   const fd = new FormData(e.currentTarget);
+                  const certId = String(fd.get("certificate_template_id") || "");
                   save(activePlan, {
                     amount: Number(fd.get("amount")),
                     currency: String(fd.get("currency")),
@@ -117,6 +127,7 @@ function PlansPage() {
                     description: String(fd.get("description")),
                     post_download_message: String(fd.get("post_download_message")),
                     bank_deposit_email: String(fd.get("bank_deposit_email")),
+                    certificate_template_id: certId || null,
                   });
                 }}
                 className="p-6 lg:p-8"
@@ -233,6 +244,26 @@ function PlansPage() {
                 </FormField>
               </div>
 
+              <div className="mb-6">
+                <FormField
+                  label="Certificate template"
+                  hint="Which certificate format issued members of this plan receive."
+                >
+                  <select
+                    name="certificate_template_id"
+                    defaultValue={activePlan.certificate_template_id ?? ""}
+                    className={inputCls}
+                  >
+                    <option value="">Auto (match by tier)</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} {t.tier ? `· ${t.tier}` : ""} {t.is_active ? "" : "(inactive)"}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+              </div>
+
               {/* Save */}
               <div className="flex justify-end border-t border-border pt-5">
                 <button
@@ -249,5 +280,74 @@ function PlansPage() {
         </div>
       )}
     </AdminShell>
+  );
+}
+
+function MemberIdStartCard() {
+  const runGet = useServerFn(getMemberIdNext);
+  const runSet = useServerFn(setMemberIdStart);
+  const [next, setNext] = useState<number | null>(null);
+  const [input, setInput] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    runGet()
+      .then((r) => {
+        setNext(r.next);
+        setInput(String(r.next));
+      })
+      .catch(() => {});
+  }, []);
+
+  async function save() {
+    const n = parseInt(input, 10);
+    if (!Number.isFinite(n) || n < 1) return toast.error("Enter a positive integer");
+    setBusy(true);
+    try {
+      const r = await runSet({ data: { next: n } });
+      setNext(r.next);
+      toast.success(`Next auto-generated member number is now ${r.next}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not update");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-6 rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <Hash className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-bold">Member ID auto-generation</h3>
+            <p className="text-xs text-muted-foreground">
+              The next member ID will use number{" "}
+              <strong className="text-foreground">{next ?? "…"}</strong>. Reset the starting
+              point below to change where auto-generation continues.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className={inputCls + " w-32"}
+          />
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          >
+            {busy ? "Saving…" : "Set start"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

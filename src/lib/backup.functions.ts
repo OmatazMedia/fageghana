@@ -110,159 +110,109 @@ export const createBackup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
-
-    const zip = new JSZip();
-    const log: string[] = [];
-    const counts: Record<string, number> = {};
-
-    // Schema
-    const [enumsRes, tablesRes, fnsRes, polRes, seqRes] = await Promise.all([
-      supabaseAdmin.rpc("admin_list_enums"),
-      supabaseAdmin.rpc("admin_list_tables"),
-      supabaseAdmin.rpc("admin_list_functions"),
-      supabaseAdmin.rpc("admin_list_policies"),
-      supabaseAdmin.rpc("admin_list_sequences"),
-    ]);
-    if (enumsRes.error) throw new Error("enums: " + enumsRes.error.message);
-    if (tablesRes.error) throw new Error("tables: " + tablesRes.error.message);
-
-    const enums = (enumsRes.data as any[]) || [];
-    const tables = (tablesRes.data as any[]) || [];
-    const fns = (fnsRes.data as any[]) || [];
-    const policies = (polRes.data as any[]) || [];
-    const sequences = (seqRes.data as any[]) || [];
-
-    zip.file("schema/enums.sql", buildEnumsSQL(enums));
-    zip.file("schema/tables.sql", buildTablesSQL(tables));
-    zip.file("schema/policies.sql", buildPoliciesSQL(policies));
-    zip.file("schema/functions.sql", fns.map((f: any) => f.definition + ";").join("\n\n"));
-    zip.file(
-      "schema/sequences.sql",
-      sequences
-        .map((s: any) => `CREATE SEQUENCE IF NOT EXISTS public.${quoteIdent(s.name)};`)
-        .join("\n"),
-    );
-    log.push(
-      `Schema: ${tables.length} tables, ${enums.length} enums, ${fns.length} functions, ${policies.length} policies`,
-    );
-
-    // Data — auto-discover every public table so newly-added tables are included
-    const discoveredRes = await supabaseAdmin.rpc("admin_list_public_tables");
-    const discoveredNames: string[] = Array.isArray(discoveredRes.data)
-      ? (discoveredRes.data as string[])
-      : (tables.map((t: any) => t.name) as string[]);
-    const allTableNames = Array.from(
-      new Set([...(tables.map((t: any) => t.name) as string[]), ...discoveredNames]),
-    ).sort();
-
-    for (const tableName of allTableNames) {
-      let from = 0;
-      const lines: string[] = [];
-      let usedFallback = false;
-      while (true) {
-        const { data, error } = await (supabaseAdmin as any)
-          .from(tableName)
-          .select("*")
-          .range(from, from + PAGE - 1);
-        if (error) {
-          const dumpRes = await supabaseAdmin.rpc("admin_dump_table", { _name: tableName });
-          if (dumpRes.error) {
-            log.push(`Skip ${tableName}: ${error.message}`);
-            break;
-          }
-          for (const row of (dumpRes.data as any[]) ?? []) lines.push(JSON.stringify(row));
-          usedFallback = true;
-          break;
-        }
-        if (!data || data.length === 0) break;
-        for (const row of data) lines.push(JSON.stringify(row));
-        if (data.length < PAGE) break;
-        from += PAGE;
-      }
-      zip.file(`data/${tableName}.jsonl`, lines.join("\n"));
-      counts[tableName] = lines.length;
-      log.push(`Data: ${tableName} → ${lines.length} rows${usedFallback ? " (rpc)" : ""}`);
-    }
-
-    // Auth users
-    const allUsers: any[] = [];
-    let page = 1;
-    while (true) {
-      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
-      if (error) throw new Error("auth: " + error.message);
-      if (!data?.users || data.users.length === 0) break;
-      allUsers.push(
-        ...data.users.map((u) => ({
-          id: u.id,
-          email: u.email,
-          phone: u.phone,
-          email_confirmed_at: u.email_confirmed_at,
-          phone_confirmed_at: u.phone_confirmed_at,
-          user_metadata: u.user_metadata,
-          app_metadata: u.app_metadata,
-          created_at: u.created_at,
-        })),
-      );
-      if (data.users.length < 1000) break;
-      page++;
-    }
-    zip.file("auth/users.json", JSON.stringify(allUsers, null, 2));
-    log.push(`Auth: ${allUsers.length} users`);
-
-    // Storage
-    const bucketMeta: any[] = [];
-    let totalFiles = 0;
-    for (const bucket of BUCKETS_TO_BACKUP) {
-      const { data: bInfo } = await supabaseAdmin.storage.getBucket(bucket);
-      bucketMeta.push({ id: bucket, public: bInfo?.public ?? false });
-      const files = await listAllStorageFiles(bucket);
-      for (const path of files) {
-        const { data, error } = await supabaseAdmin.storage.from(bucket).download(path);
-        if (error) {
-          log.push(`Skip ${bucket}/${path}: ${error.message}`);
-          continue;
-        }
-        const buf = await data.arrayBuffer();
-        zip.file(`storage/${bucket}/${path}`, buf);
-        totalFiles++;
-      }
-      log.push(`Storage: ${bucket} → ${files.length} files`);
-    }
-    zip.file("storage/_buckets.json", JSON.stringify(bucketMeta, null, 2));
-
-    const manifest = {
-      version: 1,
-      created_at: new Date().toISOString(),
-      project_ref: process.env.SUPABASE_URL?.match(/https:\/\/([^.]+)/)?.[1] || "unknown",
-      tables: counts,
-      auth_user_count: allUsers.length,
-      storage_file_count: totalFiles,
-      buckets: BUCKETS_TO_BACKUP,
-    };
-    zip.file("manifest.json", JSON.stringify(manifest, null, 2));
-
-    const blob = await zip.generateAsync({
-      type: "uint8array",
-      compression: "DEFLATE",
-      compressionOptions: { level: 6 },
-    });
-    const filename = `backup-${manifest.created_at.replace(/[:.]/g, "-")}.zip`;
-    const upload = await supabaseAdmin.storage.from("backups").upload(filename, blob, {
-      contentType: "application/zip",
-      upsert: true,
-    });
-    if (upload.error) throw new Error("upload: " + upload.error.message);
-
-    const signed = await supabaseAdmin.storage.from("backups").createSignedUrl(filename, 60 * 60);
-
+    const { runBackupCore } = await import("./backup-runner.server");
+    const res = await runBackupCore("manual");
     return {
-      filename,
-      path: filename,
-      url: signed.data?.signedUrl || null,
-      manifest,
-      log,
-      sizeBytes: blob.byteLength,
+      filename: res.filename,
+      path: res.path,
+      url: res.url,
+      manifest: res.manifest,
+      log: res.log,
+      sizeBytes: res.sizeBytes,
     };
+  });
+
+export const getBackupSchedule = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("backup_schedules")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { schedule: data };
+  });
+
+export const updateBackupSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      enabled: boolean;
+      frequency: "hourly" | "daily" | "weekly" | "monthly";
+      hour_of_day: number;
+      minute_of_hour: number;
+      day_of_week: number;
+      day_of_month: number;
+      retention_days: number;
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { computeNextRun } = await import("./backup-runner.server");
+    const next = computeNextRun(data);
+    const existing = await supabaseAdmin
+      .from("backup_schedules")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
+    if (existing.data?.id) {
+      const { data: updated, error } = await supabaseAdmin
+        .from("backup_schedules")
+        .update({ ...data, next_run_at: data.enabled ? next.toISOString() : null })
+        .eq("id", existing.data.id)
+        .select("*")
+        .single();
+      if (error) throw new Error(error.message);
+      return { schedule: updated };
+    } else {
+      const { data: inserted, error } = await supabaseAdmin
+        .from("backup_schedules")
+        .insert({ ...data, next_run_at: data.enabled ? next.toISOString() : null })
+        .select("*")
+        .single();
+      if (error) throw new Error(error.message);
+      return { schedule: inserted };
+    }
+  });
+
+export const listBackupRuns = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("backup_runs")
+      .select("*")
+      .order("started_at", { ascending: false })
+      .limit(20);
+    if (error) throw new Error(error.message);
+    return { runs: data || [] };
+  });
+
+export const getMemberIdNext = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin.rpc("admin_get_member_id_next");
+    if (error) throw new Error(error.message);
+    return { next: Number(data) };
+  });
+
+export const setMemberIdStart = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { next: number }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    if (!Number.isInteger(data.next) || data.next < 1) {
+      throw new Error("Must be a positive integer");
+    }
+    const { data: res, error } = await supabaseAdmin.rpc("admin_set_member_id_start", {
+      _n: data.next,
+    });
+    if (error) throw new Error(error.message);
+    return { next: Number(res) };
   });
 
 export const listBackups = createServerFn({ method: "GET" })

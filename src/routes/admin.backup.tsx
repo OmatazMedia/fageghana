@@ -9,6 +9,9 @@ import {
   listBackups,
   parseBackupManifest,
   restoreBackup,
+  getBackupSchedule,
+  updateBackupSchedule,
+  listBackupRuns,
 } from "@/lib/backup.functions";
 import {
   Download,
@@ -21,6 +24,8 @@ import {
   CheckCircle2,
   FileArchive,
   Trash2,
+  Clock,
+  Save,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/backup")({
@@ -40,6 +45,13 @@ function BackupPage() {
   const runList = useServerFn(listBackups);
   const runParse = useServerFn(parseBackupManifest);
   const runRestore = useServerFn(restoreBackup);
+  const runGetSchedule = useServerFn(getBackupSchedule);
+  const runUpdateSchedule = useServerFn(updateBackupSchedule);
+  const runListRuns = useServerFn(listBackupRuns);
+
+  const [schedule, setSchedule] = useState<any>(null);
+  const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [runs, setRuns] = useState<any[]>([]);
 
   const [busy, setBusy] = useState<"idle" | "backing" | "uploading" | "parsing" | "restoring">(
     "idle",
@@ -73,8 +85,24 @@ function BackupPage() {
 
   async function refresh() {
     try {
-      const r = await runList();
+      const [r, s, rr] = await Promise.all([
+        runList(),
+        runGetSchedule().catch(() => ({ schedule: null })),
+        runListRuns().catch(() => ({ runs: [] })),
+      ]);
       setBackups(r.backups ?? []);
+      setSchedule(
+        s.schedule ?? {
+          enabled: false,
+          frequency: "daily",
+          hour_of_day: 2,
+          minute_of_hour: 0,
+          day_of_week: 1,
+          day_of_month: 1,
+          retention_days: 30,
+        },
+      );
+      setRuns(rr.runs ?? []);
     } catch (e: any) {
       console.error(e);
     }
@@ -82,6 +110,32 @@ function BackupPage() {
   useEffect(() => {
     void refresh();
   }, []);
+
+  async function saveSchedule() {
+    if (!schedule) return;
+    setScheduleBusy(true);
+    try {
+      const r = await runUpdateSchedule({
+        data: {
+          enabled: !!schedule.enabled,
+          frequency: schedule.frequency,
+          hour_of_day: Number(schedule.hour_of_day) || 0,
+          minute_of_hour: Number(schedule.minute_of_hour) || 0,
+          day_of_week: Number(schedule.day_of_week) || 0,
+          day_of_month: Number(schedule.day_of_month) || 1,
+          retention_days: Number(schedule.retention_days) || 30,
+        },
+      });
+      setSchedule(r.schedule);
+      toast.success(
+        schedule.enabled ? "Schedule saved — next run set" : "Schedule disabled",
+      );
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save schedule");
+    } finally {
+      setScheduleBusy(false);
+    }
+  }
 
   async function handleCreate() {
     setBusy("backing");
@@ -209,7 +263,179 @@ function BackupPage() {
         </div>
       )}
 
+      {/* Schedule card */}
+      {schedule && (
+        <div className="mb-6 rounded-2xl border border-border bg-card p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                <Clock className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-bold">Scheduled backups</h2>
+                <p className="text-xs text-muted-foreground">
+                  Cron checks every 15 minutes; runs when a backup is due. New tables are
+                  auto-discovered each run.
+                </p>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!schedule.enabled}
+                onChange={(e) => setSchedule({ ...schedule, enabled: e.target.checked })}
+                className="h-4 w-4"
+              />
+              <span className={schedule.enabled ? "text-emerald-600 font-semibold" : "text-muted-foreground"}>
+                {schedule.enabled ? "Enabled" : "Disabled"}
+              </span>
+            </label>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="block text-sm">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">Frequency</span>
+              <select
+                value={schedule.frequency}
+                onChange={(e) => setSchedule({ ...schedule, frequency: e.target.value })}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="hourly">Hourly</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </label>
+
+            {schedule.frequency !== "hourly" && (
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">Time of day</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={0}
+                    max={23}
+                    value={schedule.hour_of_day}
+                    onChange={(e) => setSchedule({ ...schedule, hour_of_day: Number(e.target.value) })}
+                    className="w-16 rounded-lg border border-input bg-background px-2 py-2 text-sm"
+                  />
+                  <span>:</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={schedule.minute_of_hour}
+                    onChange={(e) => setSchedule({ ...schedule, minute_of_hour: Number(e.target.value) })}
+                    className="w-16 rounded-lg border border-input bg-background px-2 py-2 text-sm"
+                  />
+                </div>
+              </label>
+            )}
+
+            {schedule.frequency === "hourly" && (
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">Minute of hour</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={schedule.minute_of_hour}
+                  onChange={(e) => setSchedule({ ...schedule, minute_of_hour: Number(e.target.value) })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </label>
+            )}
+
+            {schedule.frequency === "weekly" && (
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">Day of week</span>
+                <select
+                  value={schedule.day_of_week}
+                  onChange={(e) => setSchedule({ ...schedule, day_of_week: Number(e.target.value) })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d, i) => (
+                    <option key={d} value={i}>{d}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {schedule.frequency === "monthly" && (
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">Day of month (1–28)</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={28}
+                  value={schedule.day_of_month}
+                  onChange={(e) => setSchedule({ ...schedule, day_of_month: Number(e.target.value) })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </label>
+            )}
+
+            <label className="block text-sm">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">Retention (days)</span>
+              <input
+                type="number"
+                min={1}
+                max={365}
+                value={schedule.retention_days}
+                onChange={(e) => setSchedule({ ...schedule, retention_days: Number(e.target.value) })}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-xs text-muted-foreground">
+            <div className="flex flex-wrap gap-4">
+              <span>
+                Next run:{" "}
+                <strong className="text-foreground">
+                  {schedule.next_run_at ? new Date(schedule.next_run_at).toLocaleString() : "—"}
+                </strong>
+              </span>
+              <span>
+                Last run:{" "}
+                <strong className="text-foreground">
+                  {schedule.last_run_at ? new Date(schedule.last_run_at).toLocaleString() : "Never"}
+                </strong>
+              </span>
+              <span>
+                Status:{" "}
+                <strong
+                  className={
+                    schedule.last_status === "success"
+                      ? "text-emerald-600"
+                      : schedule.last_status === "error"
+                      ? "text-destructive"
+                      : "text-foreground"
+                  }
+                >
+                  {schedule.last_status ?? "—"}
+                </strong>
+              </span>
+            </div>
+            <button
+              onClick={saveSchedule}
+              disabled={scheduleBusy}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {scheduleBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save schedule
+            </button>
+          </div>
+          {schedule.last_error && (
+            <div className="mt-3 rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
+              Last error: {schedule.last_error}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
+
         {/* Backup card */}
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="mb-4 flex items-center gap-3">
@@ -389,6 +615,66 @@ function BackupPage() {
           </table>
         )}
       </div>
+
+      {/* Recent runs */}
+      <div className="mt-6 rounded-2xl border border-border bg-card p-6">
+        <h2 className="mb-3 font-bold">Recent runs</h2>
+        {runs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No backup runs recorded yet.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-2 py-2 text-left">Started</th>
+                <th className="px-2 py-2 text-left">Trigger</th>
+                <th className="px-2 py-2 text-left">Status</th>
+                <th className="px-2 py-2 text-left">Tables</th>
+                <th className="px-2 py-2 text-left">Size</th>
+                <th className="px-2 py-2 text-left">File</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r) => (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="px-2 py-2">{new Date(r.started_at).toLocaleString()}</td>
+                  <td className="px-2 py-2 capitalize">{r.trigger}</td>
+                  <td className="px-2 py-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        r.status === "success"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : r.status === "error"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                    {r.error_message && (
+                      <div className="mt-1 text-[11px] text-destructive">{r.error_message}</div>
+                    )}
+                  </td>
+                  <td className="px-2 py-2">{r.tables_count ?? "—"}</td>
+                  <td className="px-2 py-2">{r.size_bytes ? fmtSize(r.size_bytes) : "—"}</td>
+                  <td className="px-2 py-2">
+                    {r.path ? (
+                      <button
+                        onClick={() => downloadBackup(r.path, r.path)}
+                        className="text-primary hover:underline"
+                      >
+                        Download
+                      </button>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
 
       {/* Confirm modal */}
       {showConfirm && manifest && (
