@@ -49,12 +49,18 @@ import { initRenewalPayment } from "@/lib/payments.functions";
 import { openPaystackInline } from "@/lib/paystackInline";
 import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 
+type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices" | "email-prefs" | "events" | "trade" | "directory";
+
+const VALID_TABS: Tab[] = ["overview","subscription","certificate","notifications","support","profile","resources","readiness","documents","invoices","email-prefs","events","trade","directory"];
+
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Member Dashboard — FAGE Ghana" }] }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const t = typeof search?.tab === "string" ? (search.tab as Tab) : "overview";
+    return { tab: (VALID_TABS as string[]).includes(t) ? t : ("overview" as Tab) };
+  },
   component: Dashboard,
 });
-
-type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices" | "email-prefs" | "events" | "trade" | "directory";
 
 const inputCls =
   "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -62,13 +68,21 @@ const inputCls =
 function Dashboard() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("overview");
+  const { tab: urlTab } = Route.useSearch();
+  const [tab, setTab] = useState<Tab>(urlTab);
   const [profile, setProfile] = useState<any>(null);
   const [busy, setBusy] = useState(true);
   const [unread, setUnread] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Sync tab → URL
+  useEffect(() => {
+    if (tab !== urlTab) {
+      navigate({ to: "/dashboard", search: { tab }, replace: true });
+    }
+  }, [tab, urlTab, navigate]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
