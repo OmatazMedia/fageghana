@@ -282,3 +282,72 @@ function PlansPage() {
     </AdminShell>
   );
 }
+
+function MemberIdStartCard() {
+  const runGet = useServerFn(getMemberIdNext);
+  const runSet = useServerFn(setMemberIdStart);
+  const [next, setNext] = useState<number | null>(null);
+  const [input, setInput] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    runGet()
+      .then((r) => {
+        setNext(r.next);
+        setInput(String(r.next));
+      })
+      .catch(() => {});
+  }, []);
+
+  async function save() {
+    const n = parseInt(input, 10);
+    if (!Number.isFinite(n) || n < 1) return toast.error("Enter a positive integer");
+    setBusy(true);
+    try {
+      const r = await runSet({ data: { next: n } });
+      setNext(r.next);
+      toast.success(`Next auto-generated member number is now ${r.next}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not update");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-6 rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <Hash className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-bold">Member ID auto-generation</h3>
+            <p className="text-xs text-muted-foreground">
+              The next member ID will use number{" "}
+              <strong className="text-foreground">{next ?? "…"}</strong>. Reset the starting
+              point below to change where auto-generation continues.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className={inputCls + " w-32"}
+          />
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          >
+            {busy ? "Saving…" : "Set start"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
