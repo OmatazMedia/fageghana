@@ -115,6 +115,7 @@ function PlansPage() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   const fd = new FormData(e.currentTarget);
+                  const certId = String(fd.get("certificate_template_id") || "");
                   save(activePlan, {
                     amount: Number(fd.get("amount")),
                     currency: String(fd.get("currency")),
@@ -122,6 +123,7 @@ function PlansPage() {
                     description: String(fd.get("description")),
                     post_download_message: String(fd.get("post_download_message")),
                     bank_deposit_email: String(fd.get("bank_deposit_email")),
+                    certificate_template_id: certId || null,
                   });
                 }}
                 className="p-6 lg:p-8"
