@@ -49,6 +49,9 @@ type Entry = {
   display_order: number;
   published: boolean;
   custom_fields: Record<string, any>;
+  user_id: string | null;
+  status: "draft" | "pending" | "approved" | "rejected" | "suspended";
+  review_notes: string | null;
 };
 
 const blank: Entry = {
@@ -78,6 +81,17 @@ const blank: Entry = {
   display_order: 0,
   published: true,
   custom_fields: {},
+  user_id: null,
+  status: "approved",
+  review_notes: null,
+};
+
+const STATUS_META: Record<Entry["status"], { label: string; cls: string }> = {
+  draft: { label: "Draft", cls: "bg-muted text-muted-foreground" },
+  pending: { label: "Pending", cls: "bg-amber-100 text-amber-700" },
+  approved: { label: "Approved", cls: "bg-emerald-100 text-emerald-700" },
+  rejected: { label: "Rejected", cls: "bg-destructive/15 text-destructive" },
+  suspended: { label: "Suspended", cls: "bg-orange-100 text-orange-700" },
 };
 
 function slugify(s: string) {
@@ -93,8 +107,10 @@ function DirectoryEntriesAdmin() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | "association" | "corporate">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | Entry["status"]>("all");
   const [editing, setEditing] = useState<Entry | null>(null);
   const [deleting, setDeleting] = useState<Entry | null>(null);
+  const [rejecting, setRejecting] = useState<Entry | null>(null);
 
   async function load() {
     setLoading(true);
@@ -114,6 +130,7 @@ function DirectoryEntriesAdmin() {
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (type !== "all" && r.entry_type !== type) return false;
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (!q) return true;
       const s = q.toLowerCase();
       return (
@@ -123,7 +140,7 @@ function DirectoryEntriesAdmin() {
         (r.category ?? "").toLowerCase().includes(s)
       );
     });
-  }, [rows, q, type]);
+  }, [rows, q, type, statusFilter]);
 
   async function togglePublished(r: Entry) {
     const { error } = await supabase
@@ -144,6 +161,20 @@ function DirectoryEntriesAdmin() {
       .eq("id", r.id);
     if (error) toast.error(error.message);
     else setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, featured: !x.featured } : x)));
+  }
+
+  async function review(r: Entry, action: "approve" | "reject" | "withdraw" | "suspend", notes?: string) {
+    const { error } = await supabase.rpc("admin_review_directory_entry", {
+      _id: r.id,
+      _action: action,
+      _notes: notes ?? null,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Entry ${action}d`);
+    await load();
   }
 
   async function save(e: Entry) {
