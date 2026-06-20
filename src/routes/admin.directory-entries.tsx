@@ -404,6 +404,16 @@ function DirectoryEntriesAdmin() {
           onConfirm={confirmDelete}
         />
       )}
+      {rejecting && (
+        <RejectModal
+          entry={rejecting}
+          onClose={() => setRejecting(null)}
+          onConfirm={async (notes) => {
+            await review(rejecting, "reject", notes);
+            setRejecting(null);
+          }}
+        />
+      )}
     </AdminShell>
   );
 }
