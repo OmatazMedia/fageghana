@@ -204,6 +204,8 @@ function DirectoryEntriesAdmin() {
       display_order: e.display_order,
       published: e.published,
       custom_fields: e.custom_fields ?? {},
+      user_id: e.user_id ?? null,
+      status: e.status,
     };
     const res = e.id
       ? await supabase.from("directory_entries").update(payload).eq("id", e.id)
@@ -267,6 +269,18 @@ function DirectoryEntriesAdmin() {
             </button>
           ))}
         </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as any)}
+          className={inputCls + " max-w-[180px]"}
+        >
+          <option value="all">All statuses</option>
+          <option value="pending">Pending review</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="suspended">Suspended</option>
+          <option value="draft">Draft</option>
+        </select>
       </div>
 
       <div className="rounded-xl border border-border bg-card">
@@ -315,12 +329,19 @@ function DirectoryEntriesAdmin() {
                     </td>
                     <td className="px-4 py-3">{r.display_order}</td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => togglePublished(r)}
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${r.published ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}
-                      >
-                        {r.published ? "Published" : "Hidden"}
-                      </button>
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_META[r.status]?.cls ?? ""}`}
+                        >
+                          {STATUS_META[r.status]?.label ?? r.status}
+                        </span>
+                        <button
+                          onClick={() => togglePublished(r)}
+                          className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-medium ${r.published ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}
+                        >
+                          {r.published ? "Visible" : "Hidden"}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <DropdownMenu>
@@ -329,10 +350,30 @@ function DirectoryEntriesAdmin() {
                             <MoreHorizontal className="h-4 w-4" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem onClick={() => setEditing(r)}>
                             <Pencil className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
+                          {r.status !== "approved" && (
+                            <DropdownMenuItem onClick={() => review(r, "approve")}>
+                              <Star className="mr-2 h-4 w-4" /> Approve
+                            </DropdownMenuItem>
+                          )}
+                          {r.status === "approved" && (
+                            <DropdownMenuItem onClick={() => review(r, "withdraw")}>
+                              <Star className="mr-2 h-4 w-4" /> Withdraw approval
+                            </DropdownMenuItem>
+                          )}
+                          {r.status !== "rejected" && (
+                            <DropdownMenuItem onClick={() => setRejecting(r)}>
+                              <X className="mr-2 h-4 w-4" /> Reject…
+                            </DropdownMenuItem>
+                          )}
+                          {r.status !== "suspended" && (
+                            <DropdownMenuItem onClick={() => review(r, "suspend")}>
+                              <X className="mr-2 h-4 w-4" /> Suspend
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => toggleFeatured(r)}>
                             <Star className="mr-2 h-4 w-4" />{" "}
                             {r.featured ? "Unfeature" : "Feature"}
