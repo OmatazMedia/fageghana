@@ -49,6 +49,9 @@ type Entry = {
   display_order: number;
   published: boolean;
   custom_fields: Record<string, any>;
+  user_id: string | null;
+  status: "draft" | "pending" | "approved" | "rejected" | "suspended";
+  review_notes: string | null;
 };
 
 const blank: Entry = {
@@ -78,6 +81,17 @@ const blank: Entry = {
   display_order: 0,
   published: true,
   custom_fields: {},
+  user_id: null,
+  status: "approved",
+  review_notes: null,
+};
+
+const STATUS_META: Record<Entry["status"], { label: string; cls: string }> = {
+  draft: { label: "Draft", cls: "bg-muted text-muted-foreground" },
+  pending: { label: "Pending", cls: "bg-amber-100 text-amber-700" },
+  approved: { label: "Approved", cls: "bg-emerald-100 text-emerald-700" },
+  rejected: { label: "Rejected", cls: "bg-destructive/15 text-destructive" },
+  suspended: { label: "Suspended", cls: "bg-orange-100 text-orange-700" },
 };
 
 function slugify(s: string) {
@@ -93,8 +107,10 @@ function DirectoryEntriesAdmin() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | "association" | "corporate">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | Entry["status"]>("all");
   const [editing, setEditing] = useState<Entry | null>(null);
   const [deleting, setDeleting] = useState<Entry | null>(null);
+  const [rejecting, setRejecting] = useState<Entry | null>(null);
 
   async function load() {
     setLoading(true);
@@ -114,6 +130,7 @@ function DirectoryEntriesAdmin() {
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (type !== "all" && r.entry_type !== type) return false;
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (!q) return true;
       const s = q.toLowerCase();
       return (
@@ -123,7 +140,7 @@ function DirectoryEntriesAdmin() {
         (r.category ?? "").toLowerCase().includes(s)
       );
     });
-  }, [rows, q, type]);
+  }, [rows, q, type, statusFilter]);
 
   async function togglePublished(r: Entry) {
     const { error } = await supabase
@@ -144,6 +161,20 @@ function DirectoryEntriesAdmin() {
       .eq("id", r.id);
     if (error) toast.error(error.message);
     else setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, featured: !x.featured } : x)));
+  }
+
+  async function review(r: Entry, action: "approve" | "reject" | "withdraw" | "suspend", notes?: string) {
+    const { error } = await supabase.rpc("admin_review_directory_entry", {
+      _id: r.id,
+      _action: action,
+      _notes: notes ?? undefined,
+    } as any);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Entry ${action}d`);
+    await load();
   }
 
   async function save(e: Entry) {
@@ -173,6 +204,8 @@ function DirectoryEntriesAdmin() {
       display_order: e.display_order,
       published: e.published,
       custom_fields: e.custom_fields ?? {},
+      user_id: e.user_id ?? null,
+      status: e.status,
     };
     const res = e.id
       ? await supabase.from("directory_entries").update(payload).eq("id", e.id)
@@ -236,6 +269,18 @@ function DirectoryEntriesAdmin() {
             </button>
           ))}
         </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as any)}
+          className={inputCls + " max-w-[180px]"}
+        >
+          <option value="all">All statuses</option>
+          <option value="pending">Pending review</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="suspended">Suspended</option>
+          <option value="draft">Draft</option>
+        </select>
       </div>
 
       <div className="rounded-xl border border-border bg-card">
@@ -284,12 +329,19 @@ function DirectoryEntriesAdmin() {
                     </td>
                     <td className="px-4 py-3">{r.display_order}</td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => togglePublished(r)}
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${r.published ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}
-                      >
-                        {r.published ? "Published" : "Hidden"}
-                      </button>
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_META[r.status]?.cls ?? ""}`}
+                        >
+                          {STATUS_META[r.status]?.label ?? r.status}
+                        </span>
+                        <button
+                          onClick={() => togglePublished(r)}
+                          className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-medium ${r.published ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}
+                        >
+                          {r.published ? "Visible" : "Hidden"}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <DropdownMenu>
@@ -298,10 +350,30 @@ function DirectoryEntriesAdmin() {
                             <MoreHorizontal className="h-4 w-4" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem onClick={() => setEditing(r)}>
                             <Pencil className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
+                          {r.status !== "approved" && (
+                            <DropdownMenuItem onClick={() => review(r, "approve")}>
+                              <Star className="mr-2 h-4 w-4" /> Approve
+                            </DropdownMenuItem>
+                          )}
+                          {r.status === "approved" && (
+                            <DropdownMenuItem onClick={() => review(r, "withdraw")}>
+                              <Star className="mr-2 h-4 w-4" /> Withdraw approval
+                            </DropdownMenuItem>
+                          )}
+                          {r.status !== "rejected" && (
+                            <DropdownMenuItem onClick={() => setRejecting(r)}>
+                              <X className="mr-2 h-4 w-4" /> Reject…
+                            </DropdownMenuItem>
+                          )}
+                          {r.status !== "suspended" && (
+                            <DropdownMenuItem onClick={() => review(r, "suspend")}>
+                              <X className="mr-2 h-4 w-4" /> Suspend
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => toggleFeatured(r)}>
                             <Star className="mr-2 h-4 w-4" />{" "}
                             {r.featured ? "Unfeature" : "Feature"}
@@ -330,6 +402,16 @@ function DirectoryEntriesAdmin() {
           message="This permanently removes the entry from the public directory."
           onClose={() => setDeleting(null)}
           onConfirm={confirmDelete}
+        />
+      )}
+      {rejecting && (
+        <RejectModal
+          entry={rejecting}
+          onClose={() => setRejecting(null)}
+          onConfirm={async (notes) => {
+            await review(rejecting, "reject", notes);
+            setRejecting(null);
+          }}
         />
       )}
     </AdminShell>
@@ -619,6 +701,28 @@ function EntryModal({
             </label>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Status">
+              <select
+                value={e.status}
+                onChange={(ev) => update("status", ev.target.value as any)}
+                className={inputCls}
+              >
+                <option value="draft">Draft</option>
+                <option value="pending">Pending review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </FormField>
+            <FormField label="Linked member" hint="Entry will appear in this member's dashboard. Required for subscription-gated visibility.">
+              <MemberLinkPicker
+                value={e.user_id}
+                onChange={(v) => update("user_id", v)}
+              />
+            </FormField>
+          </div>
+
           <CustomFieldsSection
             entryType={e.entry_type}
             value={e.custom_fields ?? {}}
@@ -781,6 +885,145 @@ function ConfirmDialog({
             className="rounded-full bg-destructive px-5 py-2 text-sm font-semibold text-destructive-foreground"
           >
             Delete permanently
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MemberLinkPicker({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [current, setCurrent] = useState<any>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!value) {
+      setCurrent(null);
+      return;
+    }
+    void supabase
+      .from("member_profiles")
+      .select("user_id, contact_name, email, member_id, company_name")
+      .eq("user_id", value)
+      .maybeSingle()
+      .then(({ data }) => setCurrent(data));
+  }, [value]);
+
+  useEffect(() => {
+    if (!open || !q.trim()) {
+      setResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const term = `%${q}%`;
+      const { data } = await supabase
+        .from("member_profiles")
+        .select("user_id, contact_name, email, member_id, company_name")
+        .or(
+          `contact_name.ilike.${term},email.ilike.${term},member_id.ilike.${term},company_name.ilike.${term}`,
+        )
+        .limit(8);
+      setResults(data ?? []);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [q, open]);
+
+  return (
+    <div className="space-y-2">
+      {current ? (
+        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+          <div>
+            <div className="font-medium">{current.company_name || current.contact_name}</div>
+            <div className="text-xs text-muted-foreground">
+              {current.email} · {current.member_id ?? "no ID"}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="text-xs text-muted-foreground hover:text-destructive"
+          >
+            Unlink
+          </button>
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">Not linked to a member</div>
+      )}
+      <div className="relative">
+        <input
+          value={q}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search members by name, email, ID…"
+          className={inputCls}
+        />
+        {open && results.length > 0 && (
+          <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-card shadow-lg">
+            {results.map((m) => (
+              <button
+                key={m.user_id}
+                type="button"
+                onClick={() => {
+                  onChange(m.user_id);
+                  setOpen(false);
+                  setQ("");
+                }}
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-accent"
+              >
+                <div className="font-medium">{m.company_name || m.contact_name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {m.email} · {m.member_id ?? "no ID"}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RejectModal({
+  entry,
+  onClose,
+  onConfirm,
+}: {
+  entry: Entry;
+  onClose: () => void;
+  onConfirm: (notes: string) => void | Promise<void>;
+}) {
+  const [notes, setNotes] = useState("");
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-card p-6">
+        <h2 className="text-lg font-bold">Reject "{entry.company_name}"?</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The member will see your feedback in their dashboard.
+        </p>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={4}
+          placeholder="Reason for rejection (optional)…"
+          className={inputCls + " mt-3"}
+        />
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-full px-4 py-2 text-sm">
+            Cancel
+          </button>
+          <button
+            onClick={() => void onConfirm(notes)}
+            className="rounded-full bg-destructive px-5 py-2 text-sm font-semibold text-destructive-foreground"
+          >
+            Reject entry
           </button>
         </div>
       </div>

@@ -440,10 +440,16 @@ export type Database = {
           products: string[]
           published: boolean
           region: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           services: string[]
           short_description: string | null
           slug: string
+          status: string
+          submitted_at: string | null
           updated_at: string
+          user_id: string | null
           vision: string | null
           website: string | null
         }
@@ -471,10 +477,16 @@ export type Database = {
           products?: string[]
           published?: boolean
           region?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           services?: string[]
           short_description?: string | null
           slug: string
+          status?: string
+          submitted_at?: string | null
           updated_at?: string
+          user_id?: string | null
           vision?: string | null
           website?: string | null
         }
@@ -502,10 +514,16 @@ export type Database = {
           products?: string[]
           published?: boolean
           region?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           services?: string[]
           short_description?: string | null
           slug?: string
+          status?: string
+          submitted_at?: string | null
           updated_at?: string
+          user_id?: string | null
           vision?: string | null
           website?: string | null
         }
@@ -933,6 +951,57 @@ export type Database = {
           tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      membership_resources: {
+        Row: {
+          body: string | null
+          category: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          external_url: string | null
+          file_url: string | null
+          id: string
+          min_tier: string | null
+          published: boolean
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          min_tier?: string | null
+          published?: boolean
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          min_tier?: string | null
+          published?: boolean
+          slug?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1494,9 +1563,11 @@ export type Database = {
           country: string | null
           cover_image_url: string | null
           created_at: string | null
+          custom_fields: Json | null
           director_name: string | null
           display_order: number | null
           entry_type: Database["public"]["Enums"]["directory_entry_type"] | null
+          executives: Json | null
           featured: boolean | null
           id: string | null
           logo_url: string | null
@@ -1505,7 +1576,6 @@ export type Database = {
           physical_address: string | null
           postal_address: string | null
           products: string[] | null
-          published: boolean | null
           region: string | null
           services: string[] | null
           short_description: string | null
@@ -1520,11 +1590,13 @@ export type Database = {
           country?: string | null
           cover_image_url?: string | null
           created_at?: string | null
+          custom_fields?: Json | null
           director_name?: string | null
           display_order?: number | null
           entry_type?:
             | Database["public"]["Enums"]["directory_entry_type"]
             | null
+          executives?: Json | null
           featured?: boolean | null
           id?: string | null
           logo_url?: string | null
@@ -1533,7 +1605,6 @@ export type Database = {
           physical_address?: string | null
           postal_address?: string | null
           products?: string[] | null
-          published?: boolean | null
           region?: string | null
           services?: string[] | null
           short_description?: string | null
@@ -1548,11 +1619,13 @@ export type Database = {
           country?: string | null
           cover_image_url?: string | null
           created_at?: string | null
+          custom_fields?: Json | null
           director_name?: string | null
           display_order?: number | null
           entry_type?:
             | Database["public"]["Enums"]["directory_entry_type"]
             | null
+          executives?: Json | null
           featured?: boolean | null
           id?: string | null
           logo_url?: string | null
@@ -1561,7 +1634,6 @@ export type Database = {
           physical_address?: string | null
           postal_address?: string | null
           products?: string[] | null
-          published?: boolean | null
           region?: string | null
           services?: string[] | null
           short_description?: string | null
@@ -1679,6 +1751,10 @@ export type Database = {
       admin_list_public_tables: { Args: never; Returns: Json }
       admin_list_sequences: { Args: never; Returns: Json }
       admin_list_tables: { Args: never; Returns: Json }
+      admin_review_directory_entry: {
+        Args: { _action: string; _id: string; _notes?: string }
+        Returns: undefined
+      }
       admin_set_member_id_start: { Args: { _n: number }; Returns: number }
       delete_blog_reaction: {
         Args: { p_emoji: string; p_news_id: string; p_session_id: string }
@@ -1732,6 +1808,10 @@ export type Database = {
           provider: string
           public_key: string
         }[]
+      }
+      submit_my_directory_entry: {
+        Args: { _payload: Json; _submit?: boolean }
+        Returns: string
       }
       verify_certificate: {
         Args: { _code: string }

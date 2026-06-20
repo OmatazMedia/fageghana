@@ -34,6 +34,7 @@ import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
+import { Route as AdminResourcesRouteImport } from './routes/admin.resources'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminReadinessRouteImport } from './routes/admin.readiness'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
@@ -188,6 +189,11 @@ const AdminTradeOpportunitiesRoute = AdminTradeOpportunitiesRouteImport.update({
 const AdminTicketsRoute = AdminTicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminResourcesRoute = AdminResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/admin/products': typeof AdminProductsRoute
   '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/resources': typeof AdminResourcesRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
@@ -443,6 +450,7 @@ export interface FileRoutesByTo {
   '/admin/products': typeof AdminProductsRoute
   '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/resources': typeof AdminResourcesRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
@@ -501,6 +509,7 @@ export interface FileRoutesById {
   '/admin/products': typeof AdminProductsRoute
   '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/resources': typeof AdminResourcesRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
@@ -560,6 +569,7 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/readiness'
     | '/admin/reports'
+    | '/admin/resources'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
@@ -617,6 +627,7 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/readiness'
     | '/admin/reports'
+    | '/admin/resources'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
@@ -674,6 +685,7 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/readiness'
     | '/admin/reports'
+    | '/admin/resources'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
@@ -892,6 +904,13 @@ declare module '@tanstack/react-router' {
       path: '/tickets'
       fullPath: '/admin/tickets'
       preLoaderRoute: typeof AdminTicketsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/resources': {
+      id: '/admin/resources'
+      path: '/resources'
+      fullPath: '/admin/resources'
+      preLoaderRoute: typeof AdminResourcesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/reports': {
@@ -1144,6 +1163,7 @@ interface AdminRouteChildren {
   AdminProductsRoute: typeof AdminProductsRoute
   AdminReadinessRoute: typeof AdminReadinessRoute
   AdminReportsRoute: typeof AdminReportsRoute
+  AdminResourcesRoute: typeof AdminResourcesRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
   AdminTradeOpportunitiesRoute: typeof AdminTradeOpportunitiesRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -1173,6 +1193,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProductsRoute: AdminProductsRoute,
   AdminReadinessRoute: AdminReadinessRoute,
   AdminReportsRoute: AdminReportsRoute,
+  AdminResourcesRoute: AdminResourcesRoute,
   AdminTicketsRoute: AdminTicketsRoute,
   AdminTradeOpportunitiesRoute: AdminTradeOpportunitiesRoute,
   AdminUsersRoute: AdminUsersRoute,
@@ -1242,13 +1263,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -22,6 +22,7 @@ import {
   X,
   ChevronDown,
   User as UserIcon,
+  Building2,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +36,7 @@ const TAB_ITEMS: Item[] = [
   { label: "Events", icon: CalendarDays, to: "/dashboard", tab: "events" },
   { label: "Trade Opportunities", icon: TrendingUp, to: "/dashboard", tab: "trade" },
   { label: "Member Directory", icon: Users, to: "/dashboard", tab: "directory" },
+  { label: "My Directory Listing", icon: Building2, to: "/dashboard", tab: "my-listing" },
   { label: "Readiness Score", icon: ShieldCheck, to: "/dashboard", tab: "readiness" },
   { label: "Resources", icon: BookOpen, to: "/dashboard", tab: "resources" },
   { label: "My Documents", icon: FolderOpen, to: "/dashboard", tab: "documents" },

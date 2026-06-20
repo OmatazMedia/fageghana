@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Plus, X, Trash2, MoreHorizontal, ShieldCheck } from "lucide-react";
+import { Plus, X, Trash2, MoreHorizontal, ShieldCheck, Users as UsersIcon, ExternalLink } from "lucide-react";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import {
   DropdownMenu,
@@ -138,16 +138,33 @@ function UsersPage() {
   return (
     <AdminShell
       title="User Management"
-      description="Manage admin, staff, and moderator accounts for the back office."
+      description="Manage members (subscription holders), staff, and admin accounts in one place."
       action={
         <button
           onClick={() => setOpen(true)}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
         >
-          <Plus className="h-4 w-4" /> Add user
+          <Plus className="h-4 w-4" /> Add staff / admin
         </button>
       }
     >
+      <div className="mb-5 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+          <ShieldCheck className="h-4 w-4" /> Staff & Admins
+        </span>
+        <Link
+          to="/admin/members"
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
+        >
+          <UsersIcon className="h-4 w-4" /> Members (subscriptions) <ExternalLink className="h-3 w-3" />
+        </Link>
+        <Link
+          to="/admin/applications"
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
+        >
+          Applications <ExternalLink className="h-3 w-3" />
+        </Link>
+      </div>
       <div className="mb-4">
         <input
           value={q}

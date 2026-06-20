@@ -48,10 +48,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { initRenewalPayment } from "@/lib/payments.functions";
 import { openPaystackInline } from "@/lib/paystackInline";
 import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
+import { MyDirectoryListingTab } from "@/components/dashboard/MyDirectoryListingTab";
+import { ResourcesTabDb } from "@/components/dashboard/ResourcesTabDb";
 
-type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices" | "email-prefs" | "events" | "trade" | "directory";
+type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices" | "email-prefs" | "events" | "trade" | "directory" | "my-listing";
 
-const VALID_TABS: Tab[] = ["overview","subscription","certificate","notifications","support","profile","resources","readiness","documents","invoices","email-prefs","events","trade","directory"];
+const VALID_TABS: Tab[] = ["overview","subscription","certificate","notifications","support","profile","resources","readiness","documents","invoices","email-prefs","events","trade","directory","my-listing"];
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Member Dashboard — FAGE Ghana" }] }),
@@ -153,6 +155,7 @@ function Dashboard() {
     { id: "events", label: "Events", icon: CalendarDays },
     { id: "trade", label: "Trade Opportunities", icon: TrendingUp },
     { id: "directory", label: "Member Directory", icon: Users },
+    { id: "my-listing", label: "My Directory Listing", icon: Building2 },
     { id: "readiness", label: "Readiness Score", icon: ShieldCheck },
     { id: "resources", label: "Resources", icon: BookOpen },
     { id: "documents", label: "My Documents", icon: FolderOpen },
@@ -426,8 +429,17 @@ function Dashboard() {
           {tab === "events" && <EventsTab userId={user!.id} />}
           {tab === "trade" && <TradeTab userId={user!.id} />}
           {tab === "directory" && <DirectoryTab />}
+          {tab === "my-listing" && (
+            <MyDirectoryListingTab
+              userId={user!.id}
+              subscriptionActive={
+                !!profile.subscription_expiry &&
+                new Date(profile.subscription_expiry).getTime() > Date.now()
+              }
+            />
+          )}
           {tab === "readiness" && <ReadinessTab userId={user!.id} />}
-          {tab === "resources" && <ResourcesTab />}
+          {tab === "resources" && <ResourcesTabDb tier={profile.tier} />}
           {tab === "documents" && <DocumentsTab userId={user!.id} />}
           {tab === "invoices" && <InvoicesTab userId={user!.id} profile={profile} />}
           {tab === "email-prefs" && <EmailPrefsTab userId={user!.id} email={profile.email} />}

@@ -1,72 +1,92 @@
-# Plan
 
-## Part 1 — Persistent dashboard sidebar with active highlighting
+## 1. Member-submitted business directory
 
-**Problem:** The member dashboard's sidebar lives inline in `src/routes/dashboard.tsx`. Pages opened from the sidebar (e.g. `/account/security`, `/account/change-password`) navigate away to their own layout, so the dashboard sidebar disappears.
+### Database (one migration)
 
-**Fix:** Extract the sidebar into a shared layout that all member-area pages use.
+Extend `directory_entries`:
+- `user_id uuid references auth.users(id) on delete set null` — links entry to its owning member (nullable so admin-curated entries still work).
+- `status text not null default 'draft'` — values: `draft`, `pending`, `approved`, `rejected`, `suspended`.
+- `submitted_at`, `reviewed_at timestamptz`, `reviewed_by uuid`, `review_notes text`.
+- Unique partial index: one entry per `user_id` where `user_id is not null`.
 
-1. **New `src/components/dashboard/DashboardLayout.tsx**` — wraps children, renders the sidebar + top bar currently inline in `dashboard.tsx`. Items become real `<Link>`s with `useRouterState` to compute the active route. Tabs that are still in-page state on `/dashboard` (overview, subscription, certificate, etc.) link to `/dashboard?tab=<id>`; cross-route items (Account → `/account/security`, Change password → `/account/change-password`) link to those routes. Active state is matched by pathname + `?tab` search param. Active item gets the existing primary-bg highlight; mobile drawer behavior preserved.
-2. `**src/routes/dashboard.tsx**` — replace the inline sidebar JSX with `<DashboardLayout>`. Drive `tab` state from `useSearch()` `?tab=` instead of `useState`, so deep links work. Keep all tab components untouched.
-3. `**src/routes/account.tsx**` — replace its own header + mini-sidebar with `<DashboardLayout>` (admins keep their current `/admin` shell — only non-admin members see the dashboard sidebar; admins continue back to `/admin` via existing logic). The "Security" / "Change password" tabs render inside the layout's main slot via `<Outlet />`.
-4. Audit other member-only routes that should sit inside the dashboard shell: `account.change-password.tsx`, `account.security.tsx` (already covered via `/account` outlet). `certificate/$id`, `receipt/$id`, `verify/$code` stay standalone (public/print views) — out of scope unless you want them wrapped too.
-5. Active highlighting rule: `pathname === item.to` OR (`pathname === '/dashboard'` AND `search.tab === item.tab`).
+Replace the public visibility rule. The `directory_entries_public` view (and the corporate-members feed) become:
+```
+WHERE published = true AND status = 'approved'
+  AND (user_id IS NULL                       -- admin-curated, no sub gate
+       OR EXISTS (SELECT 1 FROM member_profiles mp
+                  WHERE mp.user_id = directory_entries.user_id
+                    AND mp.subscription_expiry > now()))
+```
+This makes expired-subscription entries disappear automatically — no cron needed.
 
-## Part 2 — Scheduled auto-backups + auto-discovery of new tables
+RLS additions:
+- Members can `SELECT`/`INSERT`/`UPDATE` their own row (`user_id = auth.uid()`) but cannot set `status` to anything other than `draft`/`pending` (enforce via trigger that resets non-admin status writes).
+- Admins keep full access (existing `has_role(...,'admin')` policy).
 
-Auto-discovery already works (`admin_list_public_tables()` introspects `information_schema` each run), so any new table is automatically included — no change needed there. Only scheduling is missing.
+Helper RPC `submit_my_directory_entry(payload jsonb)` (`SECURITY DEFINER`): upserts the member's entry, forces `status='pending'`, blocks the call when `member_profiles.subscription_expiry <= now()`.
 
-### Database
+New table `membership_resources`:
+- `title`, `slug`, `category`, `description`, `body` (markdown), `file_url`, `external_url`, `cover_image_url`, `min_tier` (enum: associate/standard/corporate/null=all), `published bool`, `display_order int`.
+- RLS: anyone (anon+auth) can read `published = true`; admin/staff full CRUD.
 
-- **New table `backup_schedules**` (admin-managed, RLS admin-only):
-`id`, `enabled boolean`, `frequency text` ('hourly' | 'daily' | 'weekly' | 'monthly' | 'custom'), `cron_expression text`, `retention_days int default 30`, `last_run_at`, `last_status text`, `last_error text`, `next_run_at`, timestamps.
-- **New table `backup_runs**` (history log): `id`, `started_at`, `finished_at`, `status` ('success'|'error'|'running'), `size_bytes`, `path`, `tables_count`, `error_message`, `trigger` ('manual'|'scheduled').
-- GRANTs + RLS (admin via `has_role`); `service_role` ALL for the cron route.
+### Member dashboard — new "Business Directory" tab
 
-### Backup endpoint
+`/dashboard?tab=directory-listing` rendered inside existing `DashboardLayout`:
+- Loads the member's `directory_entries` row (if any) plus active `directory_custom_field_defs`.
+- Shows current status badge (Draft / Pending review / Approved / Rejected with notes / Suspended — subscription expired).
+- Form with all fixed fields (company, slug auto-generated, type, logo, descriptions, contacts, products/services, executives) + custom fields via `DynamicFieldRenderer`.
+- "Save draft" and "Submit for review" buttons. Both disabled (with explainer card) when `subscription_expiry <= now()`.
+- After approval, shows a "View public page" link to `/directory/$slug`.
 
-- **New TanStack server route `src/routes/api/public/hooks/run-scheduled-backup.ts**`
-  - POST, validates `apikey` header against `SUPABASE_ANON_KEY`.
-  - Reads the active schedule, calls the existing backup logic (refactored shared helper from `backup.functions.ts` so the route and `createBackup` share one implementation), writes a `backup_runs` row, prunes backups older than `retention_days` from the `backups` bucket.
+Add the tab to `TAB_ITEMS` in `DashboardLayout.tsx`.
 
-### pg_cron
+### Admin — approval queue
 
-- Enable `pg_cron` + `pg_net`.
-- Single cron job `fage-scheduled-backup` running **every 15 minutes** that POSTs to the route above. The route itself decides whether a run is due (compares `now()` to `next_run_at`). This lets the admin change frequency in the UI without re-scheduling SQL.
-- Configured via `supabase--insert` (not migration) because it embeds the project URL + anon key.
+Extend `/admin/directory-entries`:
+- Add a "Status" filter (All / Pending / Approved / Rejected / Suspended / Draft) and column.
+- Row actions: **Approve**, **Reject** (prompt for notes), **Withdraw approval** (sets back to `pending`), plus the existing Edit / Feature / Delete.
+- In the edit modal add a **Linked member** picker (searches `member_profiles` by name/email/member_id; clears the link with one click). Saving sets `user_id`, which is what makes the entry appear in that member's dashboard.
 
-### Admin UI
+### Public template page
 
-- **Update `src/routes/admin.backup.tsx**` — add a "Schedule" card above the existing Create/Restore cards:
-  - Toggle enable/disable
-  - Frequency dropdown (Hourly / Daily / Weekly / Monthly / Custom cron) + time-of-day picker for daily/weekly/monthly
-  - Retention days input
-  - "Next run", "Last run", "Last status" readouts
-  - Recent runs table (last 20 from `backup_runs`) with status badge + download link
-- Two server fns in `backup.functions.ts`: `getBackupSchedule`, `updateBackupSchedule`, `listBackupRuns` (all admin-gated via `requireSupabaseAuth` + `has_role`).
+`/directory/$slug` already renders fixed + custom fields. No code change needed — the view filter above already hides non-approved or subscription-lapsed entries.
 
-### Auto-discovery confirmation
+## 2. Admin "Membership Resources" — full CRUD
 
-No code change needed — `admin_list_public_tables()` already enumerates every base table in `public` at backup time, so a new table added later is picked up on the next scheduled run.
+New route `/admin/resources` (added under the "Content" section of the admin sidebar):
+- Table (title, category, min tier, published, order) with search.
+- Create/Edit modal: title (auto-slug), category, cover image upload, description, markdown body, file upload to `content` bucket, external URL, min tier, published, display order.
+- Delete confirmation.
+
+Update the existing dashboard "Resources" tab to pull from `membership_resources` filtered by the member's tier instead of any hard-coded list.
+
+## 3. User management — add Members view
+
+`/admin/users` currently only handles admin/staff/moderator accounts. Add a second tab **"Members"**:
+- Lists `member_profiles` (name, email, member_id, tier, subscription status, directory status).
+- Actions: view profile, change tier, extend subscription, suspend/reactivate (already covered by existing `admin.members` route — we'll link to it from here rather than duplicate).
+- The existing **Staff & Admins** tab keeps the current create/role/delete flow.
+
+This gives one entry point that distinguishes the three constituencies (members across the 3 subscription tiers, staff, admins) without duplicating the member management UI that already lives at `/admin/members`.
 
 ## Files
 
 **New**
-
-- `src/components/dashboard/DashboardLayout.tsx`
-- `src/routes/api/public/hooks/run-scheduled-backup.ts`
-- Migration: `backup_schedules`, `backup_runs`, RLS, GRANTs
+- `supabase/migrations/<ts>_member_directory_listings_and_resources.sql`
+- `src/routes/dashboard.directory-listing.tsx` *(or add as a tab panel inside `dashboard.tsx`)*
+- `src/routes/admin.resources.tsx`
+- `src/components/admin/MemberLinkPicker.tsx`
 
 **Edited**
-
-- `src/routes/dashboard.tsx` (use layout, tab from search param)
-- `src/routes/account.tsx` (use layout)
-- `src/routes/admin.backup.tsx` (schedule UI + runs history)
-- `src/lib/backup.functions.ts` (extract shared runner; add schedule/runs server fns)
+- `src/components/dashboard/DashboardLayout.tsx` — new tab entry.
+- `src/routes/dashboard.tsx` — render the new tab panel; replace Resources tab to read from `membership_resources`.
+- `src/routes/admin.directory-entries.tsx` — status column/filter, approve/reject/withdraw actions, member picker in modal.
+- `src/routes/admin.tsx` — add Resources nav item.
+- `src/routes/admin.users.tsx` — add Members tab linking to `/admin/members`.
+- `src/routes/directory.$slug.tsx` — only if needed to show "suspended" 404 gracefully.
 
 ## Out of scope
 
-- Wrapping public print pages (`certificate`, `receipt`, `verify`) in the dashboard layout.
-- Off-site backup destinations (S3, Drive). Files remain in the `backups` bucket.
-- Email/Slack notifications on backup failure (can add later).
-- can you create a setting section to determine certificate format for each of the membership plan and  also make a provision for the starting point which can be updated for the new auto generation to take its point 
+- Email notifications on approve/reject (can be added later via existing email-templates infra).
+- Multiple directory entries per member (one entry per `user_id`).
+- Custom permission editor for staff beyond the existing three roles.
