@@ -891,3 +891,142 @@ function ConfirmDialog({
     </div>
   );
 }
+
+function MemberLinkPicker({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [current, setCurrent] = useState<any>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!value) {
+      setCurrent(null);
+      return;
+    }
+    void supabase
+      .from("member_profiles")
+      .select("user_id, contact_name, email, member_id, company_name")
+      .eq("user_id", value)
+      .maybeSingle()
+      .then(({ data }) => setCurrent(data));
+  }, [value]);
+
+  useEffect(() => {
+    if (!open || !q.trim()) {
+      setResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const term = `%${q}%`;
+      const { data } = await supabase
+        .from("member_profiles")
+        .select("user_id, contact_name, email, member_id, company_name")
+        .or(
+          `contact_name.ilike.${term},email.ilike.${term},member_id.ilike.${term},company_name.ilike.${term}`,
+        )
+        .limit(8);
+      setResults(data ?? []);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [q, open]);
+
+  return (
+    <div className="space-y-2">
+      {current ? (
+        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+          <div>
+            <div className="font-medium">{current.company_name || current.contact_name}</div>
+            <div className="text-xs text-muted-foreground">
+              {current.email} · {current.member_id ?? "no ID"}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="text-xs text-muted-foreground hover:text-destructive"
+          >
+            Unlink
+          </button>
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">Not linked to a member</div>
+      )}
+      <div className="relative">
+        <input
+          value={q}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search members by name, email, ID…"
+          className={inputCls}
+        />
+        {open && results.length > 0 && (
+          <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-card shadow-lg">
+            {results.map((m) => (
+              <button
+                key={m.user_id}
+                type="button"
+                onClick={() => {
+                  onChange(m.user_id);
+                  setOpen(false);
+                  setQ("");
+                }}
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-accent"
+              >
+                <div className="font-medium">{m.company_name || m.contact_name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {m.email} · {m.member_id ?? "no ID"}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RejectModal({
+  entry,
+  onClose,
+  onConfirm,
+}: {
+  entry: Entry;
+  onClose: () => void;
+  onConfirm: (notes: string) => void | Promise<void>;
+}) {
+  const [notes, setNotes] = useState("");
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-card p-6">
+        <h2 className="text-lg font-bold">Reject "{entry.company_name}"?</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The member will see your feedback in their dashboard.
+        </p>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={4}
+          placeholder="Reason for rejection (optional)…"
+          className={inputCls + " mt-3"}
+        />
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-full px-4 py-2 text-sm">
+            Cancel
+          </button>
+          <button
+            onClick={() => void onConfirm(notes)}
+            className="rounded-full bg-destructive px-5 py-2 text-sm font-semibold text-destructive-foreground"
+          >
+            Reject entry
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
