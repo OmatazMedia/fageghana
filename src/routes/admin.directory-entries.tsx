@@ -701,6 +701,28 @@ function EntryModal({
             </label>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Status">
+              <select
+                value={e.status}
+                onChange={(ev) => update("status", ev.target.value as any)}
+                className={inputCls}
+              >
+                <option value="draft">Draft</option>
+                <option value="pending">Pending review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </FormField>
+            <FormField label="Linked member" hint="Entry will appear in this member's dashboard. Required for subscription-gated visibility.">
+              <MemberLinkPicker
+                value={e.user_id}
+                onChange={(v) => update("user_id", v)}
+              />
+            </FormField>
+          </div>
+
           <CustomFieldsSection
             entryType={e.entry_type}
             value={e.custom_fields ?? {}}
