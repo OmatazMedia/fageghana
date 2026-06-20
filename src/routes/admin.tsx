@@ -30,6 +30,7 @@ import {
   TrendingDown,
   ShieldCheck,
   Building2,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
