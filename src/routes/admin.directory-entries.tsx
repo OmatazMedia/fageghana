@@ -167,8 +167,8 @@ function DirectoryEntriesAdmin() {
     const { error } = await supabase.rpc("admin_review_directory_entry", {
       _id: r.id,
       _action: action,
-      _notes: notes ?? null,
-    });
+      _notes: notes ?? undefined,
+    } as any);
     if (error) {
       toast.error(error.message);
       return;
