@@ -1,92 +1,56 @@
+## Problems
 
-## 1. Member-submitted business directory
+1. **Directory detail pages 404 for many entries.** `src/routes/directory.tsx` merges two sources into the public list: curated `directory_entries` rows AND approved `member_profiles` rows. The member-profile rows are synthesized with fake slugs like `member-{id}` that don't exist in `directory_entries`, so clicking them on `directory.$slug.tsx` returns Not Found.
 
-### Database (one migration)
+2. **No bulk actions on admin directory entries.** Approve / suspend / link-to-member must currently be done one entry at a time.
 
-Extend `directory_entries`:
-- `user_id uuid references auth.users(id) on delete set null` — links entry to its owning member (nullable so admin-curated entries still work).
-- `status text not null default 'draft'` — values: `draft`, `pending`, `approved`, `rejected`, `suspended`.
-- `submitted_at`, `reviewed_at timestamptz`, `reviewed_by uuid`, `review_notes text`.
-- Unique partial index: one entry per `user_id` where `user_id is not null`.
+3. **No way for admin to assign an existing directory entry to a member account.** When linked, the member should automatically see and edit it from their dashboard.
 
-Replace the public visibility rule. The `directory_entries_public` view (and the corporate-members feed) become:
-```
-WHERE published = true AND status = 'approved'
-  AND (user_id IS NULL                       -- admin-curated, no sub gate
-       OR EXISTS (SELECT 1 FROM member_profiles mp
-                  WHERE mp.user_id = directory_entries.user_id
-                    AND mp.subscription_expiry > now()))
-```
-This makes expired-subscription entries disappear automatically — no cron needed.
+## Plan
 
-RLS additions:
-- Members can `SELECT`/`INSERT`/`UPDATE` their own row (`user_id = auth.uid()`) but cannot set `status` to anything other than `draft`/`pending` (enforce via trigger that resets non-admin status writes).
-- Admins keep full access (existing `has_role(...,'admin')` policy).
+### 1. Fix directory listing → detail flow
 
-Helper RPC `submit_my_directory_entry(payload jsonb)` (`SECURITY DEFINER`): upserts the member's entry, forces `status='pending'`, blocks the call when `member_profiles.subscription_expiry <= now()`.
+Stop synthesizing fake entries from `member_profiles`. The member-submitted directory flow already writes real rows into `directory_entries` (via `submit_my_directory_entry`), so the public list and detail page should share one source of truth.
 
-New table `membership_resources`:
-- `title`, `slug`, `category`, `description`, `body` (markdown), `file_url`, `external_url`, `cover_image_url`, `min_tier` (enum: associate/standard/corporate/null=all), `published bool`, `display_order int`.
-- RLS: anyone (anon+auth) can read `published = true`; admin/staff full CRUD.
+- `src/routes/directory.tsx`: remove the `member_profiles` query and the synthesized `member-{id}` rows. List only `directory_entries` where `published = true AND status = 'approved'`, ordered by `featured`, `display_order`, `company_name`.
+- `src/routes/directory.$slug.tsx`: tighten the loader to also require `status = 'approved'` so suspended/rejected entries 404 instead of leaking.
+- Keep `member_profiles.directory_visible` toggle in `admin.directory.tsx` as-is (separate admin view) — out of scope here.
 
-### Member dashboard — new "Business Directory" tab
+### 2. Bulk actions in `admin.directory-entries.tsx`
 
-`/dashboard?tab=directory-listing` rendered inside existing `DashboardLayout`:
-- Loads the member's `directory_entries` row (if any) plus active `directory_custom_field_defs`.
-- Shows current status badge (Draft / Pending review / Approved / Rejected with notes / Suspended — subscription expired).
-- Form with all fixed fields (company, slug auto-generated, type, logo, descriptions, contacts, products/services, executives) + custom fields via `DynamicFieldRenderer`.
-- "Save draft" and "Submit for review" buttons. Both disabled (with explainer card) when `subscription_expiry <= now()`.
-- After approval, shows a "View public page" link to `/directory/$slug`.
+Add a leftmost checkbox column + header "select all (filtered)" checkbox, plus a sticky bulk-action bar that appears when ≥1 row is selected:
 
-Add the tab to `TAB_ITEMS` in `DashboardLayout.tsx`.
+- **Approve selected** — loop `admin_review_directory_entry(id, 'approve')`.
+- **Suspend selected** — loop `admin_review_directory_entry(id, 'suspend')`.
+- **Reject selected** — loop `admin_review_directory_entry(id, 'reject')`.
+- **Link to member…** — opens a member picker (search `member_profiles` by company / contact / email / member_id, approved + active subscription preferred). On confirm: update each selected entry with `user_id = picked.user_id` (admin RLS already permits). Block if any selected row already has a different `user_id` unless the admin confirms overwrite. Show toast with success/failure counts.
+- **Unlink member** — sets `user_id = null` on selected rows.
+- Clear selection on filter change and after each bulk action; refresh list.
 
-### Admin — approval queue
+State: `selectedIds: Set<string>` in component; selection is preserved across pagination only if we add pagination later (currently full list).
 
-Extend `/admin/directory-entries`:
-- Add a "Status" filter (All / Pending / Approved / Rejected / Suspended / Draft) and column.
-- Row actions: **Approve**, **Reject** (prompt for notes), **Withdraw approval** (sets back to `pending`), plus the existing Edit / Feature / Delete.
-- In the edit modal add a **Linked member** picker (searches `member_profiles` by name/email/member_id; clears the link with one click). Saving sets `user_id`, which is what makes the entry appear in that member's dashboard.
+### 3. Member-side visibility of linked entries
 
-### Public template page
+Already wired: `MyDirectoryListingTab` loads `directory_entries` by `user_id = auth.uid()` and edits it through `submit_my_directory_entry`, which upserts by `user_id`. Once admin sets `user_id` on an entry (Step 2), the member sees and can edit it with no extra code.
 
-`/directory/$slug` already renders fixed + custom fields. No code change needed — the view filter above already hides non-approved or subscription-lapsed entries.
+Add one small safeguard: in `MyDirectoryListingTab`, when the loaded entry has `status = 'approved'`, show a notice that editing will return it to `pending` for re-review (the RPC already does this; just surface it in UI).
 
-## 2. Admin "Membership Resources" — full CRUD
+### 4. New component
 
-New route `/admin/resources` (added under the "Content" section of the admin sidebar):
-- Table (title, category, min tier, published, order) with search.
-- Create/Edit modal: title (auto-slug), category, cover image upload, description, markdown body, file upload to `content` bucket, external URL, min tier, published, display order.
-- Delete confirmation.
+- `src/components/admin/MemberPickerDialog.tsx` — modal with debounced search over `member_profiles` (name/email/company/member_id), returns `{ user_id, member_id, company_name, contact_name }` to caller. Reused by single-entry edit modal too (replace the inline picker reference mentioned in earlier work if not already a shared component).
 
-Update the existing dashboard "Resources" tab to pull from `membership_resources` filtered by the member's tier instead of any hard-coded list.
+## Files touched
 
-## 3. User management — add Members view
+- Edit: `src/routes/directory.tsx`
+- Edit: `src/routes/directory.$slug.tsx`
+- Edit: `src/routes/admin.directory-entries.tsx`
+- Edit: `src/components/dashboard/MyDirectoryListingTab.tsx` (status notice only)
+- New: `src/components/admin/MemberPickerDialog.tsx`
 
-`/admin/users` currently only handles admin/staff/moderator accounts. Add a second tab **"Members"**:
-- Lists `member_profiles` (name, email, member_id, tier, subscription status, directory status).
-- Actions: view profile, change tier, extend subscription, suspend/reactivate (already covered by existing `admin.members` route — we'll link to it from here rather than duplicate).
-- The existing **Staff & Admins** tab keeps the current create/role/delete flow.
-
-This gives one entry point that distinguishes the three constituencies (members across the 3 subscription tiers, staff, admins) without duplicating the member management UI that already lives at `/admin/members`.
-
-## Files
-
-**New**
-- `supabase/migrations/<ts>_member_directory_listings_and_resources.sql`
-- `src/routes/dashboard.directory-listing.tsx` *(or add as a tab panel inside `dashboard.tsx`)*
-- `src/routes/admin.resources.tsx`
-- `src/components/admin/MemberLinkPicker.tsx`
-
-**Edited**
-- `src/components/dashboard/DashboardLayout.tsx` — new tab entry.
-- `src/routes/dashboard.tsx` — render the new tab panel; replace Resources tab to read from `membership_resources`.
-- `src/routes/admin.directory-entries.tsx` — status column/filter, approve/reject/withdraw actions, member picker in modal.
-- `src/routes/admin.tsx` — add Resources nav item.
-- `src/routes/admin.users.tsx` — add Members tab linking to `/admin/members`.
-- `src/routes/directory.$slug.tsx` — only if needed to show "suspended" 404 gracefully.
+No DB migration needed — `admin_review_directory_entry` RPC and admin RLS on `directory_entries` already support every action above.
 
 ## Out of scope
 
-- Email notifications on approve/reject (can be added later via existing email-templates infra).
-- Multiple directory entries per member (one entry per `user_id`).
-- Custom permission editor for staff beyond the existing three roles.
+- Email notifications on approve/suspend/link.
+- Multiple directory entries per member.
+- Pagination of the admin entries table.

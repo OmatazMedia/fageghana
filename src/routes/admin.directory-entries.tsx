@@ -111,6 +111,14 @@ function DirectoryEntriesAdmin() {
   const [editing, setEditing] = useState<Entry | null>(null);
   const [deleting, setDeleting] = useState<Entry | null>(null);
   const [rejecting, setRejecting] = useState<Entry | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLinkOpen, setBulkLinkOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [q, type, statusFilter]);
+
 
   async function load() {
     setLoading(true);
@@ -230,6 +238,64 @@ function DirectoryEntriesAdmin() {
     }
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleSelectAllFiltered(ids: string[], allSelected: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) ids.forEach((i) => next.delete(i));
+      else ids.forEach((i) => next.add(i));
+      return next;
+    });
+  }
+
+  async function bulkReview(action: "approve" | "reject" | "suspend") {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    if (!confirm(`${action[0].toUpperCase() + action.slice(1)} ${ids.length} entr${ids.length === 1 ? "y" : "ies"}?`)) return;
+    setBulkBusy(true);
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      const { error } = await supabase.rpc("admin_review_directory_entry", {
+        _id: id,
+        _action: action,
+      } as any);
+      if (error) fail++;
+      else ok++;
+    }
+    setBulkBusy(false);
+    toast[fail ? "warning" : "success"](`${ok} ${action}d${fail ? `, ${fail} failed` : ""}`);
+    setSelectedIds(new Set());
+    await load();
+  }
+
+  async function bulkLink(userId: string | null) {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    setBulkBusy(true);
+    const { error } = await supabase
+      .from("directory_entries")
+      .update({ user_id: userId })
+      .in("id", ids);
+    setBulkBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(userId ? `Linked ${ids.length} entr${ids.length === 1 ? "y" : "ies"} to member` : `Unlinked ${ids.length}`);
+    setBulkLinkOpen(false);
+    setSelectedIds(new Set());
+    await load();
+  }
+
+
   return (
     <AdminShell
       title="Directory Entries"
@@ -283,12 +349,75 @@ function DirectoryEntriesAdmin() {
         </select>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/40 bg-primary/5 px-4 py-2 text-sm">
+          <span className="font-medium">{selectedIds.size} selected</span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkReview("approve")}
+              className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkReview("suspend")}
+              className="rounded-full bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              Suspend
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkReview("reject")}
+              className="rounded-full bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground disabled:opacity-50"
+            >
+              Reject
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => setBulkLinkOpen(true)}
+              className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              Link to member…
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkLink(null)}
+              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50"
+            >
+              Unlink member
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border border-border bg-card">
         <div className="max-h-[calc(100vh-340px)] overflow-auto">
           <table className="w-full text-sm">
+
             <thead className="sticky top-0 z-10 bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && filtered.every((r) => selectedIds.has(r.id))}
+                    onChange={() => {
+                      const ids = filtered.map((r) => r.id);
+                      const all = ids.length > 0 && ids.every((i) => selectedIds.has(i));
+                      toggleSelectAllFiltered(ids, all);
+                    }}
+                    aria-label="Select all"
+                  />
+                </th>
                 <th className="px-4 py-3">Company</th>
+
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Contact</th>
@@ -300,19 +429,27 @@ function DirectoryEntriesAdmin() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                     No entries
                   </td>
                 </tr>
               ) : (
                 filtered.map((r) => (
-                  <tr key={r.id} className="border-t border-border">
+                  <tr key={r.id} className={`border-t border-border ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(r.id)}
+                        onChange={() => toggleSelect(r.id)}
+                        aria-label={`Select ${r.company_name}`}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {r.featured && <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />}
@@ -414,7 +551,15 @@ function DirectoryEntriesAdmin() {
           }}
         />
       )}
+      {bulkLinkOpen && (
+        <BulkLinkDialog
+          count={selectedIds.size}
+          onClose={() => setBulkLinkOpen(false)}
+          onPick={(uid) => bulkLink(uid)}
+        />
+      )}
     </AdminShell>
+
   );
 }
 
@@ -1030,3 +1175,92 @@ function RejectModal({
     </div>
   );
 }
+
+function BulkLinkDialog({
+  count,
+  onClose,
+  onPick,
+}: {
+  count: number;
+  onClose: () => void;
+  onPick: (userId: string) => void | Promise<void>;
+}) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  useEffect(() => {
+    const term = q.trim();
+    if (!term) {
+      setResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const like = `%${term}%`;
+      const { data } = await supabase
+        .from("member_profiles")
+        .select("user_id, contact_name, email, member_id, company_name, status, subscription_expiry")
+        .or(
+          `contact_name.ilike.${like},email.ilike.${like},member_id.ilike.${like},company_name.ilike.${like}`,
+        )
+        .limit(10);
+      setResults(data ?? []);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-card p-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-bold">Link {count} entr{count === 1 ? "y" : "ies"} to member</h2>
+          <button onClick={onClose}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <input
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search members by name, email, member ID, company…"
+          className={inputCls}
+        />
+        <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-border">
+          {results.length === 0 ? (
+            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+              {q.trim() ? "No matches" : "Start typing to search…"}
+            </p>
+          ) : (
+            results.map((m) => {
+              const active =
+                m.subscription_expiry && new Date(m.subscription_expiry) > new Date();
+              return (
+                <button
+                  key={m.user_id}
+                  type="button"
+                  onClick={() => void onPick(m.user_id)}
+                  className="block w-full border-b border-border px-3 py-2 text-left text-sm last:border-0 hover:bg-accent"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium">{m.company_name || m.contact_name}</div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${active ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {m.email} · {m.member_id ?? "no ID"}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          The selected entr{count === 1 ? "y" : "ies"} will be assigned to this member, who can
+          then view and edit it from their dashboard.
+        </p>
+      </div>
+    </div>
+  );
+}
+
