@@ -42,23 +42,8 @@ type Entry = {
   featured: boolean;
 };
 
-type ApprovedMember = {
-  id: string;
-  company_name: string;
-  contact_name: string;
-  email: string;
-  phone: string;
-  country: string;
-  industry: string | null;
-  directory_bio: string | null;
-  directory_website: string | null;
-  directory_logo_url: string | null;
-};
-
-type Combined = Entry & { source: "curated" | "member" };
-
 function DirectoryPage() {
-  const [entries, setEntries] = useState<Combined[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | "association" | "corporate">("all");
@@ -66,56 +51,17 @@ function DirectoryPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [curated, members] = await Promise.all([
-        supabase
-          .from("directory_entries")
-          .select(
-            "id,entry_type,slug,company_name,short_description,products,category,phone,email,country,region,physical_address,logo_url,director_name,contact_name,featured",
-          )
-          .eq("published", true)
-          .order("featured", { ascending: false })
-          .order("display_order"),
-        supabase
-          .from("member_profiles")
-          .select(
-            "id,company_name,contact_name,email,phone,country,industry,directory_bio,directory_website,directory_logo_url",
-          )
-          .eq("status", "approved")
-          .eq("directory_visible", true),
-      ]);
-
-      const curatedRows: Combined[] = (curated.data ?? []).map((r: any) => ({
-        ...r,
-        source: "curated" as const,
-      }));
-
-      const memberRows: Combined[] = (members.data ?? []).map((m: ApprovedMember) => ({
-        id: `m-${m.id}`,
-        entry_type: "corporate" as const,
-        slug: `member-${m.id}`,
-        company_name: m.company_name,
-        short_description: m.directory_bio,
-        products: [],
-        category: m.industry,
-        phone: m.phone,
-        email: m.email,
-        country: m.country,
-        region: null,
-        physical_address: null,
-        logo_url: m.directory_logo_url,
-        director_name: null,
-        contact_name: m.contact_name,
-        featured: false,
-        source: "member" as const,
-      }));
-
-      // Dedup by email (curated wins)
-      const seen = new Set(curatedRows.map((r) => (r.email ?? "").toLowerCase()).filter(Boolean));
-      const merged = [
-        ...curatedRows,
-        ...memberRows.filter((m) => !m.email || !seen.has(m.email.toLowerCase())),
-      ];
-      setEntries(merged);
+      const { data } = await supabase
+        .from("directory_entries")
+        .select(
+          "id,entry_type,slug,company_name,short_description,products,category,phone,email,country,region,physical_address,logo_url,director_name,contact_name,featured",
+        )
+        .eq("published", true)
+        .eq("status", "approved")
+        .order("featured", { ascending: false })
+        .order("display_order")
+        .order("company_name");
+      setEntries((data ?? []) as Entry[]);
       setLoading(false);
     }
     void load();
