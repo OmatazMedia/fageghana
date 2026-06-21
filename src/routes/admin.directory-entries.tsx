@@ -111,6 +111,14 @@ function DirectoryEntriesAdmin() {
   const [editing, setEditing] = useState<Entry | null>(null);
   const [deleting, setDeleting] = useState<Entry | null>(null);
   const [rejecting, setRejecting] = useState<Entry | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLinkOpen, setBulkLinkOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [q, type, statusFilter]);
+
 
   async function load() {
     setLoading(true);
