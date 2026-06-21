@@ -404,7 +404,20 @@ function DirectoryEntriesAdmin() {
 
             <thead className="sticky top-0 z-10 bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && filtered.every((r) => selectedIds.has(r.id))}
+                    onChange={() => {
+                      const ids = filtered.map((r) => r.id);
+                      const all = ids.length > 0 && ids.every((i) => selectedIds.has(i));
+                      toggleSelectAllFiltered(ids, all);
+                    }}
+                    aria-label="Select all"
+                  />
+                </th>
                 <th className="px-4 py-3">Company</th>
+
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Contact</th>
