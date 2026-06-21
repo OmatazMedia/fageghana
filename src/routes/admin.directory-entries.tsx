@@ -238,6 +238,64 @@ function DirectoryEntriesAdmin() {
     }
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleSelectAllFiltered(ids: string[], allSelected: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) ids.forEach((i) => next.delete(i));
+      else ids.forEach((i) => next.add(i));
+      return next;
+    });
+  }
+
+  async function bulkReview(action: "approve" | "reject" | "suspend") {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    if (!confirm(`${action[0].toUpperCase() + action.slice(1)} ${ids.length} entr${ids.length === 1 ? "y" : "ies"}?`)) return;
+    setBulkBusy(true);
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      const { error } = await supabase.rpc("admin_review_directory_entry", {
+        _id: id,
+        _action: action,
+      } as any);
+      if (error) fail++;
+      else ok++;
+    }
+    setBulkBusy(false);
+    toast[fail ? "warning" : "success"](`${ok} ${action}d${fail ? `, ${fail} failed` : ""}`);
+    setSelectedIds(new Set());
+    await load();
+  }
+
+  async function bulkLink(userId: string | null) {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    setBulkBusy(true);
+    const { error } = await supabase
+      .from("directory_entries")
+      .update({ user_id: userId })
+      .in("id", ids);
+    setBulkBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(userId ? `Linked ${ids.length} entr${ids.length === 1 ? "y" : "ies"} to member` : `Unlinked ${ids.length}`);
+    setBulkLinkOpen(false);
+    setSelectedIds(new Set());
+    await load();
+  }
+
+
   return (
     <AdminShell
       title="Directory Entries"
