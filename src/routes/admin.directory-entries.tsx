@@ -551,7 +551,15 @@ function DirectoryEntriesAdmin() {
           }}
         />
       )}
+      {bulkLinkOpen && (
+        <BulkLinkDialog
+          count={selectedIds.size}
+          onClose={() => setBulkLinkOpen(false)}
+          onPick={(uid) => bulkLink(uid)}
+        />
+      )}
     </AdminShell>
+
   );
 }
 
