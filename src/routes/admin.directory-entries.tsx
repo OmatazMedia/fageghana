@@ -1175,3 +1175,92 @@ function RejectModal({
     </div>
   );
 }
+
+function BulkLinkDialog({
+  count,
+  onClose,
+  onPick,
+}: {
+  count: number;
+  onClose: () => void;
+  onPick: (userId: string) => void | Promise<void>;
+}) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  useEffect(() => {
+    const term = q.trim();
+    if (!term) {
+      setResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const like = `%${term}%`;
+      const { data } = await supabase
+        .from("member_profiles")
+        .select("user_id, contact_name, email, member_id, company_name, status, subscription_expiry")
+        .or(
+          `contact_name.ilike.${like},email.ilike.${like},member_id.ilike.${like},company_name.ilike.${like}`,
+        )
+        .limit(10);
+      setResults(data ?? []);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-card p-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-bold">Link {count} entr{count === 1 ? "y" : "ies"} to member</h2>
+          <button onClick={onClose}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <input
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search members by name, email, member ID, company…"
+          className={inputCls}
+        />
+        <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-border">
+          {results.length === 0 ? (
+            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+              {q.trim() ? "No matches" : "Start typing to search…"}
+            </p>
+          ) : (
+            results.map((m) => {
+              const active =
+                m.subscription_expiry && new Date(m.subscription_expiry) > new Date();
+              return (
+                <button
+                  key={m.user_id}
+                  type="button"
+                  onClick={() => void onPick(m.user_id)}
+                  className="block w-full border-b border-border px-3 py-2 text-left text-sm last:border-0 hover:bg-accent"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium">{m.company_name || m.contact_name}</div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${active ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {m.email} · {m.member_id ?? "no ID"}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          The selected entr{count === 1 ? "y" : "ies"} will be assigned to this member, who can
+          then view and edit it from their dashboard.
+        </p>
+      </div>
+    </div>
+  );
+}
+
