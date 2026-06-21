@@ -250,6 +250,13 @@ export function MyDirectoryListingTab({
             Your listing is awaiting admin review. You can keep editing and it will stay queued.
           </div>
         )}
+
+        {status === "approved" && (
+          <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-sm text-amber-900">
+            <CheckCircle2 className="h-4 w-4 mt-0.5" />
+            Heads-up: submitting changes will return your listing to <strong>Pending</strong> for re-review before it goes live again.
+          </div>
+        )}
       </div>
 
       <div className="space-y-4 rounded-2xl bg-card p-6 shadow-sm">
