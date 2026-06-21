@@ -349,9 +349,59 @@ function DirectoryEntriesAdmin() {
         </select>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/40 bg-primary/5 px-4 py-2 text-sm">
+          <span className="font-medium">{selectedIds.size} selected</span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkReview("approve")}
+              className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkReview("suspend")}
+              className="rounded-full bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              Suspend
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkReview("reject")}
+              className="rounded-full bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground disabled:opacity-50"
+            >
+              Reject
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => setBulkLinkOpen(true)}
+              className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              Link to member…
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkLink(null)}
+              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50"
+            >
+              Unlink member
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border border-border bg-card">
         <div className="max-h-[calc(100vh-340px)] overflow-auto">
           <table className="w-full text-sm">
+
             <thead className="sticky top-0 z-10 bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Company</th>
