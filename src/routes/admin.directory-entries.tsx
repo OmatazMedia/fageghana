@@ -441,7 +441,15 @@ function DirectoryEntriesAdmin() {
                 </tr>
               ) : (
                 filtered.map((r) => (
-                  <tr key={r.id} className="border-t border-border">
+                  <tr key={r.id} className={`border-t border-border ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(r.id)}
+                        onChange={() => toggleSelect(r.id)}
+                        aria-label={`Select ${r.company_name}`}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {r.featured && <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />}
