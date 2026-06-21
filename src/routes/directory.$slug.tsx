@@ -28,6 +28,7 @@ export const Route = createFileRoute("/directory/$slug")({
       .select("*")
       .eq("slug", params.slug)
       .eq("published", true)
+      .eq("status", "approved")
       .maybeSingle();
     if (error || !data) throw notFound();
     return data;
