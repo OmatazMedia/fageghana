@@ -39,8 +39,10 @@ function UsersPage() {
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [roleFor, setRoleFor] = useState<AdminUserRow | null>(null);
   const [deleting, setDeleting] = useState<AdminUserRow | null>(null);
+  
   
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
