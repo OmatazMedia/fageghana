@@ -177,6 +177,16 @@ function Dashboard() {
 
   const expiry = profile.subscription_expiry ? new Date(profile.subscription_expiry) : null;
   const expired = expiry ? expiry.getTime() < Date.now() : true;
+  const suspended = (profile as any).status === "suspended";
+  const lockedReason: "expired" | "suspended" | "inactive" | null = suspended
+    ? "suspended"
+    : !expiry
+      ? "inactive"
+      : expired
+        ? "expired"
+        : null;
+  const ALLOWED_WHEN_LOCKED = new Set<Tab>(["subscription", "invoices", "profile", "support"]);
+  const isLockedTab = !!lockedReason && !ALLOWED_WHEN_LOCKED.has(tab);
   const statusBadge = !expiry
     ? { label: "Inactive", cls: "bg-muted text-muted-foreground" }
     : expired
