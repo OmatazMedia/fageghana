@@ -50,6 +50,7 @@ import { openPaystackInline } from "@/lib/paystackInline";
 import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 import { MyDirectoryListingTab } from "@/components/dashboard/MyDirectoryListingTab";
 import { ResourcesTabDb } from "@/components/dashboard/ResourcesTabDb";
+import { SubscriptionLockedScreen } from "@/components/dashboard/SubscriptionLockedScreen";
 
 type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices" | "email-prefs" | "events" | "trade" | "directory" | "my-listing";
 
