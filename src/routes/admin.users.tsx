@@ -143,12 +143,20 @@ function UsersPage() {
       title="User Management"
       description="Manage members (subscription holders), staff, and admin accounts in one place."
       action={
-        <button
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" /> Add staff / admin
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted"
+          >
+            <Upload className="h-4 w-4" /> Bulk invite members (CSV)
+          </button>
+          <button
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" /> Add staff / admin
+          </button>
+        </div>
       }
     >
       <div className="mb-5 flex flex-wrap gap-2">
