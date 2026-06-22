@@ -376,6 +376,20 @@ function DirectoryEntriesAdmin() {
             </button>
             <button
               disabled={bulkBusy}
+              onClick={() => bulkReview("deactivate")}
+              className="rounded-full bg-slate-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              title="Hide from public directory without deleting"
+            >
+              Deactivate
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkReview("activate")}
+              className="rounded-full bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              Activate
+            </button>
+              disabled={bulkBusy}
               onClick={() => setBulkLinkOpen(true)}
               className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
             >
