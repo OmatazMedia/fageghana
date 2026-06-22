@@ -129,3 +129,94 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/* ── Bulk member CSV invite ─────────────────────────────────────────── */
+
+const bulkRowSchema = z.object({
+  email: z.string().trim().email(),
+  full_name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().max(40).optional().nullable(),
+  company_name: z.string().trim().max(160).optional().nullable(),
+  tier: z.enum(["associate", "standard", "corporate"]).optional().nullable(),
+});
+
+const bulkInviteSchema = z.object({
+  rows: z.array(bulkRowSchema).min(1).max(500),
+  redirectOrigin: z.string().url(),
+});
+
+export type BulkInviteResult = {
+  succeeded: number;
+  failed: { email: string; reason: string }[];
+};
+
+export const bulkInviteMembers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => bulkInviteSchema.parse(d))
+  .handler(async ({ data, context }): Promise<BulkInviteResult> => {
+    await assertAdmin(context);
+
+    const redirectTo = `${data.redirectOrigin.replace(/\/$/, "")}/reset-password`;
+    const failed: { email: string; reason: string }[] = [];
+    let succeeded = 0;
+
+    for (const row of data.rows) {
+      try {
+        // Try invite first; if user already exists, fall back to upserting profile only.
+        const { data: invited, error: invErr } =
+          await supabaseAdmin.auth.admin.inviteUserByEmail(row.email, {
+            data: { full_name: row.full_name },
+            redirectTo,
+          });
+
+        let userId: string | undefined = invited?.user?.id;
+
+        if (invErr) {
+          // Likely "User already registered" — look them up so we still seed profile fields.
+          const { data: list } = await supabaseAdmin.auth.admin.listUsers({
+            page: 1,
+            perPage: 200,
+          });
+          const existing = list?.users.find(
+            (u) => u.email?.toLowerCase() === row.email.toLowerCase(),
+          );
+          if (!existing) {
+            failed.push({ email: row.email, reason: invErr.message });
+            continue;
+          }
+          userId = existing.id;
+        }
+
+        if (!userId) {
+          failed.push({ email: row.email, reason: "No user id returned" });
+          continue;
+        }
+
+        // Upsert member_profiles with provided fields. Subscription stays unset
+        // until the member pays for a plan (or admin attaches one separately).
+        const { error: profErr } = await supabaseAdmin
+          .from("member_profiles")
+          .upsert(
+            {
+              user_id: userId,
+              full_name: row.full_name,
+              email: row.email,
+              phone: row.phone ?? null,
+              company_name: row.company_name ?? null,
+              tier: row.tier ?? null,
+            },
+            { onConflict: "user_id" },
+          );
+        if (profErr) {
+          failed.push({ email: row.email, reason: profErr.message });
+          continue;
+        }
+
+        succeeded++;
+      } catch (e: any) {
+        failed.push({ email: row.email, reason: e?.message ?? String(e) });
+      }
+    }
+
+    return { succeeded, failed };
+  });
