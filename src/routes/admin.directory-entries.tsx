@@ -255,7 +255,7 @@ function DirectoryEntriesAdmin() {
     });
   }
 
-  async function bulkReview(action: "approve" | "reject" | "suspend") {
+  async function bulkReview(action: "approve" | "reject" | "suspend" | "activate" | "deactivate") {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
     if (!confirm(`${action[0].toUpperCase() + action.slice(1)} ${ids.length} entr${ids.length === 1 ? "y" : "ies"}?`)) return;
