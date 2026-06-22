@@ -389,6 +389,7 @@ function DirectoryEntriesAdmin() {
             >
               Activate
             </button>
+            <button
               disabled={bulkBusy}
               onClick={() => setBulkLinkOpen(true)}
               className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
