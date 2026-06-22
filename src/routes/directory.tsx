@@ -58,6 +58,7 @@ function DirectoryPage() {
         )
         .eq("published", true)
         .eq("status", "approved")
+        .eq("is_active", true)
         .order("featured", { ascending: false })
         .order("display_order")
         .order("company_name");
