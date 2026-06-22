@@ -106,7 +106,7 @@ const navSections: NavSection[] = [
 
 /* ── Layout ───────────────────────────────────────────────────────────── */
 function AdminLayout() {
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { user, isAdmin, loading, roleChecked, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isLoginRoute = location.pathname === "/admin/login";
@@ -119,12 +119,14 @@ function AdminLayout() {
 
   useEffect(() => {
     if (isLoginRoute) return;
-    if (!loading && !user) navigate({ to: "/", replace: true });
-    else if (!loading && user && !isAdmin) navigate({ to: "/", replace: true });
-  }, [loading, user, isAdmin, navigate, isLoginRoute]);
+    // Wait until role check is settled before any redirect.
+    if (loading || !roleChecked) return;
+    if (!user) navigate({ to: "/admin/login", replace: true });
+    else if (!isAdmin) navigate({ to: "/", replace: true });
+  }, [loading, roleChecked, user, isAdmin, navigate, isLoginRoute]);
 
   if (isLoginRoute) return <Outlet />;
-  if (loading || !user || !isAdmin) {
+  if (loading || !roleChecked || !user || !isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0f1a14]">
         <div className="flex flex-col items-center gap-3">

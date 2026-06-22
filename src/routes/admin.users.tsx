@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Plus, X, Trash2, MoreHorizontal, ShieldCheck, Users as UsersIcon, ExternalLink } from "lucide-react";
+import { Plus, X, Trash2, MoreHorizontal, ShieldCheck, Users as UsersIcon, ExternalLink, Upload } from "lucide-react";
+import { BulkInviteMembersDialog } from "@/components/admin/BulkInviteMembersDialog";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import {
   DropdownMenu,
@@ -38,8 +39,10 @@ function UsersPage() {
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [roleFor, setRoleFor] = useState<AdminUserRow | null>(null);
   const [deleting, setDeleting] = useState<AdminUserRow | null>(null);
+  
   
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -140,12 +143,20 @@ function UsersPage() {
       title="User Management"
       description="Manage members (subscription holders), staff, and admin accounts in one place."
       action={
-        <button
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" /> Add staff / admin
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted"
+          >
+            <Upload className="h-4 w-4" /> Bulk invite members (CSV)
+          </button>
+          <button
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" /> Add staff / admin
+          </button>
+        </div>
       }
     >
       <div className="mb-5 flex flex-wrap gap-2">
@@ -254,6 +265,12 @@ function UsersPage() {
           user={deleting}
           onClose={() => setDeleting(null)}
           onConfirm={confirmDelete}
+        />
+      )}
+      {bulkOpen && (
+        <BulkInviteMembersDialog
+          onClose={() => setBulkOpen(false)}
+          onDone={() => void load()}
         />
       )}
     </AdminShell>

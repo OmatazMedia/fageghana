@@ -50,6 +50,7 @@ import { openPaystackInline } from "@/lib/paystackInline";
 import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 import { MyDirectoryListingTab } from "@/components/dashboard/MyDirectoryListingTab";
 import { ResourcesTabDb } from "@/components/dashboard/ResourcesTabDb";
+import { SubscriptionLockedScreen } from "@/components/dashboard/SubscriptionLockedScreen";
 
 type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices" | "email-prefs" | "events" | "trade" | "directory" | "my-listing";
 
@@ -176,6 +177,16 @@ function Dashboard() {
 
   const expiry = profile.subscription_expiry ? new Date(profile.subscription_expiry) : null;
   const expired = expiry ? expiry.getTime() < Date.now() : true;
+  const suspended = (profile as any).status === "suspended";
+  const lockedReason: "expired" | "suspended" | "inactive" | null = suspended
+    ? "suspended"
+    : !expiry
+      ? "inactive"
+      : expired
+        ? "expired"
+        : null;
+  const ALLOWED_WHEN_LOCKED = new Set<Tab>(["subscription", "invoices", "profile", "support"]);
+  const isLockedTab = !!lockedReason && !ALLOWED_WHEN_LOCKED.has(tab);
   const statusBadge = !expiry
     ? { label: "Inactive", cls: "bg-muted text-muted-foreground" }
     : expired
@@ -415,37 +426,54 @@ function Dashboard() {
         </header>
 
         <main className="flex-1 overflow-auto p-4 lg:p-8">
-          {tab === "overview" && (
-            <OverviewTab
-              profile={profile}
-              userId={user!.id}
+          {isLockedTab ? (
+            <SubscriptionLockedScreen
+              reason={lockedReason!}
+              expiryDate={profile.subscription_expiry ?? null}
+              tier={profile.tier ?? null}
               onRenew={() => setTab("subscription")}
-            />
-          )}
-          {tab === "subscription" && (
-            <SubscriptionTab profile={profile} userId={user!.id} onChange={loadProfile} />
-          )}
-          {tab === "certificate" && <CertificateTab userId={user!.id} />}
-          {tab === "events" && <EventsTab userId={user!.id} />}
-          {tab === "trade" && <TradeTab userId={user!.id} />}
-          {tab === "directory" && <DirectoryTab />}
-          {tab === "my-listing" && (
-            <MyDirectoryListingTab
-              userId={user!.id}
-              subscriptionActive={
-                !!profile.subscription_expiry &&
-                new Date(profile.subscription_expiry).getTime() > Date.now()
+              onSignOut={() =>
+                signOut().then(() => {
+                  toast.success("You have been successfully signed out");
+                  navigate({ to: "/login" });
+                })
               }
             />
+          ) : (
+            <>
+              {tab === "overview" && (
+                <OverviewTab
+                  profile={profile}
+                  userId={user!.id}
+                  onRenew={() => setTab("subscription")}
+                />
+              )}
+              {tab === "subscription" && (
+                <SubscriptionTab profile={profile} userId={user!.id} onChange={loadProfile} />
+              )}
+              {tab === "certificate" && <CertificateTab userId={user!.id} />}
+              {tab === "events" && <EventsTab userId={user!.id} />}
+              {tab === "trade" && <TradeTab userId={user!.id} />}
+              {tab === "directory" && <DirectoryTab />}
+              {tab === "my-listing" && (
+                <MyDirectoryListingTab
+                  userId={user!.id}
+                  subscriptionActive={
+                    !!profile.subscription_expiry &&
+                    new Date(profile.subscription_expiry).getTime() > Date.now()
+                  }
+                />
+              )}
+              {tab === "readiness" && <ReadinessTab userId={user!.id} />}
+              {tab === "resources" && <ResourcesTabDb tier={profile.tier} />}
+              {tab === "documents" && <DocumentsTab userId={user!.id} />}
+              {tab === "invoices" && <InvoicesTab userId={user!.id} profile={profile} />}
+              {tab === "email-prefs" && <EmailPrefsTab userId={user!.id} email={profile.email} />}
+              {tab === "notifications" && <NotificationsTab userId={user!.id} />}
+              {tab === "support" && <SupportTab userId={user!.id} />}
+              {tab === "profile" && <ProfileTab profile={profile} onSaved={loadProfile} />}
+            </>
           )}
-          {tab === "readiness" && <ReadinessTab userId={user!.id} />}
-          {tab === "resources" && <ResourcesTabDb tier={profile.tier} />}
-          {tab === "documents" && <DocumentsTab userId={user!.id} />}
-          {tab === "invoices" && <InvoicesTab userId={user!.id} profile={profile} />}
-          {tab === "email-prefs" && <EmailPrefsTab userId={user!.id} email={profile.email} />}
-          {tab === "notifications" && <NotificationsTab userId={user!.id} />}
-          {tab === "support" && <SupportTab userId={user!.id} />}
-          {tab === "profile" && <ProfileTab profile={profile} onSaved={loadProfile} />}
         </main>
       </div>
     </div>

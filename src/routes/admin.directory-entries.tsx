@@ -255,7 +255,7 @@ function DirectoryEntriesAdmin() {
     });
   }
 
-  async function bulkReview(action: "approve" | "reject" | "suspend") {
+  async function bulkReview(action: "approve" | "reject" | "suspend" | "activate" | "deactivate") {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
     if (!confirm(`${action[0].toUpperCase() + action.slice(1)} ${ids.length} entr${ids.length === 1 ? "y" : "ies"}?`)) return;
@@ -373,6 +373,21 @@ function DirectoryEntriesAdmin() {
               className="rounded-full bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground disabled:opacity-50"
             >
               Reject
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkReview("deactivate")}
+              className="rounded-full bg-slate-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              title="Hide from public directory without deleting"
+            >
+              Deactivate
+            </button>
+            <button
+              disabled={bulkBusy}
+              onClick={() => bulkReview("activate")}
+              className="rounded-full bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              Activate
             </button>
             <button
               disabled={bulkBusy}

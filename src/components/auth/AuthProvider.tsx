@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,7 +6,10 @@ type AuthContextValue = {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  /** True once the initial session has been read AND, if signed in, the admin-role check has resolved. */
   loading: boolean;
+  /** Distinct from loading — false until the admin role lookup completes for the current user. */
+  roleChecked: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -15,65 +18,73 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+async function checkAdminRoleSync(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  return !error && !!data;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [roleChecked, setRoleChecked] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Token of the in-flight role check; lets us ignore stale results when a new session arrives.
+  const checkTokenRef = useRef(0);
 
   useEffect(() => {
-    // Guard against SSR — supabase auth is browser-only here
     if (typeof window === "undefined") {
       setLoading(false);
+      setRoleChecked(true);
       return;
     }
 
     let cancelled = false;
 
-    // Helper to check admin role and update loading state
-    const checkAndLoadSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (cancelled) return;
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) {
-        const admin = await checkAdminRoleSync(data.session.user.id);
-        if (!cancelled) setIsAdmin(admin);
-      }
-      if (!cancelled) setLoading(false);
-    };
-
-    // Subscribe FIRST, then load existing session
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const applySession = (newSession: Session | null) => {
       if (cancelled) return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      if (newSession?.user) {
-        void checkAdminRoleSync(newSession.user.id).then((admin) => {
-          if (!cancelled) setIsAdmin(admin);
-        });
-      } else {
+
+      const myToken = ++checkTokenRef.current;
+      if (!newSession?.user) {
         setIsAdmin(false);
+        setRoleChecked(true);
+        setLoading(false);
+        return;
       }
+
+      setRoleChecked(false);
+      void checkAdminRoleSync(newSession.user.id).then((admin) => {
+        if (cancelled || checkTokenRef.current !== myToken) return;
+        setIsAdmin(admin);
+        setRoleChecked(true);
+        setLoading(false);
+      });
+    };
+
+    // Subscribe first — INITIAL_SESSION fires automatically, so no separate getSession() call.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      applySession(newSession);
     });
 
-    void checkAndLoadSession();
+    // Safety net in case INITIAL_SESSION is delayed (some SSR-hydrated paths).
+    void supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      // Only apply if no event has fired yet
+      if (checkTokenRef.current === 0) applySession(data.session);
+    });
 
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
     };
   }, []);
-
-  async function checkAdminRoleSync(userId: string): Promise<boolean> {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    return !error && !!data;
-  }
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -91,6 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    // Clear local role state immediately so guards don't briefly see stale admin = true.
+    setIsAdmin(false);
+    setRoleChecked(false);
     await supabase.auth.signOut();
   }
 
@@ -102,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, isAdmin, loading, signIn, signUp, signOut, resetPassword }}
+      value={{ user, session, isAdmin, loading, roleChecked, signIn, signUp, signOut, resetPassword }}
     >
       {children}
     </AuthContext.Provider>
