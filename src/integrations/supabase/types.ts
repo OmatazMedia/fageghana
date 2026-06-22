@@ -1813,6 +1813,10 @@ export type Database = {
         Args: { _payload: Json; _submit?: boolean }
         Returns: string
       }
+      user_meets_min_tier: {
+        Args: { _min_tier: string; _user_id: string }
+        Returns: boolean
+      }
       verify_certificate: {
         Args: { _code: string }
         Returns: {
