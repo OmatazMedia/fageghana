@@ -14,7 +14,7 @@ export const Route = createFileRoute("/admin/login")({
 const REMEMBER_KEY = "fage_admin_email";
 
 function AdminLogin() {
-  const { signIn, user, isAdmin, loading } = useAuth();
+  const { signIn, user, isAdmin, loading, roleChecked } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState(() => localStorage.getItem(REMEMBER_KEY) ?? "");
@@ -25,8 +25,9 @@ function AdminLogin() {
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && user && isAdmin && !mfaFactorId) navigate({ to: "/admin" });
-  }, [loading, user, isAdmin, navigate, mfaFactorId]);
+    if (loading || !roleChecked || mfaFactorId) return;
+    if (user && isAdmin) navigate({ to: "/admin" });
+  }, [loading, roleChecked, user, isAdmin, navigate, mfaFactorId]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
