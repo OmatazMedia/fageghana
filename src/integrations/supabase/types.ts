@@ -431,6 +431,8 @@ export type Database = {
           executives: Json
           featured: boolean
           id: string
+          is_active: boolean
+          is_admin_owned: boolean
           logo_url: string | null
           long_description: string | null
           mission: string | null
@@ -468,6 +470,8 @@ export type Database = {
           executives?: Json
           featured?: boolean
           id?: string
+          is_active?: boolean
+          is_admin_owned?: boolean
           logo_url?: string | null
           long_description?: string | null
           mission?: string | null
@@ -505,6 +509,8 @@ export type Database = {
           executives?: Json
           featured?: boolean
           id?: string
+          is_active?: boolean
+          is_admin_owned?: boolean
           logo_url?: string | null
           long_description?: string | null
           mission?: string | null
