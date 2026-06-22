@@ -267,6 +267,12 @@ function UsersPage() {
           onConfirm={confirmDelete}
         />
       )}
+      {bulkOpen && (
+        <BulkInviteMembersDialog
+          onClose={() => setBulkOpen(false)}
+          onDone={() => void load()}
+        />
+      )}
     </AdminShell>
   );
 }
