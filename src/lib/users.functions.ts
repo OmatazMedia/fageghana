@@ -200,11 +200,12 @@ export const bulkInviteMembers = createServerFn({ method: "POST" })
             {
               user_id: userId,
               full_name: row.full_name,
+              contact_name: row.full_name,
               email: row.email,
-              phone: row.phone ?? null,
-              company_name: row.company_name ?? null,
-              tier: row.tier ?? null,
-            },
+              phone: row.phone ?? "",
+              company_name: row.company_name ?? "",
+              tier: row.tier ?? "associate",
+            } as any,
             { onConflict: "user_id" },
           );
         if (profErr) {
