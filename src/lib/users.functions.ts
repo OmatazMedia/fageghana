@@ -199,7 +199,6 @@ export const bulkInviteMembers = createServerFn({ method: "POST" })
           .upsert(
             {
               user_id: userId,
-              full_name: row.full_name,
               contact_name: row.full_name,
               email: row.email,
               phone: row.phone ?? "",
