@@ -44,14 +44,23 @@ type Entry = {
 };
 
 function DirectoryPage() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingEntries, setLoadingEntries] = useState(true);
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | "association" | "corporate">("all");
 
   useEffect(() => {
+    if (!loading && !user) {
+      navigate({ to: "/login", search: { redirect: "/directory" } as any, replace: true });
+    }
+  }, [loading, user, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
     async function load() {
-      setLoading(true);
+      setLoadingEntries(true);
       const { data } = await supabase
         .from("directory_entries")
         .select(
