@@ -73,10 +73,10 @@ function DirectoryPage() {
         .order("display_order")
         .order("company_name");
       setEntries((data ?? []) as Entry[]);
-      setLoading(false);
+      setLoadingEntries(false);
     }
     void load();
-  }, []);
+  }, [user]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
