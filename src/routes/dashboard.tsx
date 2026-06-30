@@ -50,7 +50,6 @@ import { openPaystackInline } from "@/lib/paystackInline";
 import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 import { MyDirectoryListingTab } from "@/components/dashboard/MyDirectoryListingTab";
 import { ResourcesTabDb } from "@/components/dashboard/ResourcesTabDb";
-import { SubscriptionLockedScreen } from "@/components/dashboard/SubscriptionLockedScreen";
 import { RenewalLockScreen } from "@/components/dashboard/RenewalLockScreen";
 
 type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices" | "email-prefs" | "events" | "trade" | "directory" | "my-listing";
@@ -186,8 +185,6 @@ function Dashboard() {
       : expired
         ? "expired"
         : null;
-  const ALLOWED_WHEN_LOCKED = new Set<Tab>(["subscription", "invoices", "profile", "support"]);
-  const isLockedTab = !!lockedReason && !ALLOWED_WHEN_LOCKED.has(tab);
   const statusBadge = !expiry
     ? { label: "Inactive", cls: "bg-muted text-muted-foreground" }
     : expired
