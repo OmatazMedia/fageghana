@@ -648,19 +648,21 @@ function HomePage() {
         {/* Marquee — full bleed, no max-w constraint */}
         <div className="marquee-wrap">
           <div className="marquee-track">
-            {/* Render twice for seamless loop */}
-            {[...PARTNERS, ...PARTNERS].map((p, i) => (
-              <div
-                key={i}
-                className="mx-8 flex h-20 w-40 flex-shrink-0 items-center justify-center"
-              >
-                <img
-                  src={p.logo}
-                  alt={p.name}
-                  className="max-h-14 w-auto max-w-[140px] object-contain grayscale opacity-60 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
-                />
-              </div>
-            ))}
+            {(() => {
+              const list = partners.length > 0 ? partners : PARTNERS.map((p) => ({ name: p.name, logo_url: p.logo, link_url: null as string | null }));
+              return [...list, ...list].map((p, i) => (
+                <div
+                  key={i}
+                  className="mx-8 flex h-20 w-40 flex-shrink-0 items-center justify-center"
+                >
+                  <img
+                    src={p.logo_url}
+                    alt={p.name}
+                    className="max-h-14 w-auto max-w-[140px] object-contain grayscale opacity-60 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
+                  />
+                </div>
+              ));
+            })()}
           </div>
         </div>
       </section>
