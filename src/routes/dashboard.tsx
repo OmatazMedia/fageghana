@@ -50,7 +50,7 @@ import { openPaystackInline } from "@/lib/paystackInline";
 import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
 import { MyDirectoryListingTab } from "@/components/dashboard/MyDirectoryListingTab";
 import { ResourcesTabDb } from "@/components/dashboard/ResourcesTabDb";
-import { RenewalLockScreen } from "@/components/dashboard/RenewalLockScreen";
+import { SubscriptionLockedScreen } from "@/components/dashboard/SubscriptionLockedScreen";
 
 type Tab = "overview" | "subscription" | "certificate" | "notifications" | "support" | "profile" | "resources" | "readiness" | "documents" | "invoices" | "email-prefs" | "events" | "trade" | "directory" | "my-listing";
 
@@ -185,6 +185,8 @@ function Dashboard() {
       : expired
         ? "expired"
         : null;
+  const ALLOWED_WHEN_LOCKED = new Set<Tab>(["subscription", "invoices", "profile", "support"]);
+  const isLockedTab = !!lockedReason && !ALLOWED_WHEN_LOCKED.has(tab);
   const statusBadge = !expiry
     ? { label: "Inactive", cls: "bg-muted text-muted-foreground" }
     : expired
@@ -424,14 +426,12 @@ function Dashboard() {
         </header>
 
         <main className="flex-1 overflow-auto p-4 lg:p-8">
-          {lockedReason ? (
-            <RenewalLockScreen
-              reason={lockedReason}
+          {isLockedTab ? (
+            <SubscriptionLockedScreen
+              reason={lockedReason!}
               expiryDate={profile.subscription_expiry ?? null}
               tier={profile.tier ?? null}
-              userId={user!.id}
-              email={profile.email ?? user!.email ?? ""}
-              onActivated={loadProfile}
+              onRenew={() => setTab("subscription")}
               onSignOut={() =>
                 signOut().then(() => {
                   toast.success("You have been successfully signed out");

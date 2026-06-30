@@ -1,9 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, MapPin, Mail, Phone, Building2, Users, Loader2 } from "lucide-react";
+import { Search, MapPin, Mail, Phone, Building2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/directory")({
   head: () => ({
@@ -44,23 +43,14 @@ type Entry = {
 };
 
 function DirectoryPage() {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [loadingEntries, setLoadingEntries] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | "association" | "corporate">("all");
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate({ to: "/login", search: { redirect: "/directory" } as any, replace: true });
-    }
-  }, [loading, user, navigate]);
-
-  useEffect(() => {
-    if (!user) return;
     async function load() {
-      setLoadingEntries(true);
+      setLoading(true);
       const { data } = await supabase
         .from("directory_entries")
         .select(
@@ -73,10 +63,10 @@ function DirectoryPage() {
         .order("display_order")
         .order("company_name");
       setEntries((data ?? []) as Entry[]);
-      setLoadingEntries(false);
+      setLoading(false);
     }
     void load();
-  }, [user]);
+  }, []);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -158,7 +148,7 @@ function DirectoryPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-20">
-        {loading || !user || loadingEntries ? (
+        {loading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-56 animate-pulse rounded-2xl bg-muted" />

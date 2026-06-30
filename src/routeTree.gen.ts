@@ -34,7 +34,6 @@ import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
-import { Route as AdminSiteMediaRouteImport } from './routes/admin.site-media'
 import { Route as AdminResourcesRouteImport } from './routes/admin.resources'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminReadinessRouteImport } from './routes/admin.readiness'
@@ -190,11 +189,6 @@ const AdminTradeOpportunitiesRoute = AdminTradeOpportunitiesRouteImport.update({
 const AdminTicketsRoute = AdminTicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSiteMediaRoute = AdminSiteMediaRouteImport.update({
-  id: '/site-media',
-  path: '/site-media',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminResourcesRoute = AdminResourcesRouteImport.update({
@@ -399,7 +393,6 @@ export interface FileRoutesByFullPath {
   '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/resources': typeof AdminResourcesRoute
-  '/admin/site-media': typeof AdminSiteMediaRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
@@ -458,7 +451,6 @@ export interface FileRoutesByTo {
   '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/resources': typeof AdminResourcesRoute
-  '/admin/site-media': typeof AdminSiteMediaRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
@@ -518,7 +510,6 @@ export interface FileRoutesById {
   '/admin/readiness': typeof AdminReadinessRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/resources': typeof AdminResourcesRoute
-  '/admin/site-media': typeof AdminSiteMediaRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
@@ -579,7 +570,6 @@ export interface FileRouteTypes {
     | '/admin/readiness'
     | '/admin/reports'
     | '/admin/resources'
-    | '/admin/site-media'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
@@ -638,7 +628,6 @@ export interface FileRouteTypes {
     | '/admin/readiness'
     | '/admin/reports'
     | '/admin/resources'
-    | '/admin/site-media'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
@@ -697,7 +686,6 @@ export interface FileRouteTypes {
     | '/admin/readiness'
     | '/admin/reports'
     | '/admin/resources'
-    | '/admin/site-media'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
@@ -916,13 +904,6 @@ declare module '@tanstack/react-router' {
       path: '/tickets'
       fullPath: '/admin/tickets'
       preLoaderRoute: typeof AdminTicketsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/site-media': {
-      id: '/admin/site-media'
-      path: '/site-media'
-      fullPath: '/admin/site-media'
-      preLoaderRoute: typeof AdminSiteMediaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/resources': {
@@ -1183,7 +1164,6 @@ interface AdminRouteChildren {
   AdminReadinessRoute: typeof AdminReadinessRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminResourcesRoute: typeof AdminResourcesRoute
-  AdminSiteMediaRoute: typeof AdminSiteMediaRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
   AdminTradeOpportunitiesRoute: typeof AdminTradeOpportunitiesRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -1214,7 +1194,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminReadinessRoute: AdminReadinessRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminResourcesRoute: AdminResourcesRoute,
-  AdminSiteMediaRoute: AdminSiteMediaRoute,
   AdminTicketsRoute: AdminTicketsRoute,
   AdminTradeOpportunitiesRoute: AdminTradeOpportunitiesRoute,
   AdminUsersRoute: AdminUsersRoute,
