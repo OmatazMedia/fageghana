@@ -37,18 +37,15 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-const heroSlides = [
+const FALLBACK_HERO_SLIDES = [
   {
-    image:
+    image_url:
       "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/26633402-aa43-4311-9a4d-5addc151e624-fageghana-com-beak-host/assets/images/5-12.png",
     eyebrow: "Promoting non traditional exporters",
     title: "Federation of Associations of Ghanaian Exporters",
-  },
-  {
-    image:
-      "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/26633402-aa43-4311-9a4d-5addc151e624-fageghana-com-beak-host/assets/images/10-13.png",
-    eyebrow: "Promoting non traditional exporters",
-    title: "Federation of Associations of Ghanaian Exporters",
+    subtitle: null as string | null,
+    cta_label: null as string | null,
+    cta_href: null as string | null,
   },
 ];
 
@@ -380,12 +377,15 @@ function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [news, setNews] = useState<News[]>([]);
   const [testimonialIdx, setTestimonialIdx] = useState(0);
+  const [heroSlides, setHeroSlides] = useState(FALLBACK_HERO_SLIDES);
+  const [partners, setPartners] = useState<{ name: string; logo_url: string; link_url: string | null }[]>([]);
   const nextSectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    if (heroSlides.length < 2) return;
     const t = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 6000);
     return () => clearInterval(t);
-  }, []);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     void supabase
@@ -406,6 +406,22 @@ function HomePage() {
       .then(({ data }) => {
         if (data) setNews(data);
       });
+    void supabase
+      .from("site_hero_slides" as any)
+      .select("image_url,eyebrow,title,subtitle,cta_label,cta_href")
+      .eq("is_active", true)
+      .order("display_order")
+      .then(({ data }: { data: any }) => {
+        if (data && data.length > 0) setHeroSlides(data);
+      });
+    void supabase
+      .from("site_partner_logos" as any)
+      .select("name,logo_url,link_url")
+      .eq("is_active", true)
+      .order("display_order")
+      .then(({ data }: { data: any }) => {
+        if (data) setPartners(data);
+      });
   }, []);
 
   function scrollToNext() {
@@ -422,7 +438,7 @@ function HomePage() {
             key={i}
             className={`absolute inset-0 transition-opacity duration-1000 ${i === slide ? "opacity-100" : "opacity-0"}`}
           >
-            <img src={s.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={s.image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-b from-brand-dark/50 via-brand-dark/40 to-brand-dark/70" />
           </div>
         ))}
@@ -632,19 +648,21 @@ function HomePage() {
         {/* Marquee — full bleed, no max-w constraint */}
         <div className="marquee-wrap">
           <div className="marquee-track">
-            {/* Render twice for seamless loop */}
-            {[...PARTNERS, ...PARTNERS].map((p, i) => (
-              <div
-                key={i}
-                className="mx-8 flex h-20 w-40 flex-shrink-0 items-center justify-center"
-              >
-                <img
-                  src={p.logo}
-                  alt={p.name}
-                  className="max-h-14 w-auto max-w-[140px] object-contain grayscale opacity-60 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
-                />
-              </div>
-            ))}
+            {(() => {
+              const list = partners.length > 0 ? partners : PARTNERS.map((p) => ({ name: p.name, logo_url: p.logo, link_url: null as string | null }));
+              return [...list, ...list].map((p, i) => (
+                <div
+                  key={i}
+                  className="mx-8 flex h-20 w-40 flex-shrink-0 items-center justify-center"
+                >
+                  <img
+                    src={p.logo_url}
+                    alt={p.name}
+                    className="max-h-14 w-auto max-w-[140px] object-contain grayscale opacity-60 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
+                  />
+                </div>
+              ));
+            })()}
           </div>
         </div>
       </section>
