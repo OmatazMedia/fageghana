@@ -113,6 +113,16 @@ function DetailPage() {
     ? e.executives
     : [];
 
+  if (loading || !user) {
+    return (
+      <SiteLayout>
+        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+        </div>
+      </SiteLayout>
+    );
+  }
+
   return (
     <SiteLayout>
       <article className="mx-auto max-w-4xl px-4 py-10">
