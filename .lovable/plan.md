@@ -1,83 +1,78 @@
-## 1. Directory detail page not showing content
+## Plan
 
-**Cause:** The current `directory.tsx` list query only returns rows where `published = true AND status = 'approved'` — that part works. But the **detail** page (`directory.$slug.tsx`) is also gated on both flags, and most existing entries in the DB have `status != 'approved'` (still `pending` or `draft`) after recent migrations. Cards render from `directory.tsx` only when both flags are set, but several legacy cards still come through with stale slugs that 404 on the detail loader. We'll also ensure cards never render for rows the detail page would reject (already true), and surface admin-only entries the same way.
+### 1. Directory: members-only, remove public page
 
-**Changes:**
-- No query change needed in `directory.$slug.tsx` (already filters published+approved). Verify and add an `is_active` check (see §2).
-- Re-confirm the list and detail filters are identical: `published = true AND status = 'approved' AND is_active = true`.
-- If admins want to preview unapproved entries, add a `?preview=1` admin-only branch in the loader using `requireSupabaseAuth` + `has_role('admin')`.
+- Delete `src/routes/directory.tsx` and `src/routes/directory.$slug.tsx` (public routes).
+- Add `src/routes/_authenticated/directory.tsx` and `src/routes/_authenticated/directory.$slug.tsx` — same list + detail UX that exists today, but rendered inside the dashboard shell (`DashboardLayout`) so it lives as a dashboard section.
+- Add a "Directory" item to the dashboard sidebar.
+- Update `SiteHeader` (and footer) to drop the public Directory link; replace with "Member directory" that points to `/dashboard/directory` (or whatever route under `_authenticated`).
+- Any old/external link to `/directory` or `/directory/:slug` → add a small public stub route that redirects to `/auth?redirect=/dashboard/directory/<slug>`. After login, `auth.tsx` honors the `redirect` query.
+- Detail page keeps current "show all content" rendering (the prior fix already filters `is_active + approved`), just relocated.
+- When any directory is clicked the full detail is displayed.
 
-## 2. Admin-owned entries + deactivate flag
+### 2. Subscription lockout → full payment modal flow
 
-**Schema (migration):**
-- Add `directory_entries.is_admin_owned boolean NOT NULL DEFAULT false`.
-- Add `directory_entries.is_active boolean NOT NULL DEFAULT true` (admin "deactivate" toggle; distinct from `status='suspended'` which means rejected-by-review).
-- Update RLS public SELECT policies to also require `is_active = true`.
-- Update `admin_review_directory_entry` to support `'deactivate'` and `'activate'` actions that flip `is_active`.
+Replace today's `SubscriptionLockedScreen` with a richer lock screen that doubles as a renewal checkout:
 
-**Admin UI (`admin.directory-entries.tsx`):**
-- New bulk + row actions: **Deactivate** / **Activate**.
-- Column showing `Admin-owned` badge when `is_admin_owned = true` or `user_id IS NULL`.
-- "Create entry" admin form sets `is_admin_owned = true` and skips the member-link requirement; admin can later link a member to convert.
+- Top: status banner (expired / suspended / inactive) + expiry date + current tier.
+- Plan picker: list `subscription_plans` (cards with price/duration/benefits). Member selects one.
+- Payment method tabs:
+  - **Online** (Paystack inline) — uses existing `payments.functions.ts` flow.
+  - **Manual bank transfer** — shows bank account details from `payment_gateways` rows where `provider = 'bank_transfer'` (already stored in `bank_details` JSON). Includes a generated payment reference (e.g. `FAGE-RENEW-<memberId>-<timestamp>`).
+- "I have made payment" button → expands an accordion with:
+  - Reference (auto-filled, editable).
+  - File picker (drag-drop or click) → uploads to `payment-proofs` bucket.
+  - Amount + plan (preselected).
+  - Submit → inserts `payment_submissions` row (status `pending`, plan_id, reference, proof_url, user_id).
+- After submission: locked screen shows "Awaiting admin confirmation" state with the uploaded proof + reference.
 
-**Public flow:** deactivated entries disappear from directory list + detail (404). Member can still see the entry in their dashboard with a banner explaining it's deactivated by admin.
+Admin side (`admin.payments.tsx` — extend existing page):
 
-## 3. Admin sign-in race ("error then eventually signed in, then bumps to membership portal")
+- Pending manual submissions list with proof preview.
+- "Confirm & activate" action — server fn `confirmManualPayment` that:
+  - Marks `payment_submissions` row `approved`.
+  - Extends `member_profiles.subscription_expiry` by plan duration, sets `tier`, sets `status='approved'`.
+  - Calls `generate_member_id(tier)` if member has no `member_id`.
+  - Inserts a receipt row (reuse existing receipt path; `receipt.$id.tsx` already renders).
+- "Reject" action with note.
 
-**Root cause** (confirmed in `AuthProvider.tsx` + `admin.tsx` + `admin.login.tsx`):
-- `AuthProvider` exposes `loading`, `user`, `isAdmin`. After sign-in, `loading` flips to `false` and `user` is set **before** the async `checkAdminRoleSync` resolves. There's a window where `!loading && user && !isAdmin === true` → `admin.tsx`'s effect calls `navigate({ to: "/" })`.
-- Later, when admin nav links are clicked, the same race fires on every route mount because `isAdmin` is recomputed asynchronously via `onAuthStateChange`, briefly reading `false` again → user gets bounced to `/` (which redirects expired/non-admin sessions toward `/dashboard`/membership).
+Member then sees normal dashboard + receipt link.
 
-**Fix:** Track role-check completion explicitly in `AuthProvider`:
-- Add `roleChecked: boolean` to context; set `false` whenever a new session arrives, `true` after `checkAdminRoleSync` resolves.
-- In `admin.tsx`, gate the redirect: `if (!loading && roleChecked && user && !isAdmin) navigate("/")`. Show the loader while `!roleChecked`.
-- In `admin.login.tsx`, gate the post-login redirect on `roleChecked` too.
-- Stop calling `checkAndLoadSession()` after subscribing — `onAuthStateChange` already fires an `INITIAL_SESSION` event; the double-fetch is what creates the second race. Replace with a single subscribe that handles both initial and subsequent events; only flip `loading=false` after the first event resolves (including role check).
-- After `signOut`, clear `isAdmin` and `roleChecked` immediately so stale state never leaks across accounts.
+### 3. Dashboard "Media manager" — Hero slides & Partner logos
 
-## 4. Bulk CSV upload of members (email-invite flow)
+New DB tables (migration):
 
-**Admin UI (`admin.users.tsx` → new "Bulk import" panel):**
-- Upload CSV with columns: `email, full_name, phone, company_name, tier`.
-- Client parses + validates with Zod, shows preview table with per-row errors.
-- On "Import", calls a new `bulkInviteMembers` server function.
+- `site_hero_slides` (`id`, `image_url`, `headline`, `subheadline`, `cta_label`, `cta_href`, `display_order`, `is_active`, timestamps).
+- `site_partner_logos` (`id`, `name`, `logo_url`, `link_url`, `display_order`, `is_active`, timestamps).
 
-**Server (`src/lib/users.functions.ts`):**
-- New `bulkInviteMembers` createServerFn with `requireSupabaseAuth` + admin check.
-- Loops rows; for each: `supabaseAdmin.auth.admin.inviteUserByEmail(email, { redirectTo: <origin>/auth/set-password })` and inserts/updates `member_profiles` row with provided fields (no subscription yet — admin can attach a plan after).
-- Returns `{ succeeded, failed: [{email, reason}] }` summary; admin sees toast + table.
+Grants + RLS:
 
-**Recipient flow:** Lovable auth email "Invite" template sends a magic link; clicking it lands on `/auth/set-password` where they set a password and are logged in. Then they pick/pay a subscription as normal.
+- `GRANT SELECT TO anon, authenticated` (homepage reads).
+- `GRANT ALL TO service_role`.
+- `INSERT/UPDATE/DELETE` policies restricted to admins via `has_role(auth.uid(),'admin')`.
 
-(Auth emails are already managed; no new template scaffolding needed unless `scaffold_auth_email_templates` hasn't been run — verify and call once if missing.)
+Admin UI under dashboard (admin-only tabs in `admin.media.tsx` or new `admin.site-content.tsx`):
 
-## 5. Expired / suspended member experience
+- **Hero slides** tab: list with thumbnail, drag-to-reorder (updates `display_order`), edit dialog (upload image to `content` bucket via existing `uploadImage`, headline, subheadline, CTA text + link, active toggle), add/delete.
+- **Partner logos** tab: grid of logos, upload, optional link, reorder, delete. Logos render at a uniform CSS box (e.g. `h-12 w-auto object-contain`) so all sizes normalize automatically.
 
-**Decision (per your answer):** can log in, dashboard locked to a renewal screen.
+Frontend:
 
-**Implementation:**
-- `dashboard.tsx`: read `member_profiles.subscription_expiry` and `member_profiles.status`. If expired (`expiry < now()`) or `status = 'suspended'`, render a full-page `<SubscriptionLockedScreen />` instead of tabs. The screen shows: status reason, expiry date, current plan, **Renew** button (opens existing payment flow), and a "Sign out" link. Only Account/Security and Invoices remain reachable via small footer links.
-- `MyDirectoryListingTab` editor is already gated by `submit_my_directory_entry` (requires active subscription) — we'll add a friendlier UI banner instead of a raw error.
-- Public directory: existing `directory_entries` policies only show `published+approved+is_active`; member's listing remains visible to public as long as admin keeps it approved. Optionally add a cron-style check that auto-unpublishes listings whose owner's subscription lapsed by >30 days (out of scope unless you want it).
+- `src/routes/index.tsx` hero section reads `site_hero_slides` (ordered, active) and renders the existing carousel/slider using DB rows instead of hardcoded data.
+- "Our Partners" section reads `site_partner_logos` with uniform sizing.
+- Both via TanStack Query against public `anon` SELECT.
 
-## Technical summary
+### 4. Technical details
 
-**Migrations**
-- `directory_entries`: add `is_active`, `is_admin_owned`; update SELECT RLS + `admin_review_directory_entry` RPC; backfill `is_active=true`.
+- New server functions in `src/lib/site-content.functions.ts` (list/upsert/delete hero slides + logos; admin-guarded with `requireSupabaseAuth` + `has_role` check).
+- New `src/lib/payments.functions.ts` additions: `submitManualRenewal`, `adminConfirmManualPayment`, `adminRejectManualPayment`.
+- New component `src/components/dashboard/RenewalLockScreen.tsx` replaces `SubscriptionLockedScreen` usage in `dashboard.tsx`.
+- New components `src/components/admin/HeroSlidesManager.tsx`, `PartnerLogosManager.tsx`.
+- `auth.tsx` / login already supports `?redirect=` — verify; otherwise add.
+- Remove public directory nav links in `SiteHeader.tsx` and `SiteFooter.tsx`.
 
-**Server functions**
-- `src/lib/users.functions.ts`: `bulkInviteMembers`.
-- `src/lib/directory.functions.ts` (new or extend existing): `adminToggleDirectoryActive`, `adminCreateDirectoryEntry` (for admin-owned).
+### 5. Out of scope (confirm if you want them in)
 
-**Components / routes**
-- `src/components/auth/AuthProvider.tsx`: add `roleChecked`, fix race.
-- `src/routes/admin.tsx`, `src/routes/admin.login.tsx`: gate redirects on `roleChecked`.
-- `src/routes/admin.directory-entries.tsx`: Activate/Deactivate bulk + row actions, admin-owned badge, "Create admin-owned entry" dialog.
-- `src/routes/admin.users.tsx`: Bulk CSV import panel + preview.
-- `src/routes/dashboard.tsx`: subscription-locked screen + banner on directory tab.
-- `src/components/dashboard/SubscriptionLockedScreen.tsx`: new.
-
-**Out of scope**
-- Auto-unpublishing listings after grace period.
-- Per-row CSV password assignment (we're using invites only).
-- Admin "impersonate member" preview of unapproved entries (mentioned as optional).
+- Auto-emailing the member when admin approves their manual payment.
+- Public "teaser" directory (showing names only to non-members).
+- Editing arbitrary homepage sections beyond hero + partners (services, stats, testimonials).
