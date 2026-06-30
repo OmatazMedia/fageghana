@@ -85,6 +85,7 @@ const navSections: NavSection[] = [
       { to: "/admin/activities", label: "Events", icon: CalendarDays },
       { to: "/admin/trade-opportunities", label: "Trade Opportunities", icon: TrendingUp },
       { to: "/admin/media", label: "Media", icon: ImageIcon },
+      { to: "/admin/site-media", label: "Homepage Hero & Partners", icon: ImageIcon },
       { to: "/admin/resources", label: "Resources", icon: BookOpen },
       { to: "/admin/notifications", label: "Notifications", icon: Bell },
     ],
