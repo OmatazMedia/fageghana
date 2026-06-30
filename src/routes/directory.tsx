@@ -1,8 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, MapPin, Mail, Phone, Building2, Users } from "lucide-react";
+import { Search, MapPin, Mail, Phone, Building2, Users, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/directory")({
   head: () => ({
