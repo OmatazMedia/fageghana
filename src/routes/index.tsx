@@ -37,18 +37,15 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-const heroSlides = [
+const FALLBACK_HERO_SLIDES = [
   {
-    image:
+    image_url:
       "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/26633402-aa43-4311-9a4d-5addc151e624-fageghana-com-beak-host/assets/images/5-12.png",
     eyebrow: "Promoting non traditional exporters",
     title: "Federation of Associations of Ghanaian Exporters",
-  },
-  {
-    image:
-      "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/26633402-aa43-4311-9a4d-5addc151e624-fageghana-com-beak-host/assets/images/10-13.png",
-    eyebrow: "Promoting non traditional exporters",
-    title: "Federation of Associations of Ghanaian Exporters",
+    subtitle: null as string | null,
+    cta_label: null as string | null,
+    cta_href: null as string | null,
   },
 ];
 
@@ -380,12 +377,15 @@ function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [news, setNews] = useState<News[]>([]);
   const [testimonialIdx, setTestimonialIdx] = useState(0);
+  const [heroSlides, setHeroSlides] = useState(FALLBACK_HERO_SLIDES);
+  const [partners, setPartners] = useState<{ name: string; logo_url: string; link_url: string | null }[]>([]);
   const nextSectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    if (heroSlides.length < 2) return;
     const t = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 6000);
     return () => clearInterval(t);
-  }, []);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     void supabase
@@ -405,6 +405,22 @@ function HomePage() {
       .limit(3)
       .then(({ data }) => {
         if (data) setNews(data);
+      });
+    void supabase
+      .from("site_hero_slides" as any)
+      .select("image_url,eyebrow,title,subtitle,cta_label,cta_href")
+      .eq("is_active", true)
+      .order("display_order")
+      .then(({ data }: { data: any }) => {
+        if (data && data.length > 0) setHeroSlides(data);
+      });
+    void supabase
+      .from("site_partner_logos" as any)
+      .select("name,logo_url,link_url")
+      .eq("is_active", true)
+      .order("display_order")
+      .then(({ data }: { data: any }) => {
+        if (data) setPartners(data);
       });
   }, []);
 
