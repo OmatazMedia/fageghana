@@ -111,13 +111,12 @@ export function RenewalLockScreen({
     const t = setInterval(async () => {
       const { data } = await supabase
         .from("member_profiles")
-        .select("subscription_expiry,status")
+        .select("subscription_expiry")
         .eq("user_id", userId)
         .maybeSingle();
       if (
         data?.subscription_expiry &&
-        new Date(data.subscription_expiry).getTime() > Date.now() &&
-        data?.status !== "suspended"
+        new Date(data.subscription_expiry).getTime() > Date.now()
       ) {
         onActivated();
       }
