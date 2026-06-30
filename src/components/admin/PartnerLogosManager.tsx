@@ -24,7 +24,7 @@ export function PartnerLogosManager() {
       .from("site_partner_logos" as any)
       .select("*")
       .order("display_order");
-    setRows((data ?? []) as Partner[]);
+    setRows((data ?? []) as unknown as Partner[]);
   }, []);
 
   useEffect(() => {

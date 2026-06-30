@@ -28,7 +28,7 @@ export function HeroSlidesManager() {
       .from("site_hero_slides" as any)
       .select("*")
       .order("display_order");
-    setRows((data ?? []) as Slide[]);
+    setRows((data ?? []) as unknown as Slide[]);
   }, []);
 
   useEffect(() => {
