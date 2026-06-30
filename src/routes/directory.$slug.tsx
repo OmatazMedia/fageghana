@@ -1,8 +1,9 @@
-import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Mail, Phone, MapPin, Globe, Building2, Users } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Globe, Building2, Users, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { useAuth } from "@/components/auth/AuthProvider";
 import {
   renderCustomFieldValue,
   type CustomFieldDef,
@@ -68,8 +69,20 @@ export const Route = createFileRoute("/directory/$slug")({
 
 function DetailPage() {
   const e = Route.useLoaderData() as any;
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [related, setRelated] = useState<any[]>([]);
   const [customDefs, setCustomDefs] = useState<CustomFieldDef[]>([]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate({
+        to: "/login",
+        search: { redirect: `/directory/${e?.slug ?? ""}` } as any,
+        replace: true,
+      });
+    }
+  }, [loading, user, navigate, e?.slug]);
 
   useEffect(() => {
     supabase
