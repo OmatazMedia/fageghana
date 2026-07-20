@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Download, ArrowLeft, FileText } from "lucide-react";
 import jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,11 +12,18 @@ export const Route = createFileRoute("/certificate/$id")({
 
 function CertificatePage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const [cert, setCert] = useState<any | null>(null);
   const [template, setTemplate] = useState<any | null>(null);
   const [error, setError] = useState<string>("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
+  const cameFromAdmin = useMemo(
+    () => typeof document !== "undefined" && document.referrer.includes("/admin"),
+    [],
+  );
+  const backHref = cameFromAdmin ? "/admin/cert-issued" : "/dashboard";
+  const backLabel = cameFromAdmin ? "Back to certificates" : "Back to dashboard";
 
   useEffect(() => {
     void (async () => {
@@ -73,8 +80,8 @@ function CertificatePage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-center text-muted-foreground p-6">
         <p>{error}</p>
-        <Link to="/dashboard" className="text-sm text-primary hover:underline">
-          ← Back to dashboard
+        <Link to={backHref} className="text-sm text-primary hover:underline">
+          ← {backLabel}
         </Link>
       </div>
     );
@@ -89,12 +96,12 @@ function CertificatePage() {
     <div className="min-h-screen bg-muted/30 p-4">
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <Link
-            to="/dashboard"
+          <button
+            onClick={() => navigate({ to: backHref })}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to dashboard
-          </Link>
+            <ArrowLeft className="h-4 w-4" /> {backLabel}
+          </button>
           <div className="flex gap-2">
             <button
               disabled={!ready}
