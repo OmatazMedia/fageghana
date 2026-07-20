@@ -156,7 +156,7 @@ export function SiteHeader() {
           >
             <User className="h-4.5 w-4.5" />
           </Link>
-          <Link to="/membership" className="lets-talk-btn hidden md:inline-flex">
+          <Link to="/contact" className="lets-talk-btn hidden md:inline-flex">
             {/* Circle starts LEFT, slides to RIGHT on hover */}
             <span className="lets-talk-circle">
               <ArrowRight className="h-4 w-4" />
@@ -205,7 +205,7 @@ export function SiteHeader() {
               </Link>
             ))}
             <Link
-              to="/membership"
+              to="/contact"
               onClick={() => setOpen(false)}
               className="mt-3 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
             >

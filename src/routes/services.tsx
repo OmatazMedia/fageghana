@@ -28,7 +28,12 @@ export const Route = createFileRoute("/services")({
   component: ServicesPage,
 });
 
-const serviceList = [
+const serviceList: Array<{
+  icon: typeof BookOpen;
+  title: string;
+  text: string;
+  link?: string;
+}> = [
   {
     icon: BookOpen,
     title: "Research",
@@ -54,6 +59,16 @@ const serviceList = [
     icon: GraduationCap,
     title: "Seminars",
     text: "Global G.A.P., Export Management, Marketing, Training",
+  },
+  {
+    icon: GraduationCap,
+    title: "FAGE Academy",
+    text: "Capacity-building programmes, structured export training, mentorship and certification for members and their teams.",
+  },
+  {
+    icon: Briefcase,
+    title: "Clothing & Textile",
+    text: "Dedicated support for Ghanaian clothing, apparel and textile exporters — sourcing, standards, and access to global buyers.",
   },
 ];
 

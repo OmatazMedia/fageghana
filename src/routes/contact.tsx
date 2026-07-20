@@ -195,8 +195,8 @@ function ContactPage() {
         <div className="mx-auto mt-12 max-w-7xl px-4">
           <div className="overflow-hidden rounded-3xl border border-border shadow-sm">
             <iframe
-              title="FAGE Office Location"
-              src="https://www.google.com/maps?q=Nii+Tsatse+Dzani+Street,+Adjiringanor,+Accra,+Ghana&output=embed"
+              title="FAGE Ghana Office Location"
+              src="https://www.google.com/maps?q=FAGE+Ghana,+22+Nii+Tsatse+Dzani+Street,+Adjiringanor,+East+Legon,+Accra&z=17&output=embed"
               width="100%"
               height="420"
               loading="lazy"
@@ -204,6 +204,16 @@ function ContactPage() {
               className="block w-full border-0"
             />
           </div>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            <a
+              href="https://www.google.com/maps/dir/?api=1&destination=FAGE+Ghana+22+Nii+Tsatse+Dzani+Street+Adjiringanor+Accra"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Get directions to the FAGE office →
+            </a>
+          </p>
         </div>
       </section>
 

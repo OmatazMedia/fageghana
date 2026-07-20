@@ -1,12 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Mail, Smartphone, ShieldCheck, ShieldOff, Loader2, Copy, Check } from "lucide-react";
+import { KeyRound, Mail, Smartphone, ShieldCheck, ShieldOff, Loader2, Copy, Check, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/account/security")({
-  head: () => ({ meta: [{ title: "Security — Account" }] }),
+  head: () => ({ meta: [{ title: "Account & Security" }] }),
   component: SecurityPage,
 });
 
@@ -15,52 +15,28 @@ function SecurityPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Security</h2>
+        <h2 className="text-2xl font-bold">Account & Security</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your password, email address and two-factor authentication.
+          Manage your email address and two-factor authentication. Password changes have their own page.
         </p>
       </div>
-      <PasswordCard />
+      <PasswordLinkCard />
       <EmailCard currentEmail={user?.email ?? ""} />
       <MfaCard />
     </div>
   );
 }
 
-/* ─────────── Password ─────────── */
-function PasswordCard() {
-  const [pw, setPw] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (pw.length < 8) return toast.error("Password must be at least 8 characters");
-    if (pw !== confirm) return toast.error("Passwords do not match");
-    setBusy(true);
-    const { error } = await supabase.auth.updateUser({
-      password: pw,
-      data: { must_change_password: false },
-    });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    setPw("");
-    setConfirm("");
-    toast.success("Password updated");
-  }
-
+/* ─────────── Password (link to dedicated page) ─────────── */
+function PasswordLinkCard() {
   return (
-    <Card icon={KeyRound} title="Change password" desc="Pick a strong password you don't use anywhere else.">
-      <form onSubmit={submit} className="space-y-3">
-        <Field label="New password" type="password" value={pw} onChange={setPw} autoComplete="new-password" />
-        <Field label="Confirm new password" type="password" value={confirm} onChange={setConfirm} autoComplete="new-password" />
-        <button
-          disabled={busy}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-        >
-          {busy ? "Updating…" : "Update password"}
-        </button>
-      </form>
+    <Card icon={KeyRound} title="Password" desc="Change the password you use to sign in.">
+      <Link
+        to="/account/change-password"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+      >
+        Change password <ChevronRight className="h-4 w-4" />
+      </Link>
     </Card>
   );
 }

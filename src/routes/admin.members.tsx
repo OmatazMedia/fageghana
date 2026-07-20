@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Plus, X, Pencil, Trash2, ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { Plus, X, Pencil, Trash2, ArrowUpDown, MoreHorizontal, Upload } from "lucide-react";
+import { BulkInviteMembersDialog } from "@/components/admin/BulkInviteMembersDialog";
 import { Pagination } from "./admin.users";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
@@ -42,6 +43,7 @@ type Member = {
 function MembersPage() {
   const [rows, setRows] = useState<Member[]>([]);
   const [open, setOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
   const [tierFor, setTierFor] = useState<Member | null>(null);
   const [deleting, setDeleting] = useState<Member | null>(null);
@@ -179,12 +181,20 @@ function MembersPage() {
       title="Members"
       description="Create member accounts and manage their subscriptions."
       action={
-        <button
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" /> Create member
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted"
+          >
+            <Upload className="h-4 w-4" /> Bulk invite (CSV)
+          </button>
+          <button
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" /> Create member
+          </button>
+        </div>
       }
     >
       <div className="mb-4">
@@ -282,6 +292,12 @@ function MembersPage() {
           member={deleting}
           onClose={() => setDeleting(null)}
           onConfirm={confirmDelete}
+        />
+      )}
+      {bulkOpen && (
+        <BulkInviteMembersDialog
+          onClose={() => setBulkOpen(false)}
+          onDone={() => void load()}
         />
       )}
     </AdminShell>

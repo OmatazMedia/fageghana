@@ -144,17 +144,6 @@ export function SiteFooter() {
             © {new Date().getFullYear()} Federation of Associations of Ghanaian Exporters. All
             rights reserved.
           </span>
-          <span>
-            Developed by{" "}
-            <a
-              href="https://omatazmedia.com.ng"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white/70 hover:text-primary transition-colors"
-            >
-              Omataz Media
-            </a>
-          </span>
         </div>
       </div>
     </footer>

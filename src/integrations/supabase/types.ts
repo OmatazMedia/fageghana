@@ -20,8 +20,10 @@ export type Database = {
           created_at: string
           description: string
           event_date: string | null
+          event_type: string | null
           id: string
           image_url: string | null
+          ip_address: unknown
           is_featured: boolean
           location: string | null
           published: boolean
@@ -30,6 +32,7 @@ export type Database = {
           spots_remaining: number | null
           title: string
           updated_at: string
+          user_agent: string | null
           view_count: number | null
         }
         Insert: {
@@ -37,8 +40,10 @@ export type Database = {
           created_at?: string
           description?: string
           event_date?: string | null
+          event_type?: string | null
           id?: string
           image_url?: string | null
+          ip_address?: unknown
           is_featured?: boolean
           location?: string | null
           published?: boolean
@@ -47,6 +52,7 @@ export type Database = {
           spots_remaining?: number | null
           title: string
           updated_at?: string
+          user_agent?: string | null
           view_count?: number | null
         }
         Update: {
@@ -54,8 +60,10 @@ export type Database = {
           created_at?: string
           description?: string
           event_date?: string | null
+          event_type?: string | null
           id?: string
           image_url?: string | null
+          ip_address?: unknown
           is_featured?: boolean
           location?: string | null
           published?: boolean
@@ -64,6 +72,7 @@ export type Database = {
           spots_remaining?: number | null
           title?: string
           updated_at?: string
+          user_agent?: string | null
           view_count?: number | null
         }
         Relationships: []
@@ -138,6 +147,7 @@ export type Database = {
           size_bytes: number | null
           started_at: string
           status: string
+          storage_path: string | null
           tables_count: number | null
           trigger: string
         }
@@ -150,6 +160,7 @@ export type Database = {
           size_bytes?: number | null
           started_at?: string
           status?: string
+          storage_path?: string | null
           tables_count?: number | null
           trigger?: string
         }
@@ -162,6 +173,7 @@ export type Database = {
           size_bytes?: number | null
           started_at?: string
           status?: string
+          storage_path?: string | null
           tables_count?: number | null
           trigger?: string
         }
@@ -783,6 +795,24 @@ export type Database = {
           trade_notices?: boolean
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      member_id_counters: {
+        Row: {
+          next_seq: number
+          updated_at: string
+          year_abbrev: string
+        }
+        Insert: {
+          next_seq?: number
+          updated_at?: string
+          year_abbrev: string
+        }
+        Update: {
+          next_seq?: number
+          updated_at?: string
+          year_abbrev?: string
         }
         Relationships: []
       }
@@ -1422,6 +1452,7 @@ export type Database = {
           display_order: number
           duration_months: number
           id: string
+          id_abbreviation: string | null
           name: string | null
           post_download_message: string | null
           slug: string | null
@@ -1439,6 +1470,7 @@ export type Database = {
           display_order?: number
           duration_months?: number
           id?: string
+          id_abbreviation?: string | null
           name?: string | null
           post_download_message?: string | null
           slug?: string | null
@@ -1456,6 +1488,7 @@ export type Database = {
           display_order?: number
           duration_months?: number
           id?: string
+          id_abbreviation?: string | null
           name?: string | null
           post_download_message?: string | null
           slug?: string | null
@@ -1845,6 +1878,10 @@ export type Database = {
         Args: { _tier: Database["public"]["Enums"]["membership_tier"] }
         Returns: string
       }
+      generate_structured_member_id: {
+        Args: { _abbrev: string; _year?: number }
+        Returns: string
+      }
       get_certificate_with_template: {
         Args: { _cert_id: string }
         Returns: Json
@@ -1916,7 +1953,17 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "editor" | "user" | "staff" | "moderator"
+      app_role:
+        | "admin"
+        | "editor"
+        | "user"
+        | "staff"
+        | "moderator"
+        | "finance"
+        | "ceo"
+        | "developer"
+        | "coordinator"
+        | "superadmin"
       application_status: "new" | "reviewing" | "approved" | "rejected"
       directory_entry_type: "association" | "corporate"
       media_type: "photo" | "video"
@@ -2051,7 +2098,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "editor", "user", "staff", "moderator"],
+      app_role: [
+        "admin",
+        "editor",
+        "user",
+        "staff",
+        "moderator",
+        "finance",
+        "ceo",
+        "developer",
+        "coordinator",
+        "superadmin",
+      ],
       application_status: ["new", "reviewing", "approved", "rejected"],
       directory_entry_type: ["association", "corporate"],
       media_type: ["photo", "video"],
