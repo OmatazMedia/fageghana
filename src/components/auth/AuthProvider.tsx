@@ -2,13 +2,38 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+export type AppRole =
+  | "admin"
+  | "staff"
+  | "member"
+  | "finance"
+  | "ceo"
+  | "developer"
+  | "coordinator"
+  | "superadmin";
+
+// Roles that see the admin console. `admin` retains full access; `superadmin`
+// mirrors it, and other granular roles unlock only the sections they own.
+const ADMIN_CONSOLE_ROLES: AppRole[] = [
+  "admin",
+  "superadmin",
+  "staff",
+  "finance",
+  "ceo",
+  "developer",
+  "coordinator",
+];
+
 type AuthContextValue = {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
-  /** True once the initial session has been read AND, if signed in, the admin-role check has resolved. */
+  roles: AppRole[];
+  hasRole: (role: AppRole) => boolean;
+  hasAnyRole: (roles: AppRole[]) => boolean;
+  /** True once the initial session has been read AND, if signed in, the role check has resolved. */
   loading: boolean;
-  /** Distinct from loading — false until the admin role lookup completes for the current user. */
+  /** Distinct from loading — false until the role lookup completes for the current user. */
   roleChecked: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -18,23 +43,21 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-async function checkAdminRoleSync(userId: string): Promise<boolean> {
+async function fetchRolesSync(userId: string): Promise<AppRole[]> {
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  return !error && !!data;
+    .eq("user_id", userId);
+  if (error || !data) return [];
+  return (data as { role: AppRole }[]).map((r) => r.role);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [roles, setRoles] = useState<AppRole[]>([]);
   const [roleChecked, setRoleChecked] = useState(false);
   const [loading, setLoading] = useState(true);
-  // Token of the in-flight role check; lets us ignore stale results when a new session arrives.
   const checkTokenRef = useRef(0);
 
   useEffect(() => {
@@ -53,16 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const myToken = ++checkTokenRef.current;
       if (!newSession?.user) {
-        setIsAdmin(false);
+        setRoles([]);
         setRoleChecked(true);
         setLoading(false);
         return;
       }
 
       setRoleChecked(false);
-      void checkAdminRoleSync(newSession.user.id).then((admin) => {
+      void fetchRolesSync(newSession.user.id).then((r) => {
         if (cancelled || checkTokenRef.current !== myToken) return;
-        setIsAdmin(admin);
+        setRoles(r);
         setRoleChecked(true);
         setLoading(false);
       });
@@ -103,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     // Clear local role state immediately so guards don't briefly see stale admin = true.
-    setIsAdmin(false);
+    setRoles([]);
     setRoleChecked(false);
     await supabase.auth.signOut();
   }
@@ -114,9 +137,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
+  const isAdmin = roles.includes("admin") || roles.includes("superadmin");
+  const hasRole = (r: AppRole) => roles.includes(r);
+  const hasAnyRole = (rs: AppRole[]) => rs.some((r) => roles.includes(r));
+
   return (
     <AuthContext.Provider
-      value={{ user, session, isAdmin, loading, roleChecked, signIn, signUp, signOut, resetPassword }}
+      value={{
+        user,
+        session,
+        isAdmin,
+        roles,
+        hasRole,
+        hasAnyRole,
+        loading,
+        roleChecked,
+        signIn,
+        signUp,
+        signOut,
+        resetPassword,
+      }}
     >
       {children}
     </AuthContext.Provider>

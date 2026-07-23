@@ -42,13 +42,24 @@ export const Route = createFileRoute("/admin")({
 });
 
 /* ── Nav types ────────────────────────────────────────────────────────── */
+import type { AppRole } from "@/components/auth/AuthProvider";
+
 type NavItem = {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
+  /** If omitted, item is visible to every admin-console role. */
+  roles?: AppRole[];
 };
-type NavSection = { label: string; items: NavItem[] };
+type NavSection = { label: string; items: NavItem[]; roles?: AppRole[] };
+
+// Role convenience buckets
+const ANY_ADMIN: AppRole[] = ["admin", "superadmin"];
+const FINANCE_VIEW: AppRole[] = ["admin", "superadmin", "finance", "ceo"];
+const DEV_ONLY: AppRole[] = ["developer", "superadmin"];
+const CERT_ROLES: AppRole[] = ["admin", "superadmin", "coordinator"];
+const TRADE_ROLES: AppRole[] = ["admin", "superadmin", "coordinator"];
 
 /* ── Nav sections ─────────────────────────────────────────────────────── */
 const navSections: NavSection[] = [
@@ -58,19 +69,21 @@ const navSections: NavSection[] = [
   },
   {
     label: "Members",
+    roles: ANY_ADMIN,
     items: [
       { to: "/admin/applications", label: "Applications", icon: Users },
       { to: "/admin/members", label: "Members", icon: UserPlus },
       { to: "/admin/directory", label: "Member Visibility", icon: Users },
       { to: "/admin/directory-entries", label: "Directory Entries", icon: Building2 },
       { to: "/admin/directory-fields", label: "Directory Fields", icon: FormInput },
-      { to: "/admin/readiness", label: "Readiness", icon: ListChecks },
-      { to: "/admin/payments", label: "Payments", icon: CreditCard },
+      { to: "/admin/readiness", label: "Readiness", icon: ListChecks, roles: CERT_ROLES },
+      { to: "/admin/payments", label: "Payments", icon: CreditCard, roles: FINANCE_VIEW },
       { to: "/admin/tickets", label: "Support", icon: MessageCircle },
     ],
   },
   {
     label: "Certificates",
+    roles: CERT_ROLES,
     items: [
       { to: "/admin/certificates", label: "Cert Designer", icon: Award, exact: true },
       { to: "/admin/cert-batch", label: "Batch Issue", icon: Layers },
@@ -79,11 +92,12 @@ const navSections: NavSection[] = [
   },
   {
     label: "Content",
+    roles: ANY_ADMIN,
     items: [
       { to: "/admin/news", label: "News & Blog", icon: Newspaper },
       { to: "/admin/products", label: "Products", icon: Package },
       { to: "/admin/activities", label: "Events", icon: CalendarDays },
-      { to: "/admin/trade-opportunities", label: "Trade Opportunities", icon: TrendingUp },
+      { to: "/admin/trade-opportunities", label: "Trade Opportunities", icon: TrendingUp, roles: TRADE_ROLES },
       { to: "/admin/media", label: "Media", icon: ImageIcon },
       { to: "/admin/site-media", label: "Homepage Hero & Partners", icon: ImageIcon },
       { to: "/admin/resources", label: "Resources", icon: BookOpen },
@@ -93,24 +107,37 @@ const navSections: NavSection[] = [
   {
     label: "Finance & Config",
     items: [
-      { to: "/admin/plans", label: "Plans & Forms", icon: Tag },
-      { to: "/admin/forms", label: "Form Builder", icon: FormInput },
-      { to: "/admin/gateways", label: "Gateways", icon: Settings },
-      { to: "/admin/email-settings", label: "Email Settings", icon: Mail },
-      { to: "/admin/email-templates", label: "Email Templates", icon: FileText },
-      { to: "/admin/reports", label: "Reports", icon: BarChart3 },
-      { to: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup },
-      { to: "/admin/users", label: "User Management", icon: ShieldCheck },
+      { to: "/admin/plans", label: "Plans & Forms", icon: Tag, roles: DEV_ONLY },
+      { to: "/admin/forms", label: "Form Builder", icon: FormInput, roles: DEV_ONLY },
+      { to: "/admin/gateways", label: "Gateways", icon: Settings, roles: DEV_ONLY },
+      { to: "/admin/email-settings", label: "Email Settings", icon: Mail, roles: DEV_ONLY },
+      { to: "/admin/email-templates", label: "Email Templates", icon: FileText, roles: DEV_ONLY },
+      { to: "/admin/reports", label: "Reports", icon: BarChart3, roles: FINANCE_VIEW },
+      { to: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup, roles: DEV_ONLY },
+      { to: "/admin/activity-log", label: "Activity Log", icon: ListChecks, roles: DEV_ONLY },
+      { to: "/admin/users", label: "User Management", icon: ShieldCheck, roles: DEV_ONLY },
     ],
   },
 ];
 
+function filterNav(sections: NavSection[], has: (r: AppRole[]) => boolean): NavSection[] {
+  return sections
+    .filter((s) => !s.roles || has(s.roles))
+    .map((s) => ({ ...s, items: s.items.filter((i) => !i.roles || has(i.roles)) }))
+    .filter((s) => s.items.length > 0);
+}
+
 /* ── Layout ───────────────────────────────────────────────────────────── */
 function AdminLayout() {
-  const { user, isAdmin, loading, roleChecked, signOut } = useAuth();
+  const { user, isAdmin, hasAnyRole, loading, roleChecked, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isLoginRoute = location.pathname === "/admin/login";
+
+  // Anyone with a role that maps to at least one admin-console section.
+  const canAccessConsole =
+    isAdmin ||
+    hasAnyRole(["staff", "finance", "ceo", "developer", "coordinator"]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -120,14 +147,13 @@ function AdminLayout() {
 
   useEffect(() => {
     if (isLoginRoute) return;
-    // Wait until role check is settled before any redirect.
     if (loading || !roleChecked) return;
     if (!user) navigate({ to: "/admin/login", replace: true });
-    else if (!isAdmin) navigate({ to: "/", replace: true });
-  }, [loading, roleChecked, user, isAdmin, navigate, isLoginRoute]);
+    else if (!canAccessConsole) navigate({ to: "/", replace: true });
+  }, [loading, roleChecked, user, canAccessConsole, navigate, isLoginRoute]);
 
   if (isLoginRoute) return <Outlet />;
-  if (loading || !roleChecked || !user || !isAdmin) {
+  if (loading || !roleChecked || !user || !canAccessConsole) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0f1a14]">
         <div className="flex flex-col items-center gap-3">
@@ -138,8 +164,10 @@ function AdminLayout() {
     );
   }
 
+  const visibleNav = filterNav(navSections, hasAnyRole);
   const isOverview = location.pathname === "/admin";
   const initials = user.email?.slice(0, 2).toUpperCase() ?? "AD";
+
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f5f7f5]">
@@ -160,7 +188,7 @@ function AdminLayout() {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 scrollbar-hide">
-          {navSections.map((section) => (
+          {visibleNav.map((section) => (
             <div key={section.label}>
               <div className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">
                 {section.label}
@@ -265,7 +293,7 @@ function AdminLayout() {
 
         {/* Mobile nav */}
         <div className="flex gap-1.5 overflow-x-auto border-b border-border bg-white px-3 py-2 lg:hidden">
-          {navSections
+          {visibleNav
             .flatMap((s) => s.items)
             .map((s) => {
               const active =
