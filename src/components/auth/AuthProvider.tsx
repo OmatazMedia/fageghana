@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     // Clear local role state immediately so guards don't briefly see stale admin = true.
-    setIsAdmin(false);
+    setRoles([]);
     setRoleChecked(false);
     await supabase.auth.signOut();
   }
@@ -137,9 +137,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
+  const isAdmin = roles.includes("admin") || roles.includes("superadmin");
+  const hasRole = (r: AppRole) => roles.includes(r);
+  const hasAnyRole = (rs: AppRole[]) => rs.some((r) => roles.includes(r));
+
   return (
     <AuthContext.Provider
-      value={{ user, session, isAdmin, loading, roleChecked, signIn, signUp, signOut, resetPassword }}
+      value={{
+        user,
+        session,
+        isAdmin,
+        roles,
+        hasRole,
+        hasAnyRole,
+        loading,
+        roleChecked,
+        signIn,
+        signUp,
+        signOut,
+        resetPassword,
+      }}
     >
       {children}
     </AuthContext.Provider>
