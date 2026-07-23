@@ -461,14 +461,38 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     if (text.toLowerCase() === "menu") {
       addUser(text);
       await botReply("Here's the main menu:", QUICK_MENU);
+      setMode("menu");
       return;
     }
 
+    // Free-form question → route to FAGE AI assistant.
     addUser(text);
-    await botReply(
-      "I'm a simple bot 🙂 — please pick one of these options, or type 'menu'.",
-      QUICK_MENU,
-    );
+    await askAI(text);
+  }
+
+  async function askAI(question: string) {
+    setMode("sending");
+    try {
+      const history = [...msgs, { id: "x", from: "user" as const, text: question, ts: Date.now() }]
+        .filter((m) => m.text)
+        .slice(-10)
+        .map((m) => ({ role: m.from === "user" ? "user" : "assistant", content: m.text! }));
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = (await res.json()) as { reply: string; escalated?: boolean };
+      addBot(data.reply, data.escalated ? QUICK_MENU : undefined);
+      setMode(data.escalated ? "menu" : "ask");
+    } catch {
+      addBot(
+        "I couldn't reach the assistant just now. You can leave a message and our team will follow up.",
+        QUICK_MENU,
+      );
+      setMode("menu");
+    }
   }
 
   function backToMenu() {
