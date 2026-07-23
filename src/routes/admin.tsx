@@ -188,7 +188,7 @@ function AdminLayout() {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 scrollbar-hide">
-          {navSections.map((section) => (
+          {visibleNav.map((section) => (
             <div key={section.label}>
               <div className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">
                 {section.label}
@@ -293,7 +293,7 @@ function AdminLayout() {
 
         {/* Mobile nav */}
         <div className="flex gap-1.5 overflow-x-auto border-b border-border bg-white px-3 py-2 lg:hidden">
-          {navSections
+          {visibleNav
             .flatMap((s) => s.items)
             .map((s) => {
               const active =
