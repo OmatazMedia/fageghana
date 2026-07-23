@@ -364,6 +364,12 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
         );
         setMode("whatsapp-input");
         return;
+      case "ask":
+        addBot(
+          "Sure — ask me anything about FAGE, membership, services, or events. Type your question below.",
+        );
+        setMode("ask");
+        return;
       case "leave":
         addBot("No problem — I'll take a message. What's your name?");
         setMode("leave-msg");
