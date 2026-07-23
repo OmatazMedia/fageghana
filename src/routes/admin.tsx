@@ -129,10 +129,15 @@ function filterNav(sections: NavSection[], has: (r: AppRole[]) => boolean): NavS
 
 /* ── Layout ───────────────────────────────────────────────────────────── */
 function AdminLayout() {
-  const { user, isAdmin, loading, roleChecked, signOut } = useAuth();
+  const { user, isAdmin, hasAnyRole, loading, roleChecked, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isLoginRoute = location.pathname === "/admin/login";
+
+  // Anyone with a role that maps to at least one admin-console section.
+  const canAccessConsole =
+    isAdmin ||
+    hasAnyRole(["staff", "finance", "ceo", "developer", "coordinator"]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -142,14 +147,13 @@ function AdminLayout() {
 
   useEffect(() => {
     if (isLoginRoute) return;
-    // Wait until role check is settled before any redirect.
     if (loading || !roleChecked) return;
     if (!user) navigate({ to: "/admin/login", replace: true });
-    else if (!isAdmin) navigate({ to: "/", replace: true });
-  }, [loading, roleChecked, user, isAdmin, navigate, isLoginRoute]);
+    else if (!canAccessConsole) navigate({ to: "/", replace: true });
+  }, [loading, roleChecked, user, canAccessConsole, navigate, isLoginRoute]);
 
   if (isLoginRoute) return <Outlet />;
-  if (loading || !roleChecked || !user || !isAdmin) {
+  if (loading || !roleChecked || !user || !canAccessConsole) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0f1a14]">
         <div className="flex flex-col items-center gap-3">
@@ -160,8 +164,10 @@ function AdminLayout() {
     );
   }
 
+  const visibleNav = filterNav(navSections, hasAnyRole);
   const isOverview = location.pathname === "/admin";
   const initials = user.email?.slice(0, 2).toUpperCase() ?? "AD";
+
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f5f7f5]">
