@@ -16,9 +16,10 @@ type Msg = {
   ts: number;
 };
 
-type Mode = "menu" | "leave-msg" | "whatsapp-input" | "transferring" | "sending";
+type Mode = "menu" | "leave-msg" | "whatsapp-input" | "transferring" | "sending" | "ask";
 
 const QUICK_MENU: { label: string; action: string }[] = [
+  { label: "Ask FAGE Assistant", action: "ask" },
   { label: "About FAGE", action: "about" },
   { label: "Services", action: "services" },
   { label: "Products", action: "products" },
