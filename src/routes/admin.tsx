@@ -42,13 +42,24 @@ export const Route = createFileRoute("/admin")({
 });
 
 /* ── Nav types ────────────────────────────────────────────────────────── */
+import type { AppRole } from "@/components/auth/AuthProvider";
+
 type NavItem = {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
+  /** If omitted, item is visible to every admin-console role. */
+  roles?: AppRole[];
 };
-type NavSection = { label: string; items: NavItem[] };
+type NavSection = { label: string; items: NavItem[]; roles?: AppRole[] };
+
+// Role convenience buckets
+const ANY_ADMIN: AppRole[] = ["admin", "superadmin"];
+const FINANCE_VIEW: AppRole[] = ["admin", "superadmin", "finance", "ceo"];
+const DEV_ONLY: AppRole[] = ["developer", "superadmin"];
+const CERT_ROLES: AppRole[] = ["admin", "superadmin", "coordinator"];
+const TRADE_ROLES: AppRole[] = ["admin", "superadmin", "coordinator"];
 
 /* ── Nav sections ─────────────────────────────────────────────────────── */
 const navSections: NavSection[] = [
@@ -58,19 +69,21 @@ const navSections: NavSection[] = [
   },
   {
     label: "Members",
+    roles: ANY_ADMIN,
     items: [
       { to: "/admin/applications", label: "Applications", icon: Users },
       { to: "/admin/members", label: "Members", icon: UserPlus },
       { to: "/admin/directory", label: "Member Visibility", icon: Users },
       { to: "/admin/directory-entries", label: "Directory Entries", icon: Building2 },
       { to: "/admin/directory-fields", label: "Directory Fields", icon: FormInput },
-      { to: "/admin/readiness", label: "Readiness", icon: ListChecks },
-      { to: "/admin/payments", label: "Payments", icon: CreditCard },
+      { to: "/admin/readiness", label: "Readiness", icon: ListChecks, roles: CERT_ROLES },
+      { to: "/admin/payments", label: "Payments", icon: CreditCard, roles: FINANCE_VIEW },
       { to: "/admin/tickets", label: "Support", icon: MessageCircle },
     ],
   },
   {
     label: "Certificates",
+    roles: CERT_ROLES,
     items: [
       { to: "/admin/certificates", label: "Cert Designer", icon: Award, exact: true },
       { to: "/admin/cert-batch", label: "Batch Issue", icon: Layers },
@@ -79,11 +92,12 @@ const navSections: NavSection[] = [
   },
   {
     label: "Content",
+    roles: ANY_ADMIN,
     items: [
       { to: "/admin/news", label: "News & Blog", icon: Newspaper },
       { to: "/admin/products", label: "Products", icon: Package },
       { to: "/admin/activities", label: "Events", icon: CalendarDays },
-      { to: "/admin/trade-opportunities", label: "Trade Opportunities", icon: TrendingUp },
+      { to: "/admin/trade-opportunities", label: "Trade Opportunities", icon: TrendingUp, roles: TRADE_ROLES },
       { to: "/admin/media", label: "Media", icon: ImageIcon },
       { to: "/admin/site-media", label: "Homepage Hero & Partners", icon: ImageIcon },
       { to: "/admin/resources", label: "Resources", icon: BookOpen },
@@ -93,17 +107,25 @@ const navSections: NavSection[] = [
   {
     label: "Finance & Config",
     items: [
-      { to: "/admin/plans", label: "Plans & Forms", icon: Tag },
-      { to: "/admin/forms", label: "Form Builder", icon: FormInput },
-      { to: "/admin/gateways", label: "Gateways", icon: Settings },
-      { to: "/admin/email-settings", label: "Email Settings", icon: Mail },
-      { to: "/admin/email-templates", label: "Email Templates", icon: FileText },
-      { to: "/admin/reports", label: "Reports", icon: BarChart3 },
-      { to: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup },
-      { to: "/admin/users", label: "User Management", icon: ShieldCheck },
+      { to: "/admin/plans", label: "Plans & Forms", icon: Tag, roles: DEV_ONLY },
+      { to: "/admin/forms", label: "Form Builder", icon: FormInput, roles: DEV_ONLY },
+      { to: "/admin/gateways", label: "Gateways", icon: Settings, roles: DEV_ONLY },
+      { to: "/admin/email-settings", label: "Email Settings", icon: Mail, roles: DEV_ONLY },
+      { to: "/admin/email-templates", label: "Email Templates", icon: FileText, roles: DEV_ONLY },
+      { to: "/admin/reports", label: "Reports", icon: BarChart3, roles: FINANCE_VIEW },
+      { to: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup, roles: DEV_ONLY },
+      { to: "/admin/activity-log", label: "Activity Log", icon: ListChecks, roles: DEV_ONLY },
+      { to: "/admin/users", label: "User Management", icon: ShieldCheck, roles: DEV_ONLY },
     ],
   },
 ];
+
+function filterNav(sections: NavSection[], has: (r: AppRole[]) => boolean): NavSection[] {
+  return sections
+    .filter((s) => !s.roles || has(s.roles))
+    .map((s) => ({ ...s, items: s.items.filter((i) => !i.roles || has(i.roles)) }))
+    .filter((s) => s.items.length > 0);
+}
 
 /* ── Layout ───────────────────────────────────────────────────────────── */
 function AdminLayout() {
