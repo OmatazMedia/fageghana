@@ -31,6 +31,7 @@ import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
@@ -58,6 +59,7 @@ import { Route as AdminCertIssuedRouteImport } from './routes/admin.cert-issued'
 import { Route as AdminCertBatchRouteImport } from './routes/admin.cert-batch'
 import { Route as AdminBackupRouteImport } from './routes/admin.backup'
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
+import { Route as AdminActivityLogRouteImport } from './routes/admin.activity-log'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as AccountSecurityRouteImport } from './routes/account.security'
 import { Route as AccountChangePasswordRouteImport } from './routes/account.change-password'
@@ -175,6 +177,11 @@ const CertificateIdRoute = CertificateIdRouteImport.update({
 const ApplyTierRoute = ApplyTierRouteImport.update({
   id: '/apply/$tier',
   path: '/apply/$tier',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -312,6 +319,11 @@ const AdminApplicationsRoute = AdminApplicationsRouteImport.update({
   path: '/applications',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminActivityLogRoute = AdminActivityLogRouteImport.update({
+  id: '/activity-log',
+  path: '/activity-log',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminActivitiesRoute = AdminActivitiesRouteImport.update({
   id: '/activities',
   path: '/activities',
@@ -376,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/account/change-password': typeof AccountChangePasswordRoute
   '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
+  '/admin/activity-log': typeof AdminActivityLogRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
   '/admin/cert-batch': typeof AdminCertBatchRoute
@@ -403,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/chat': typeof ApiChatRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
@@ -435,6 +449,7 @@ export interface FileRoutesByTo {
   '/account/change-password': typeof AccountChangePasswordRoute
   '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
+  '/admin/activity-log': typeof AdminActivityLogRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
   '/admin/cert-batch': typeof AdminCertBatchRoute
@@ -462,6 +477,7 @@ export interface FileRoutesByTo {
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/chat': typeof ApiChatRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
@@ -495,6 +511,7 @@ export interface FileRoutesById {
   '/account/change-password': typeof AccountChangePasswordRoute
   '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
+  '/admin/activity-log': typeof AdminActivityLogRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
   '/admin/cert-batch': typeof AdminCertBatchRoute
@@ -522,6 +539,7 @@ export interface FileRoutesById {
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/chat': typeof ApiChatRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
@@ -556,6 +574,7 @@ export interface FileRouteTypes {
     | '/account/change-password'
     | '/account/security'
     | '/admin/activities'
+    | '/admin/activity-log'
     | '/admin/applications'
     | '/admin/backup'
     | '/admin/cert-batch'
@@ -583,6 +602,7 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
+    | '/api/chat'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/directory/$slug'
@@ -615,6 +635,7 @@ export interface FileRouteTypes {
     | '/account/change-password'
     | '/account/security'
     | '/admin/activities'
+    | '/admin/activity-log'
     | '/admin/applications'
     | '/admin/backup'
     | '/admin/cert-batch'
@@ -642,6 +663,7 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
+    | '/api/chat'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/directory/$slug'
@@ -674,6 +696,7 @@ export interface FileRouteTypes {
     | '/account/change-password'
     | '/account/security'
     | '/admin/activities'
+    | '/admin/activity-log'
     | '/admin/applications'
     | '/admin/backup'
     | '/admin/cert-batch'
@@ -701,6 +724,7 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
+    | '/api/chat'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/directory/$slug'
@@ -731,6 +755,7 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   VerifyRoute: typeof VerifyRouteWithChildren
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
+  ApiChatRoute: typeof ApiChatRoute
   ApplyTierRoute: typeof ApplyTierRoute
   CertificateIdRoute: typeof CertificateIdRoute
   PaymentCallbackRoute: typeof PaymentCallbackRoute
@@ -895,6 +920,13 @@ declare module '@tanstack/react-router' {
       path: '/apply/$tier'
       fullPath: '/apply/$tier'
       preLoaderRoute: typeof ApplyTierRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/users': {
@@ -1086,6 +1118,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminApplicationsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/activity-log': {
+      id: '/admin/activity-log'
+      path: '/activity-log'
+      fullPath: '/admin/activity-log'
+      preLoaderRoute: typeof AdminActivityLogRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/activities': {
       id: '/admin/activities'
       path: '/activities'
@@ -1160,6 +1199,7 @@ const AccountRouteWithChildren =
 
 interface AdminRouteChildren {
   AdminActivitiesRoute: typeof AdminActivitiesRoute
+  AdminActivityLogRoute: typeof AdminActivityLogRoute
   AdminApplicationsRoute: typeof AdminApplicationsRoute
   AdminBackupRoute: typeof AdminBackupRoute
   AdminCertBatchRoute: typeof AdminCertBatchRoute
@@ -1191,6 +1231,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminActivitiesRoute: AdminActivitiesRoute,
+  AdminActivityLogRoute: AdminActivityLogRoute,
   AdminApplicationsRoute: AdminApplicationsRoute,
   AdminBackupRoute: AdminBackupRoute,
   AdminCertBatchRoute: AdminCertBatchRoute,
@@ -1272,6 +1313,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   VerifyRoute: VerifyRouteWithChildren,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
+  ApiChatRoute: ApiChatRoute,
   ApplyTierRoute: ApplyTierRoute,
   CertificateIdRoute: CertificateIdRoute,
   PaymentCallbackRoute: PaymentCallbackRoute,
@@ -1284,13 +1326,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
