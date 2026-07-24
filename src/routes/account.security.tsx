@@ -10,7 +10,24 @@ export const Route = createFileRoute("/account/security")({
   component: SecurityPage,
 });
 
-function SecurityPage() {
+export function SecurityPage({ passwordHref = "/account/change-password" }: { passwordHref?: string } = {}) {
+  const { user } = useAuth();
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Account & Security</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage your email address and two-factor authentication. Password changes have their own page.
+        </p>
+      </div>
+      <PasswordLinkCard href={passwordHref} />
+      <EmailCard currentEmail={user?.email ?? ""} />
+      <MfaCard />
+    </div>
+  );
+}
+
+function _UnusedOriginal() {
   const { user } = useAuth();
   return (
     <div className="space-y-6">
