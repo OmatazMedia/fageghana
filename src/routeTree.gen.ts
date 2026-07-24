@@ -67,6 +67,7 @@ import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
 import { Route as ApiPublicHubtelCallbackRouteImport } from './routes/api/public/hubtel-callback'
 import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
+import { Route as AdminAccountSecurityRouteImport } from './routes/admin.account.security'
 import { Route as ApiPublicHooksRunScheduledBackupRouteImport } from './routes/api/public/hooks/run-scheduled-backup'
 
 const VerifyRoute = VerifyRouteImport.update({
@@ -361,6 +362,11 @@ const ApiPublicFlutterwaveWebhookRoute =
     path: '/api/public/flutterwave-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminAccountSecurityRoute = AdminAccountSecurityRouteImport.update({
+  id: '/account/security',
+  path: '/account/security',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiPublicHooksRunScheduledBackupRoute =
   ApiPublicHooksRunScheduledBackupRouteImport.update({
     id: '/api/public/hooks/run-scheduled-backup',
@@ -424,6 +430,7 @@ export interface FileRoutesByFullPath {
   '/payment/callback': typeof PaymentCallbackRoute
   '/receipt/$id': typeof ReceiptIdRoute
   '/verify/$code': typeof VerifyCodeRoute
+  '/admin/account/security': typeof AdminAccountSecurityRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
@@ -485,6 +492,7 @@ export interface FileRoutesByTo {
   '/payment/callback': typeof PaymentCallbackRoute
   '/receipt/$id': typeof ReceiptIdRoute
   '/verify/$code': typeof VerifyCodeRoute
+  '/admin/account/security': typeof AdminAccountSecurityRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
@@ -547,6 +555,7 @@ export interface FileRoutesById {
   '/payment/callback': typeof PaymentCallbackRoute
   '/receipt/$id': typeof ReceiptIdRoute
   '/verify/$code': typeof VerifyCodeRoute
+  '/admin/account/security': typeof AdminAccountSecurityRoute
   '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
   '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
@@ -610,6 +619,7 @@ export interface FileRouteTypes {
     | '/payment/callback'
     | '/receipt/$id'
     | '/verify/$code'
+    | '/admin/account/security'
     | '/api/public/flutterwave-webhook'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
@@ -671,6 +681,7 @@ export interface FileRouteTypes {
     | '/payment/callback'
     | '/receipt/$id'
     | '/verify/$code'
+    | '/admin/account/security'
     | '/api/public/flutterwave-webhook'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
@@ -732,6 +743,7 @@ export interface FileRouteTypes {
     | '/payment/callback'
     | '/receipt/$id'
     | '/verify/$code'
+    | '/admin/account/security'
     | '/api/public/flutterwave-webhook'
     | '/api/public/hubtel-callback'
     | '/api/public/paystack-webhook'
@@ -1174,6 +1186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFlutterwaveWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/account/security': {
+      id: '/admin/account/security'
+      path: '/account/security'
+      fullPath: '/admin/account/security'
+      preLoaderRoute: typeof AdminAccountSecurityRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/public/hooks/run-scheduled-backup': {
       id: '/api/public/hooks/run-scheduled-backup'
       path: '/api/public/hooks/run-scheduled-backup'
@@ -1227,6 +1246,7 @@ interface AdminRouteChildren {
   AdminTicketsRoute: typeof AdminTicketsRoute
   AdminTradeOpportunitiesRoute: typeof AdminTradeOpportunitiesRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  AdminAccountSecurityRoute: typeof AdminAccountSecurityRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -1259,6 +1279,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminTicketsRoute: AdminTicketsRoute,
   AdminTradeOpportunitiesRoute: AdminTradeOpportunitiesRoute,
   AdminUsersRoute: AdminUsersRoute,
+  AdminAccountSecurityRoute: AdminAccountSecurityRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
