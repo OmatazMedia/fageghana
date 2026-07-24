@@ -1,139 +1,63 @@
+## Status vs. the client's analysis document
 
-# FAGE Website Analysis — implementation plan
+Already done (from earlier turns): Let's Talk → /contact, FAGE Academy & Clothing/Textile added to services, "Developed by Omataz" removed, chatbot with FAGE knowledge + ticket escalation, activity log route + capture (login/logout/reset/profile updates), granular admin roles (finance, ceo, developer, coordinator, superadmin), sidebar section gating by role, Bulk Invite moved to Members page, contact-page map pin fix, cert "Back" button referrer heuristic.
 
-Scope: apply every point from the uploaded analysis doc.
+Still outstanding (this plan):
 
-## 1. Roles & role-based access
+### Root cause of "some logins get to another"
 
-Extend `app_role` enum: add `finance`, `ceo`, `developer`, `coordinator`, `superadmin` (keep existing `admin`, `staff`, `member`).
+The admin sidebar's **Account & Security** and **Support / Profile** links point at `/account/security` and member routes, which are wrapped in `DashboardLayout` (the member sidebar shell). So when an admin clicks them, the URL changes into the member dashboard shell — indistinguishable from "being logged into the wrong portal". Same class of bug for the Issued Certificate "Back to dashboard" button, which falls back to the member dashboard when the referrer is missing.
 
-Single admin dashboard (`/admin`), sidebar + route access filtered by role via `has_role()` checks:
+Fix: give admins their own account routes under `/admin/account/*` that reuse `AdminShell`, and route the sidebar footer + cert back-button through role-aware navigation instead of a shared `/account/*` layout.
 
-| Section | Visible to |
-|---|---|
-| Members, Applications, Directory, Resources, News, Media, Notifications, Site Media, Tickets | admin, superadmin |
-| Payments, Invoices, Reports | finance, admin, superadmin, ceo (read-only for ceo) |
-| Everything (read) | ceo, superadmin |
-| Plans, Forms, Form builder, Gateways, Email settings, Email templates, Activity log, Backup, User Management | developer, superadmin only |
-| Certificates, Cert-batch, Cert-issued, Readiness | admin, coordinator, superadmin |
-| Trade opportunities | coordinator, admin, superadmin |
+---
 
-Add a `RoleGuard` component and a `visibleForRole()` helper in `src/routes/admin.tsx` sidebar. Update User Management to allow assigning any of the new roles.
+## Phase 1 — Cross-portal navigation bugs (highest priority, client-flagged)
 
-## 2. Admin dashboard fixes
+1. **Admin account pages under `/admin**`
+  - New routes: `/admin/account/security` and `/admin/account/change-password` that render the existing Security / Change-Password panels inside `AdminShell` (not `DashboardLayout`).
+  - Sidebar footer link in `src/routes/admin.tsx` → `/admin/account/security`.
+  - Add a small "Account & Security" and "Change Password" entry under a new *Personal* group at the bottom of the admin nav so admins never leave the admin shell.
+2. **Issued Cert "Back" and "Verify" buttons** (`src/routes/certificate.$id.tsx`, `src/routes/verify.tsx`, `src/routes/admin.cert-issued.tsx`)
+  - Back button: if the current user has any admin-console role, always return to `/admin/cert-issued`; else `/dashboard`. Stop relying on `document.referrer`.
+  - Public verify page currently accepts only the verification code. Extend the form to also search by **Member ID**, **name**, or **company** via a `verify_member_public` RPC that returns non-PII fields (name, member_id, tier, status, expiry). Show a friendly result card instead of "Data not found" when the query is empty.
+3. **Member-side "Account & Security" vs. "Change Password" duplicate**
+  - Audit `DashboardLayout` sidebar: today both sidebar links land on `/account/security` because `/account` redirects there. Point "Change password" at `/account/change-password` and confirm the security page no longer embeds the password form (it currently does, causing the "same page" complaint).
 
-- **Readiness tab**: add tooltip explaining weight (used in score calc) and add a `display_order` column + drag handles on `readiness_checklist_items`.
-- **Issued Certificate tab**: fix the "Back to dashboard" button on the review-cert screen — currently points to `/dashboard`, change to `/admin/cert-issued`. Fix `Verify` action — currently opens the public site and passes no code; change to open `/verify/{code}` in a new tab.
-- **User Management** (`admin.users.tsx`):
-  - Move `Bulk invite members` button out of the Staff/Admin section — Staff/Admin tab shows only `Add Staff/Admin`.
-  - Add `Bulk invite members` + CSV import (email, name, company, phone, tier) inside the Members tab.
-- **Account & Security vs Change Password**: `/account/security` currently redirects to the same page as change password. Split them:
-  - `/account/security`: MFA, active sessions, connected providers, security events log.
-  - `/account/change-password`: password change form only.
-- **Support & Profile** in admin sidebar: currently link to member `/dashboard`. Point Support → `/admin/tickets`, Profile → `/account`.
+## Phase 2 — Member ID, developer-only gating, admin UX polish
 
-## 3. Backup & Restore
+4. **Member ID format `FAGE/AS/YYYY/00001**`
+  - Migration: rewrite `generate_member_id(_tier)` to emit `FAGE/AS|CR|SB/YYYY/NNNNN` with 4-digit year and zero-padded 5-digit sequence, using the existing `member_id_counters` per-year row (reset yearly). `standard` → `SB`.
+  - Backfill: leave existing IDs untouched; only new issuances use the new format.
+5. **Developer-only route gates** (already hidden from nav, but the URLs are still reachable)
+  - Add `beforeLoad`/component-level guard on `/admin/plans`, `/admin/forms`, `/admin/gateways`, `/admin/email-settings`, `/admin/email-templates`, `/admin/backup`, `/admin/activity-log`, `/admin/users` — redirect to `/admin` when the user lacks `developer` or `superadmin`.
+6. **User Management page layout**
+  - Move "Add Staff/Admin" button to top-right of the staff-members table.
+  - Remove any bulk-invite affordance from this page (bulk invite lives on Members page only, per prior turn — verify none remains here).
+7. **Readiness tab clarification** — add small helper tooltips explaining what *Weight* and *Display order* do (client asked why they exist rather than requesting a change).
 
-- Create private Storage bucket `backups` (Lovable Cloud).
-- Update `backup-runner.server.ts` to upload the generated ZIP to `backups/{schedule_id}/{timestamp}.zip` in addition to writing to `backup_runs`. Store the storage path on `backup_runs.storage_path`.
-- Admin Backup page: after a successful run, offer both (a) download the CSV bundle to the local machine (existing) and (b) a link/notice that a copy was uploaded to cloud storage.
-- Keep the pg_cron-driven scheduler; add a default 2-day schedule if none exists.
-- Move Backup page under Developer/Superadmin role only.
+## Phase 3 — Backup redundancy + role dashboards
 
-## 4. Plans & Member ID generator
+8. **Backup: cloud + local CSV redundancy**
+  - Extend `backup_schedules` with a `deliver_local_csv` boolean.
+  - When a scheduled or manual run completes, in addition to the existing cloud upload, generate a per-table CSV bundle (zip) and expose a "Download last run" button on `/admin/backup` that streams the bundle from a signed URL.
+9. **Per-role landing dashboards** (soft-separation, not separate apps)
+  - `/admin` currently shows one Overview. Add role-scoped overview cards so Finance sees payments KPIs, CEO sees membership KPIs, Coordinator sees events/trade KPIs, Developer sees system health + activity log summary. Sidebar filtering already exists; this closes the "separate dashboard" ask without forking the shell.
+10. **Activity log completeness** — audit remaining mutation surfaces (member CRUD, directory approve/suspend, payment confirm, backup run) and ensure each calls `logActivity` so the Developer's Activity Log reflects "everything that happens on the system".
 
-- Add settings on `subscription_plans` for `id_abbreviation` (AS/CR/SB per plan).
-- New DB function `generate_member_id(tier_abbrev, year)` producing `FAGE/{ABBR}/{YY}/{NNNNN}` where `NNNNN` is the sequential order within (year, abbrev). Uses a new `member_id_counters(year_abbrev PK, next_seq)` table with row-level lock.
-- Trigger on `member_profiles.status` becoming `approved` sets `member_id` if null using the enrolled year.
-- Admin edit form on Members allows manual override / manual assignment for legacy records.
-- Existing member IDs are left as-is (per your choice).
+---
 
-## 5. Activity log
+### Technical notes
 
-- Existing `activities` table already logs some events. Extend with: `ip_address`, `user_agent`, `event_type` (login/logout/password_reset/profile_update/etc.).
-- Client middleware in `AuthProvider` records `login` and `logout` via a new `log_activity` server fn (captures IP via request headers on the server side).
-- New route `/admin/activity-log` (Developer/Superadmin only) with filters by user, date, event.
+- New admin account routes reuse existing components from `src/routes/account.security.tsx` and `src/routes/account.change-password.tsx` — extract their panels into `src/components/account/*` and mount them from both `/account/*` (member shell) and `/admin/account/*` (admin shell). No behavior change, just shell selection.
+- Verify-by-name RPC must be `SECURITY DEFINER`, return only public columns, and be granted to `anon` — the search page is public.
+- Member ID migration must run in a single transaction and keep the existing `member_id_counters` table; only the formatter changes.
 
-## 6. Main website map
+### Suggested order of execution
 
-- Update the Google Map embed on `contact.tsx` (and any other page using it) to use FAGE's precise coordinates with a labelled marker. I'll use a `google.com/maps/embed` iframe centered on the coordinates and pinning "FAGE — Federation of Associations of Ghanaian Exporters".
-- **Need from you**: exact FAGE office address / GPS to pin. If not provided, I'll use "Federation of Associations of Ghanaian Exporters, Accra" and you can refine later.
+Phase 1 first (fixes the reported "logs into another portal" symptom), then Phase 2, then Phase 3. Each phase is independently shippable.  
+  
+  
+when i add a new banner the button link entered is not what the button is on the front end fix please
 
-## 7. Main website copy & nav
-
-- **"Let's Talk" button**: change target from `/membership` (join) to `/contact`. Fix in `SiteHeader.tsx`, homepage hero, footer CTA.
-- **Services page**: add two service cards — **FAGE Academy** and **Clothing & Textile Products** — with placeholder copy and icons; each links to an anchor on the services page (or `#academy`, `#textiles` sections).
-- **Footer**: remove developer credit/hyperlink from `SiteFooter.tsx`.
-
-## 8. Chatbot
-
-- Extend `ChatWidget.tsx` to call a new `/api/chat` server route.
-- Build system prompt from static FAGE knowledge (About, Services, Membership tiers/pricing, Contact) compiled in `src/lib/chatbot-knowledge.ts` (extracted from current site content).
-- Uses Lovable AI Gateway with `google/gemini-3-flash-preview`.
-- Fallback rule in the system prompt: if the user's question is outside FAGE topics or the bot is unsure, respond with "I'll route your question to the FAGE team" and call a `submit_chat_escalation` server fn that creates a `support_ticket` (which surfaces in the appropriate staff's Notifications).
-
-## Technical details
-
-### DB migration (single)
-
-```sql
--- Roles
-ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'finance';
-ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'ceo';
-ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'developer';
-ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'coordinator';
-ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'superadmin';
-
--- Member ID
-CREATE TABLE public.member_id_counters (
-  year_abbrev text PRIMARY KEY,
-  next_seq int NOT NULL DEFAULT 1
-);
-GRANT SELECT ON public.member_id_counters TO authenticated;
-GRANT ALL ON public.member_id_counters TO service_role;
-ALTER TABLE public.member_id_counters ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "read counters" ON public.member_id_counters FOR SELECT TO authenticated USING (true);
-
-CREATE FUNCTION public.generate_member_id(_abbrev text, _year int) ...;
-
-ALTER TABLE public.subscription_plans ADD COLUMN id_abbreviation text;
-
--- Activity log
-ALTER TABLE public.activities
-  ADD COLUMN IF NOT EXISTS ip_address inet,
-  ADD COLUMN IF NOT EXISTS user_agent text,
-  ADD COLUMN IF NOT EXISTS event_type text;
-
--- Backup storage path
-ALTER TABLE public.backup_runs ADD COLUMN IF NOT EXISTS storage_path text;
-
--- Readiness ordering
-ALTER TABLE public.readiness_checklist_items
-  ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0;
-```
-
-### New files
-- `src/lib/chatbot-knowledge.ts` — FAGE system prompt
-- `src/routes/api/chat.ts` — streaming AI route
-- `src/lib/activity.functions.ts` — log_activity, list_activity
-- `src/routes/admin.activity-log.tsx`
-- `src/components/admin/RoleGuard.tsx`
-
-### Modified files
-- `src/routes/admin.tsx` — role-filtered sidebar, fix Support/Profile links
-- `src/routes/admin.users.tsx` — split Bulk invite by tab
-- `src/routes/admin.cert-issued.tsx` — fix back button + Verify link
-- `src/routes/admin.readiness.tsx` — weight tooltip + ordering
-- `src/routes/account.security.tsx` and `account.change-password.tsx` — split content
-- `src/routes/contact.tsx` — map with FAGE pin
-- `src/routes/services.tsx` — add FAGE Academy + Textiles
-- `src/components/site/SiteHeader.tsx` — Let's Talk → /contact
-- `src/components/site/SiteFooter.tsx` — remove dev credit
-- `src/components/site/ChatWidget.tsx` — wire to /api/chat
-- `src/lib/backup-runner.server.ts` — upload ZIP to `backups` bucket
-- Member creation flow — call `generate_member_id` on approval
-
-## Open items
-
-1. FAGE exact office address / GPS for the map pin — please provide or confirm using "Accra, Ghana, GA-XXX-XXXX".
-2. Existing admin/staff users: should they keep `admin`/`staff` roles, or should I offer a UI to reassign them to the new granular roles now?
+&nbsp;

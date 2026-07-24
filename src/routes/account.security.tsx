@@ -10,7 +10,7 @@ export const Route = createFileRoute("/account/security")({
   component: SecurityPage,
 });
 
-function SecurityPage() {
+export function SecurityPage({ passwordHref = "/account/change-password" }: { passwordHref?: string } = {}) {
   const { user } = useAuth();
   return (
     <div className="space-y-6">
@@ -20,7 +20,7 @@ function SecurityPage() {
           Manage your email address and two-factor authentication. Password changes have their own page.
         </p>
       </div>
-      <PasswordLinkCard />
+      <PasswordLinkCard href={passwordHref} />
       <EmailCard currentEmail={user?.email ?? ""} />
       <MfaCard />
     </div>
@@ -28,11 +28,11 @@ function SecurityPage() {
 }
 
 /* ─────────── Password (link to dedicated page) ─────────── */
-function PasswordLinkCard() {
+function PasswordLinkCard({ href }: { href: string }) {
   return (
     <Card icon={KeyRound} title="Password" desc="Change the password you use to sign in.">
       <Link
-        to="/account/change-password"
+        to={href as any}
         className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
       >
         Change password <ChevronRight className="h-4 w-4" />

@@ -6,10 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/account/change-password")({
   head: () => ({ meta: [{ title: "Change Password — FAGE Ghana" }] }),
-  component: ChangePasswordPage,
+  component: () => <ChangePasswordPage backHref="/account/security" />,
 });
 
-function ChangePasswordPage() {
+export function ChangePasswordPage({ backHref = "/account/security" }: { backHref?: string } = {}) {
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,7 +34,7 @@ function ChangePasswordPage() {
     <div className="space-y-6">
       <div>
         <Link
-          to="/account/security"
+          to={backHref as any}
           className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
         >
           <ArrowLeft className="h-3 w-3" /> Back to Account & Security
