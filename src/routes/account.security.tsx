@@ -32,7 +32,7 @@ function PasswordLinkCard({ href }: { href: string }) {
   return (
     <Card icon={KeyRound} title="Password" desc="Change the password you use to sign in.">
       <Link
-        to={href}
+        to={href as any}
         className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
       >
         Change password <ChevronRight className="h-4 w-4" />
