@@ -27,29 +27,12 @@ export function SecurityPage({ passwordHref = "/account/change-password" }: { pa
   );
 }
 
-function _UnusedOriginal() {
-  const { user } = useAuth();
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Account & Security</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your email address and two-factor authentication. Password changes have their own page.
-        </p>
-      </div>
-      <PasswordLinkCard />
-      <EmailCard currentEmail={user?.email ?? ""} />
-      <MfaCard />
-    </div>
-  );
-}
-
 /* ─────────── Password (link to dedicated page) ─────────── */
-function PasswordLinkCard() {
+function PasswordLinkCard({ href }: { href: string }) {
   return (
     <Card icon={KeyRound} title="Password" desc="Change the password you use to sign in.">
       <Link
-        to="/account/change-password"
+        to={href}
         className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
       >
         Change password <ChevronRight className="h-4 w-4" />
