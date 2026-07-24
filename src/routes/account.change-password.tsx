@@ -34,7 +34,7 @@ export function ChangePasswordPage({ backHref = "/account/security" }: { backHre
     <div className="space-y-6">
       <div>
         <Link
-          to="/account/security"
+          to={backHref as any}
           className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
         >
           <ArrowLeft className="h-3 w-3" /> Back to Account & Security
