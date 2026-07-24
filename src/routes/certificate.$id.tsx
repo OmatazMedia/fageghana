@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Download, ArrowLeft, FileText } from "lucide-react";
 import jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { renderCertificate } from "@/lib/certificate-render";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/certificate/$id")({
   head: () => ({ meta: [{ title: "Certificate — FAGE Ghana" }] }),
@@ -13,17 +14,16 @@ export const Route = createFileRoute("/certificate/$id")({
 function CertificatePage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { hasAnyRole } = useAuth();
   const [cert, setCert] = useState<any | null>(null);
   const [template, setTemplate] = useState<any | null>(null);
   const [error, setError] = useState<string>("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
-  const cameFromAdmin = useMemo(
-    () => typeof document !== "undefined" && document.referrer.includes("/admin"),
-    [],
-  );
-  const backHref = cameFromAdmin ? "/admin/cert-issued" : "/dashboard";
-  const backLabel = cameFromAdmin ? "Back to certificates" : "Back to dashboard";
+  // Role-based back destination — admin users always return to the admin certificate list.
+  const isAdminUser = hasAnyRole(["admin", "superadmin", "staff", "coordinator", "ceo"]);
+  const backHref = isAdminUser ? "/admin/cert-issued" : "/dashboard";
+  const backLabel = isAdminUser ? "Back to certificates" : "Back to dashboard";
 
   useEffect(() => {
     void (async () => {
