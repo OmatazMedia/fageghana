@@ -1927,6 +1927,16 @@ export type Database = {
           public_key: string
         }[]
       }
+      public_search_members: {
+        Args: { _q: string }
+        Returns: {
+          company_name: string
+          contact_name: string
+          member_id: string
+          subscription_expiry: string
+          tier: Database["public"]["Enums"]["membership_tier"]
+        }[]
+      }
       submit_my_directory_entry: {
         Args: { _payload: Json; _submit?: boolean }
         Returns: string
