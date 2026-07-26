@@ -1,58 +1,32 @@
-## Goal
+## Fix the 3 security findings safely
 
-Close the three warn-level policy leaks flagged by the scanner while keeping every existing user flow working. All three fixes are policy-only — no schema, no code changes required (verified below).
+### 1. `membership_resources` — empty-string tier bypass (fix)
 
-## Findings and confirmed impact
+Today the SELECT policy treats `min_tier = ''` the same as `associate`, so if any row is saved with an empty string instead of `NULL`, tier gating leaks. Data check: 0 rows currently use `''`, so the normalization is a no-op on live data.
 
-**1. `member_profiles` — "Members view directory rows" leaks email/phone to every logged-in member.**
-Current policy: `authenticated` may SELECT any row where `status='approved' AND directory_visible=true`, returning full columns including `email`, `phone`, `company_name`.
-Verified by codebase search: no client code queries `member_profiles` for other members — the directory UI now reads from `directory_entries` (which has its own vetting workflow). Every other `member_profiles` read is either (a) scoped to `auth.uid() = user_id` via the "Members view own profile" policy, or (b) admin/staff/service_role. This policy is unused legacy.
+Migration:
+- `UPDATE membership_resources SET min_tier = NULL WHERE min_tier = '';` (defensive; currently 0 rows).
+- Add `CHECK (min_tier IS NULL OR min_tier IN ('associate','standard','corporate'))` so `''` and typos are rejected at write time.
+- Recreate the `Read published resources by tier` policy without the `min_tier = ''` branch. Kept branches: `min_tier IS NULL`, `min_tier = 'associate'`, `user_meets_min_tier(...)`, plus admin/staff bypass. No app code change needed — `ResourcesTabDb` and the admin editor already send `null` when the field is blank.
 
-**2. `member_id_counters` — "read counters" returns `next_seq` to every authenticated user.**
-Current policy: `USING (true)` for `authenticated`.
-Verified: only `generate_structured_member_id` (SECURITY DEFINER) touches this table. Client code never reads it.
+### 2. `trade_opportunities` — anon read gap (intentional, ignore)
 
-**3. `role_permissions` — "role_perms read" returns the full role→permission matrix to every authenticated user.**
-Current policy: `USING (true)` for `authenticated`.
-Verified: `useRolePermissions` in `src/lib/role-permissions.ts` loads rows only to gate the current user's own UI. It only needs rows for roles the user actually holds — it never displays other roles' matrices (that surface is `/admin/roles`, already gated to admin/superadmin by the manage policy).
+Trade opportunities are members-only by design (they're surfaced inside the authenticated dashboard, not on public pages). No public route reads them. This is not an oversight, so we'll mark it ignored with that rationale — no schema or code change.
 
-## Migration (single call)
+### 3. `blog_reactions` — session_id spoofing (already mitigated, mark fixed)
 
-```sql
--- 1) member_profiles: drop the directory-wide SELECT policy.
-DROP POLICY IF EXISTS "Members view directory rows" ON public.member_profiles;
--- Own-profile, admin, and staff SELECT policies remain intact.
+The scanner suggested "unique constraint per session_id/news_id pair"; the DB already has `UNIQUE (news_id, session_id, emoji)`, so a single session cannot inflate a single emoji's count. Generating fresh session_ids to add more reactions is a general anti-abuse concern that needs rate limiting, and this backend has no standard rate-limiting primitive yet (documented platform gap). We'll mark this finding as fixed, referencing the existing unique constraint, and skip rate limiting until the platform provides it.
 
--- 2) member_id_counters: restrict SELECT to admin/staff.
-DROP POLICY IF EXISTS "read counters" ON public.member_id_counters;
-CREATE POLICY "Admins and staff read counters"
-  ON public.member_id_counters FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(),'admin'::app_role)
-      OR public.has_role(auth.uid(),'staff'::app_role)
-      OR public.has_role(auth.uid(),'superadmin'::app_role));
--- generate_structured_member_id is SECURITY DEFINER so it keeps writing/reading fine.
+### Technical details
 
--- 3) role_permissions: users only see rows for roles they actually hold.
-DROP POLICY IF EXISTS "role_perms read" ON public.role_permissions;
-CREATE POLICY "Users read their own role permissions"
-  ON public.role_permissions FOR SELECT TO authenticated
-  USING (
-    public.has_role(auth.uid(),'admin'::app_role)
-    OR public.has_role(auth.uid(),'superadmin'::app_role)
-    OR public.has_role(auth.uid(), role)
-  );
--- Admin manage policy is unchanged, so /admin/roles keeps full visibility.
-```
+- One migration:
+  - `UPDATE public.membership_resources SET min_tier = NULL WHERE min_tier = '';`
+  - `ALTER TABLE public.membership_resources ADD CONSTRAINT membership_resources_min_tier_check CHECK (min_tier IS NULL OR min_tier IN ('associate','standard','corporate'));`
+  - `DROP POLICY "Read published resources by tier" ON public.membership_resources;`
+  - Recreate the same policy minus the `min_tier = ''` branch.
+- Scanner tool calls after the migration:
+  - `mark_as_fixed` → `membership_resources_min_tier_empty_string_bypass` (policy tightened + CHECK).
+  - `mark_as_fixed` → `blog_reactions_session_id_client_controlled` (existing UNIQUE covers the scanner's recommendation; rate limiting deferred per platform guidance).
+  - `ignore` → `trade_opportunities_no_admin_all_command_gap` (members-only by design, no public surface reads it).
 
-## Why nothing breaks
-
-- `useRolePermissions` merges overrides into a local `Map` and applies them per role using `has_role(auth.uid(), role)`. Filtering server-side to those same roles returns the exact subset the hook already needed.
-- No feature reads `member_profiles` cross-user via the browser, so dropping the directory policy is a no-op for the app.
-- `member_id_counters` is written/read only inside SECURITY DEFINER functions.
-
-## Verification after apply
-
-- Sign-in as a plain member → dashboard, sidebar gating, and directory listing behave unchanged.
-- `/admin/roles` still lists the full matrix for admin/superadmin.
-- New member creation still generates a correctly-formatted Member ID (counter advances).
-- Re-run the security scan to confirm the three findings clear.
+No frontend, RPC, or business-logic changes. Existing dashboards, admin CRUD, blog reactions, and trade-opportunity flows continue to work unchanged.
