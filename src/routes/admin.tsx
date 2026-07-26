@@ -145,12 +145,32 @@ function AdminLayout() {
     navigate({ to: "/admin/login", replace: true });
   };
 
+  // Paths only developer/superadmin may hit directly (mirrors sidebar DEV_ONLY items).
+  const DEV_ONLY_PATHS = [
+    "/admin/plans",
+    "/admin/forms",
+    "/admin/gateways",
+    "/admin/email-settings",
+    "/admin/email-templates",
+    "/admin/backup",
+    "/admin/activity-log",
+    "/admin/users",
+  ];
+  const isDevPath = DEV_ONLY_PATHS.some(
+    (p) => location.pathname === p || location.pathname.startsWith(p + "/"),
+  );
+  const hasDev = hasAnyRole(["developer", "superadmin", "admin"]);
+
   useEffect(() => {
     if (isLoginRoute) return;
     if (loading || !roleChecked) return;
     if (!user) navigate({ to: "/admin/login", replace: true });
     else if (!canAccessConsole) navigate({ to: "/", replace: true });
-  }, [loading, roleChecked, user, canAccessConsole, navigate, isLoginRoute]);
+    else if (isDevPath && !hasDev) {
+      toast.error("This section is restricted to developers.");
+      navigate({ to: "/admin", replace: true });
+    }
+  }, [loading, roleChecked, user, canAccessConsole, navigate, isLoginRoute, isDevPath, hasDev]);
 
   if (isLoginRoute) return <Outlet />;
   if (loading || !roleChecked || !user || !canAccessConsole) {
