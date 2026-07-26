@@ -137,6 +137,51 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_destinations: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          is_default: boolean
+          last_test_at: string | null
+          last_test_message: string | null
+          last_test_ok: boolean | null
+          name: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          is_default?: boolean
+          last_test_at?: string | null
+          last_test_message?: string | null
+          last_test_ok?: boolean | null
+          name: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          is_default?: boolean
+          last_test_at?: string | null
+          last_test_message?: string | null
+          last_test_ok?: boolean | null
+          name?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       backup_runs: {
         Row: {
           created_at: string

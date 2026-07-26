@@ -32,6 +32,7 @@ import {
   Building2,
   BookOpen,
   KeyRound,
+  CloudUpload,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,6 +117,7 @@ const navSections: NavSection[] = [
       { to: "/admin/email-templates", label: "Email Templates", icon: FileText, roles: DEV_ONLY },
       { to: "/admin/reports", label: "Reports", icon: BarChart3, roles: FINANCE_VIEW },
       { to: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup, roles: DEV_ONLY },
+      { to: "/admin/backup-destinations", label: "Backup Destinations", icon: CloudUpload, roles: DEV_ONLY },
       { to: "/admin/activity-log", label: "Activity Log", icon: ListChecks, roles: DEV_ONLY },
       { to: "/admin/users", label: "User Management", icon: ShieldCheck, roles: DEV_ONLY },
       { to: "/admin/roles", label: "Role Permissions", icon: KeyRound, roles: ANY_ADMIN },
