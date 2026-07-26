@@ -303,15 +303,13 @@ function VerifyMemberPage() {
                                   value={new Date(certResult.expires_at).toLocaleDateString()}
                                 />
                               </div>
-                              {valid && (
-                                <Link
-                                  to="/verify/$code"
-                                  params={{ code: certResult.verification_code }}
-                                  className="mt-4 inline-block text-xs text-primary hover:underline"
-                                >
-                                  View full certificate verification page →
-                                </Link>
-                              )}
+                              <Link
+                                to="/verify/$code"
+                                params={{ code: certResult.verification_code }}
+                                className="mt-4 inline-flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition"
+                              >
+                                View full certificate verification page →
+                              </Link>
                             </div>
                           );
                         })()
