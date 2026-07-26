@@ -45,8 +45,8 @@ function PaymentsPage() {
         : new Date().toISOString(),
     };
     if (!profile.member_id) {
-      const { data: gen } = await supabase.rpc("generate_member_id" as any, {
-        _tier: profile.tier,
+      const { data: gen } = await supabase.rpc("generate_structured_member_id" as any, {
+        _abbrev: tierAbbrev(profile.tier),
       });
       if (gen) updates.member_id = gen;
     }
