@@ -60,7 +60,9 @@ export const createMemberAccount = createServerFn({ method: "POST" })
       .maybeSingle();
     const months = plan?.duration_months ?? 12;
 
-    const { data: idRow } = await supabaseAdmin.rpc("generate_member_id", { _tier: data.tier });
+    const { data: idRow } = await supabaseAdmin.rpc("generate_structured_member_id" as any, {
+      _abbrev: tierAbbrev(data.tier),
+    });
     const memberId = idRow as unknown as string;
 
     const start = new Date();
