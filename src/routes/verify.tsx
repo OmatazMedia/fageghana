@@ -72,14 +72,8 @@ function VerifyMemberPage() {
     setMembers([]);
 
     const q = query.trim();
-    // search by member_id, company_name or contact_name — only return active/public fields
-    const { data } = await supabase
-      .from("member_profiles")
-      .select("contact_name, company_name, member_id, tier, subscription_expiry")
-      .or(`member_id.ilike.%${q}%,company_name.ilike.%${q}%,contact_name.ilike.%${q}%`)
-      .not("member_id", "is", null)
-      .limit(10);
-
+    // Public search across name, company, member ID, and email via SECURITY DEFINER RPC
+    const { data } = await supabase.rpc("public_search_members" as any, { _q: q });
     setMembers((data as MemberResult[]) ?? []);
     setSearched(true);
     setLoading(false);
