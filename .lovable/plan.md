@@ -1,80 +1,58 @@
-# Plan — Phases 3–5 of the analysis document
+## Goal
 
-Grouped so each phase ships end-to-end.
+Close the three warn-level policy leaks flagged by the scanner while keeping every existing user flow working. All three fixes are policy-only — no schema, no code changes required (verified below).
 
-## Phase A — Directory access + Contact map (#5)
+## Findings and confirmed impact
 
-**Directory is dashboard-only**
+**1. `member_profiles` — "Members view directory rows" leaks email/phone to every logged-in member.**
+Current policy: `authenticated` may SELECT any row where `status='approved' AND directory_visible=true`, returning full columns including `email`, `phone`, `company_name`.
+Verified by codebase search: no client code queries `member_profiles` for other members — the directory UI now reads from `directory_entries` (which has its own vetting workflow). Every other `member_profiles` read is either (a) scoped to `auth.uid() = user_id` via the "Members view own profile" policy, or (b) admin/staff/service_role. This policy is unused legacy.
 
-- Current state: `/directory` route exists as a standalone page that redirects to `/login` if unauthenticated.
-- Change: remove the standalone `/directory` route entirely. Add a **Directory** tab inside the member dashboard (`/dashboard`) so only signed-in members with an active subscription see it. Non-active members hit the existing renewal lock screen.
-- Detail page (`/directory/$slug`) also moves under the dashboard shell and is gated the same way.
-- Update any nav links (`SiteHeader`, footer) that still point to `/directory` — remove them from public nav.
-- All directory details a member sent to the admin after it's approved,the slug to display each membership directory should be seen by other members. All complete details submitted should be displayed in a well structured layout. Member who don't have some details filled...those the layout will be hidden in the full members directory view/page
+**2. `member_id_counters` — "read counters" returns `next_seq` to every authenticated user.**
+Current policy: `USING (true)` for `authenticated`.
+Verified: only `generate_structured_member_id` (SECURITY DEFINER) touches this table. Client code never reads it.
 
-**Google Map on `/contact**`
+**3. `role_permissions` — "role_perms read" returns the full role→permission matrix to every authenticated user.**
+Current policy: `USING (true)` for `authenticated`.
+Verified: `useRolePermissions` in `src/lib/role-permissions.ts` loads rows only to gate the current user's own UI. It only needs rows for roles the user actually holds — it never displays other roles' matrices (that surface is `/admin/roles`, already gated to admin/superadmin by the manage policy).
 
-- Embed a Google Maps iframe pinned to FAGE's Accra office (no API key needed for public embed URL).
-- Address configurable — store the embed URL / lat-lng in a new `site_settings` table (single-row key/value) so admin can edit it later.
+## Migration (single call)
 
-## Phase B — Role-gated dashboards (#6)
+```sql
+-- 1) member_profiles: drop the directory-wide SELECT policy.
+DROP POLICY IF EXISTS "Members view directory rows" ON public.member_profiles;
+-- Own-profile, admin, and staff SELECT policies remain intact.
 
-**What's already done**
+-- 2) member_id_counters: restrict SELECT to admin/staff.
+DROP POLICY IF EXISTS "read counters" ON public.member_id_counters;
+CREATE POLICY "Admins and staff read counters"
+  ON public.member_id_counters FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin'::app_role)
+      OR public.has_role(auth.uid(),'staff'::app_role)
+      OR public.has_role(auth.uid(),'superadmin'::app_role));
+-- generate_structured_member_id is SECURITY DEFINER so it keeps writing/reading fine.
 
-- Admin landing page shows per-role KPIs and Quick Actions (hardcoded per role).
-- Sidebar sections are gated by role.
+-- 3) role_permissions: users only see rows for roles they actually hold.
+DROP POLICY IF EXISTS "role_perms read" ON public.role_permissions;
+CREATE POLICY "Users read their own role permissions"
+  ON public.role_permissions FOR SELECT TO authenticated
+  USING (
+    public.has_role(auth.uid(),'admin'::app_role)
+    OR public.has_role(auth.uid(),'superadmin'::app_role)
+    OR public.has_role(auth.uid(), role)
+  );
+-- Admin manage policy is unchanged, so /admin/roles keeps full visibility.
+```
 
-**What remains — admin-configurable permissions**
+## Why nothing breaks
 
-- New table `role_permissions` keyed by `role` + `permission_key` (e.g. `view_members`, `view_backups`, `view_activity_log`, `view_reports`, `manage_directory`, etc.).
-- New admin page `/admin/roles` where a superadmin/admin can toggle which permission keys each role gets — checkbox matrix.
-- Sidebar + landing widgets read from `role_permissions` instead of hardcoded role checks. Superadmin/admin always see everything.
-- Seeded defaults match current hardcoded gates so nothing breaks on rollout.
+- `useRolePermissions` merges overrides into a local `Map` and applies them per role using `has_role(auth.uid(), role)`. Filtering server-side to those same roles returns the exact subset the hook already needed.
+- No feature reads `member_profiles` cross-user via the browser, so dropping the directory policy is a no-op for the app.
+- `member_id_counters` is written/read only inside SECURITY DEFINER functions.
 
-## Phase C — External backup providers (#7)
+## Verification after apply
 
-Remove reliance on Lovable Cloud storage for backups. Admin picks a destination and enters credentials.
-
-**Data model**
-
-- `backup_destinations` table: `id`, `provider` (`google_drive` | `aws_s3` | `dropbox` | `ftp` | `webhook`), `name`, `enabled`, `config` (jsonb, encrypted-at-rest via pgsodium isn't available — store as jsonb and mark secrets fields; document that admin should treat this table as sensitive), `is_default`.
-- `backup_schedules.destination_id` foreign key so each schedule targets a destination.
-
-**Admin UI — `/admin/backup` gets a "Destinations" tab**
-Per provider, show a form with the exact fields needed + inline guide:
-
-- **Google Drive** — OAuth2 refresh token flow. Fields: `client_id`, `client_secret`, `refresh_token`, `folder_id`. Inline guide links to Google Cloud Console → OAuth consent → create Desktop client → get refresh token via OAuth Playground. "Test connection" button verifies token and folder access.
-- **AWS S3** — fields: `access_key_id`, `secret_access_key`, `region`, `bucket`, `prefix`. Guide links to IAM → create user with `s3:PutObject` on the bucket.
-- **Dropbox** — fields: `app_key`, `app_secret`, `refresh_token`, `folder_path`. Guide links to Dropbox App Console.
-- **FTP/SFTP** — fields: `host`, `port`, `username`, `password`, `path`, `use_sftp` toggle.
-- **Generic Webhook** — fields: `url`, `auth_header`. POSTs the backup file as multipart.
-
-**Runner**
-
-- `src/lib/backup-runner.server.ts` extended: after building the ZIP, upload to the schedule's destination via the matching adapter (`uploadToGoogleDrive`, `uploadToS3`, etc.). Each adapter lives in `src/lib/backup-adapters/*.server.ts`.
-- Failure → mark schedule `last_status='error'` with the provider's error message (already wired).
-
-**Cron unchanged** — `pg_cron` still hits `/api/public/hooks/run-scheduled-backup`.
-
-## Phase D — Editable chatbot knowledge base (#8)
-
-- New table `chatbot_knowledge`: `id`, `section` (e.g. "About FAGE", "Membership Tiers"), `content` (markdown), `display_order`, `enabled`, `updated_at`.
-- New admin page `/admin/chatbot` — CRUD sections, live preview of the compiled system prompt.
-- `/api/chat` route: at request time, load all enabled rows ordered by `display_order`, concatenate into the system prompt (replacing the hardcoded `FAGE_SYSTEM_PROMPT` in `src/lib/chatbot-knowledge.ts`). Fallback to the current hardcoded prompt if the table is empty.
-- Migration seeds the table with the existing hardcoded content so behaviour is identical on day one.
-
-## Technical notes
-
-- Google Drive uploads use `googleapis` npm package (Worker-compatible via `fetch`-based auth); if it pulls Node-only deps, fall back to raw REST calls to `https://www.googleapis.com/upload/drive/v3/files` with the refresh token → access token exchange done in the handler.
-- S3 uploads use AWS SigV4 signed PUT via `fetch` (no SDK — the SDK is heavy and often Node-only on Workers).
-- All destination credentials read/written only via `supabaseAdmin` from server functions; RLS blocks all client access.
-- Encryption at rest: Supabase already encrypts the DB volume; we won't add app-level encryption here unless requested, but the destinations table is `service_role`-only.
-
-## Suggested order of execution
-
-1. Phase A (directory move + contact map) — small, unblocks the client's immediate ask.
-2. Phase D (chatbot knowledge base) — small, high visible value.
-3. Phase B (role permissions matrix) — medium.
-4. Phase C (external backup destinations) — largest; ship one provider at a time (Google Drive first, then S3, then the rest).
-
-Reply "go" to start with Phase A, or tell me a different order.
+- Sign-in as a plain member → dashboard, sidebar gating, and directory listing behave unchanged.
+- `/admin/roles` still lists the full matrix for admin/superadmin.
+- New member creation still generates a correctly-formatted Member ID (counter advances).
+- Re-run the security scan to confirm the three findings clear.
