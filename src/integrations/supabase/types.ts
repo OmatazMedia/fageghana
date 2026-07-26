@@ -20,10 +20,8 @@ export type Database = {
           created_at: string
           description: string
           event_date: string | null
-          event_type: string | null
           id: string
           image_url: string | null
-          ip_address: unknown
           is_featured: boolean
           location: string | null
           published: boolean
@@ -32,7 +30,6 @@ export type Database = {
           spots_remaining: number | null
           title: string
           updated_at: string
-          user_agent: string | null
           view_count: number | null
         }
         Insert: {
@@ -40,10 +37,8 @@ export type Database = {
           created_at?: string
           description?: string
           event_date?: string | null
-          event_type?: string | null
           id?: string
           image_url?: string | null
-          ip_address?: unknown
           is_featured?: boolean
           location?: string | null
           published?: boolean
@@ -52,7 +47,6 @@ export type Database = {
           spots_remaining?: number | null
           title: string
           updated_at?: string
-          user_agent?: string | null
           view_count?: number | null
         }
         Update: {
@@ -60,10 +54,8 @@ export type Database = {
           created_at?: string
           description?: string
           event_date?: string | null
-          event_type?: string | null
           id?: string
           image_url?: string | null
-          ip_address?: unknown
           is_featured?: boolean
           location?: string | null
           published?: boolean
@@ -72,7 +64,6 @@ export type Database = {
           spots_remaining?: number | null
           title?: string
           updated_at?: string
-          user_agent?: string | null
           view_count?: number | null
         }
         Relationships: []
