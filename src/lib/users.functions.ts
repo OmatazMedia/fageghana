@@ -19,7 +19,7 @@ export type AdminUserRow = {
   user_id: string;
   email: string;
   full_name: string;
-  role: "admin" | "staff" | "moderator";
+  role: "admin" | "superadmin" | "staff" | "moderator" | "finance" | "ceo" | "developer" | "coordinator";
   created_at: string;
 };
 
