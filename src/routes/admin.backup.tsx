@@ -488,7 +488,10 @@ function BackupPage() {
         </div>
       )}
 
+      <TablesIncludedCard />
+
       <div className="grid gap-6 lg:grid-cols-2">
+
 
         {/* Backup card */}
         <div className="rounded-2xl border border-border bg-card p-6">
