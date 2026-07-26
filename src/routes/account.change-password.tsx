@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { KeyRound, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity.functions";
 
 export const Route = createFileRoute("/account/change-password")({
   head: () => ({ meta: [{ title: "Change Password — FAGE Ghana" }] }),
