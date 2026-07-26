@@ -830,3 +830,68 @@ function BackupPage() {
     </AdminShell>
   );
 }
+
+function TablesIncludedCard() {
+  const [tables, setTables] = useState<string[] | null>(null);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  async function load() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("admin_list_public_tables" as any);
+      if (error) throw error;
+      setTables((data as string[] | null) ?? []);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not list tables");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    void load();
+  }, []);
+  return (
+    <div className="mb-6 rounded-2xl border border-border bg-card p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+            <Database className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-bold">Tables included in next backup</h2>
+            <p className="text-xs text-muted-foreground">
+              Auto-discovered from your database — new tables are picked up automatically on every run.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700">
+            {loading ? "…" : `${tables?.length ?? 0} tables`}
+          </span>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium"
+          >
+            {open ? "Hide list" : "Show list"}
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium disabled:opacity-50"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+      {open && tables && (
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {tables.map((t) => (
+            <span key={t} className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-mono">
+              {t}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
