@@ -28,6 +28,7 @@ export function ChangePasswordPage({ backHref = "/account/security" }: { backHre
     if (error) return toast.error(error.message);
     setPw("");
     setConfirm("");
+    void logActivity({ data: { event_type: "password_changed", detail: null } }).catch(() => {});
     toast.success("Password updated");
   }
 
