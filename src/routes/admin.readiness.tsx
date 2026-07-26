@@ -139,12 +139,36 @@ function ItemsPanel() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.map((r, idx) => (
                 <tr key={r.id} className="border-t border-border">
-                  <td className="px-4 py-3 text-muted-foreground">{r.display_order}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <span className="tabular-nums">{r.display_order}</span>
+                      <div className="flex flex-col">
+                        <button
+                          disabled={idx === 0}
+                          onClick={() => reorder(idx, -1)}
+                          className="rounded p-0.5 hover:bg-accent disabled:opacity-30"
+                          title="Move up"
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </button>
+                        <button
+                          disabled={idx === rows.length - 1}
+                          onClick={() => reorder(idx, 1)}
+                          className="rounded p-0.5 hover:bg-accent disabled:opacity-30"
+                          title="Move down"
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-4 py-3">{r.category}</td>
                   <td className="px-4 py-3 font-medium">{r.label}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{r.weight}</td>
+                  <td className="px-4 py-3 text-muted-foreground" title="Higher weight = bigger impact on score">
+                    {r.weight}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${r.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
