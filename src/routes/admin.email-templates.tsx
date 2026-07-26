@@ -72,7 +72,7 @@ function EmailTemplatesPage() {
     () =>
       renderEmail(blocks, {
         name: "Ama Mensah",
-        member_id: "FAGE-ASSOC-26-000001",
+        member_id: "FAGE/AS/0026/00001",
         tier: "associate",
         amount: "GHS 500",
         temp_password: "Ama@23",
@@ -143,7 +143,7 @@ function EmailTemplatesPage() {
           to: testTo,
           vars: {
             name: "Ama Mensah",
-            member_id: "FAGE-ASSOC-26-000001",
+            member_id: "FAGE/AS/0026/00001",
             tier: "associate",
             temp_password: "Ama@23",
             login_url: location.origin + "/login",

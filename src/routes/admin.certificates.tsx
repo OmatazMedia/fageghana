@@ -56,7 +56,7 @@ function DesignerPage() {
   // Sample preview values
   const sampleCert = {
     full_name: "John Asante",
-    member_id: "FAGE-ASSOC-25000001",
+    member_id: "FAGE/AS/0025/00001",
     tier,
     issued_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 365 * 86400000).toISOString(),
