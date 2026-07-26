@@ -58,7 +58,11 @@ export const Route = createFileRoute("/directory/$slug")({
     <SiteLayout>
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
         <h1 className="text-2xl font-bold">Entry not found</h1>
-        <Link to="/directory" className="mt-4 inline-block text-primary hover:underline">
+        <Link
+          to="/dashboard"
+          search={{ tab: "directory" } as any}
+          className="mt-4 inline-block text-primary hover:underline"
+        >
           ← Back to directory
         </Link>
       </div>
