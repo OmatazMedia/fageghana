@@ -84,12 +84,37 @@ function ItemsPanel() {
     }
   }
 
+  async function reorder(idx: number, dir: -1 | 1) {
+    const target = rows[idx + dir];
+    const current = rows[idx];
+    if (!target || !current) return;
+    const a = supabase
+      .from("readiness_checklist_items")
+      .update({ display_order: target.display_order })
+      .eq("id", current.id);
+    const b = supabase
+      .from("readiness_checklist_items")
+      .update({ display_order: current.display_order })
+      .eq("id", target.id);
+    const [{ error: e1 }, { error: e2 }] = await Promise.all([a, b]);
+    if (e1 || e2) toast.error((e1 || e2)!.message);
+    else void load();
+  }
+
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="flex items-start gap-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
+          <span>
+            <strong>Weight</strong> controls how strongly an item counts toward a member's readiness
+            score (higher = bigger impact). <strong>Order</strong> controls the top-to-bottom
+            position members see. Use the arrows to reorder.
+          </span>
+        </p>
         <button
           onClick={() => setCreating(true)}
-          className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          className="flex flex-shrink-0 items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
           <Plus className="h-4 w-4" /> New item
         </button>
