@@ -131,7 +131,8 @@ function DetailPage() {
     <SiteLayout>
       <article className="mx-auto max-w-4xl px-4 py-10">
         <Link
-          to="/directory"
+          to="/dashboard"
+          search={{ tab: "directory" } as any}
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" /> Back to directory
