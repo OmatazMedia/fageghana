@@ -182,6 +182,57 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_run_uploads: {
+        Row: {
+          created_at: string
+          destination_id: string | null
+          external_id: string | null
+          id: string
+          message: string | null
+          ok: boolean
+          provider: string
+          run_id: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          destination_id?: string | null
+          external_id?: string | null
+          id?: string
+          message?: string | null
+          ok: boolean
+          provider: string
+          run_id: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          destination_id?: string | null
+          external_id?: string | null
+          id?: string
+          message?: string | null
+          ok?: boolean
+          provider?: string
+          run_id?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_run_uploads_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "backup_destinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backup_run_uploads_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "backup_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_runs: {
         Row: {
           created_at: string
@@ -393,6 +444,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chatbot_knowledge: {
+        Row: {
+          content: string
+          created_at: string
+          display_order: number
+          enabled: boolean
+          id: string
+          section: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          display_order?: number
+          enabled?: boolean
+          id?: string
+          section: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          display_order?: number
+          enabled?: boolean
+          id?: string
+          section?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       contact_messages: {
         Row: {
