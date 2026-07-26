@@ -1,63 +1,80 @@
-## Status vs. the client's analysis document
+# Plan — Phases 3–5 of the analysis document
 
-Already done (from earlier turns): Let's Talk → /contact, FAGE Academy & Clothing/Textile added to services, "Developed by Omataz" removed, chatbot with FAGE knowledge + ticket escalation, activity log route + capture (login/logout/reset/profile updates), granular admin roles (finance, ceo, developer, coordinator, superadmin), sidebar section gating by role, Bulk Invite moved to Members page, contact-page map pin fix, cert "Back" button referrer heuristic.
+Grouped so each phase ships end-to-end.
 
-Still outstanding (this plan):
+## Phase A — Directory access + Contact map (#5)
 
-### Root cause of "some logins get to another"
+**Directory is dashboard-only**
 
-The admin sidebar's **Account & Security** and **Support / Profile** links point at `/account/security` and member routes, which are wrapped in `DashboardLayout` (the member sidebar shell). So when an admin clicks them, the URL changes into the member dashboard shell — indistinguishable from "being logged into the wrong portal". Same class of bug for the Issued Certificate "Back to dashboard" button, which falls back to the member dashboard when the referrer is missing.
+- Current state: `/directory` route exists as a standalone page that redirects to `/login` if unauthenticated.
+- Change: remove the standalone `/directory` route entirely. Add a **Directory** tab inside the member dashboard (`/dashboard`) so only signed-in members with an active subscription see it. Non-active members hit the existing renewal lock screen.
+- Detail page (`/directory/$slug`) also moves under the dashboard shell and is gated the same way.
+- Update any nav links (`SiteHeader`, footer) that still point to `/directory` — remove them from public nav.
+- All directory details a member sent to the admin after it's approved,the slug to display each membership directory should be seen by other members. All complete details submitted should be displayed in a well structured layout. Member who don't have some details filled...those the layout will be hidden in the full members directory view/page
 
-Fix: give admins their own account routes under `/admin/account/*` that reuse `AdminShell`, and route the sidebar footer + cert back-button through role-aware navigation instead of a shared `/account/*` layout.
+**Google Map on `/contact**`
 
----
+- Embed a Google Maps iframe pinned to FAGE's Accra office (no API key needed for public embed URL).
+- Address configurable — store the embed URL / lat-lng in a new `site_settings` table (single-row key/value) so admin can edit it later.
 
-## Phase 1 — Cross-portal navigation bugs (highest priority, client-flagged)
+## Phase B — Role-gated dashboards (#6)
 
-1. **Admin account pages under `/admin**`
-  - New routes: `/admin/account/security` and `/admin/account/change-password` that render the existing Security / Change-Password panels inside `AdminShell` (not `DashboardLayout`).
-  - Sidebar footer link in `src/routes/admin.tsx` → `/admin/account/security`.
-  - Add a small "Account & Security" and "Change Password" entry under a new *Personal* group at the bottom of the admin nav so admins never leave the admin shell.
-2. **Issued Cert "Back" and "Verify" buttons** (`src/routes/certificate.$id.tsx`, `src/routes/verify.tsx`, `src/routes/admin.cert-issued.tsx`)
-  - Back button: if the current user has any admin-console role, always return to `/admin/cert-issued`; else `/dashboard`. Stop relying on `document.referrer`.
-  - Public verify page currently accepts only the verification code. Extend the form to also search by **Member ID**, **name**, or **company** via a `verify_member_public` RPC that returns non-PII fields (name, member_id, tier, status, expiry). Show a friendly result card instead of "Data not found" when the query is empty.
-3. **Member-side "Account & Security" vs. "Change Password" duplicate**
-  - Audit `DashboardLayout` sidebar: today both sidebar links land on `/account/security` because `/account` redirects there. Point "Change password" at `/account/change-password` and confirm the security page no longer embeds the password form (it currently does, causing the "same page" complaint).
+**What's already done**
 
-## Phase 2 — Member ID, developer-only gating, admin UX polish
+- Admin landing page shows per-role KPIs and Quick Actions (hardcoded per role).
+- Sidebar sections are gated by role.
 
-4. **Member ID format `FAGE/AS/YYYY/00001**`
-  - Migration: rewrite `generate_member_id(_tier)` to emit `FAGE/AS|CR|SB/YYYY/NNNNN` with 4-digit year and zero-padded 5-digit sequence, using the existing `member_id_counters` per-year row (reset yearly). `standard` → `SB`.
-  - Backfill: leave existing IDs untouched; only new issuances use the new format.
-5. **Developer-only route gates** (already hidden from nav, but the URLs are still reachable)
-  - Add `beforeLoad`/component-level guard on `/admin/plans`, `/admin/forms`, `/admin/gateways`, `/admin/email-settings`, `/admin/email-templates`, `/admin/backup`, `/admin/activity-log`, `/admin/users` — redirect to `/admin` when the user lacks `developer` or `superadmin`.
-6. **User Management page layout**
-  - Move "Add Staff/Admin" button to top-right of the staff-members table.
-  - Remove any bulk-invite affordance from this page (bulk invite lives on Members page only, per prior turn — verify none remains here).
-7. **Readiness tab clarification** — add small helper tooltips explaining what *Weight* and *Display order* do (client asked why they exist rather than requesting a change).
+**What remains — admin-configurable permissions**
 
-## Phase 3 — Backup redundancy + role dashboards
+- New table `role_permissions` keyed by `role` + `permission_key` (e.g. `view_members`, `view_backups`, `view_activity_log`, `view_reports`, `manage_directory`, etc.).
+- New admin page `/admin/roles` where a superadmin/admin can toggle which permission keys each role gets — checkbox matrix.
+- Sidebar + landing widgets read from `role_permissions` instead of hardcoded role checks. Superadmin/admin always see everything.
+- Seeded defaults match current hardcoded gates so nothing breaks on rollout.
 
-8. **Backup: cloud + local CSV redundancy**
-  - Extend `backup_schedules` with a `deliver_local_csv` boolean.
-  - When a scheduled or manual run completes, in addition to the existing cloud upload, generate a per-table CSV bundle (zip) and expose a "Download last run" button on `/admin/backup` that streams the bundle from a signed URL.
-9. **Per-role landing dashboards** (soft-separation, not separate apps)
-  - `/admin` currently shows one Overview. Add role-scoped overview cards so Finance sees payments KPIs, CEO sees membership KPIs, Coordinator sees events/trade KPIs, Developer sees system health + activity log summary. Sidebar filtering already exists; this closes the "separate dashboard" ask without forking the shell.
-10. **Activity log completeness** — audit remaining mutation surfaces (member CRUD, directory approve/suspend, payment confirm, backup run) and ensure each calls `logActivity` so the Developer's Activity Log reflects "everything that happens on the system".
+## Phase C — External backup providers (#7)
 
----
+Remove reliance on Lovable Cloud storage for backups. Admin picks a destination and enters credentials.
 
-### Technical notes
+**Data model**
 
-- New admin account routes reuse existing components from `src/routes/account.security.tsx` and `src/routes/account.change-password.tsx` — extract their panels into `src/components/account/*` and mount them from both `/account/*` (member shell) and `/admin/account/*` (admin shell). No behavior change, just shell selection.
-- Verify-by-name RPC must be `SECURITY DEFINER`, return only public columns, and be granted to `anon` — the search page is public.
-- Member ID migration must run in a single transaction and keep the existing `member_id_counters` table; only the formatter changes.
+- `backup_destinations` table: `id`, `provider` (`google_drive` | `aws_s3` | `dropbox` | `ftp` | `webhook`), `name`, `enabled`, `config` (jsonb, encrypted-at-rest via pgsodium isn't available — store as jsonb and mark secrets fields; document that admin should treat this table as sensitive), `is_default`.
+- `backup_schedules.destination_id` foreign key so each schedule targets a destination.
 
-### Suggested order of execution
+**Admin UI — `/admin/backup` gets a "Destinations" tab**
+Per provider, show a form with the exact fields needed + inline guide:
 
-Phase 1 first (fixes the reported "logs into another portal" symptom), then Phase 2, then Phase 3. Each phase is independently shippable.  
-  
-  
-when i add a new banner the button link entered is not what the button is on the front end fix please
+- **Google Drive** — OAuth2 refresh token flow. Fields: `client_id`, `client_secret`, `refresh_token`, `folder_id`. Inline guide links to Google Cloud Console → OAuth consent → create Desktop client → get refresh token via OAuth Playground. "Test connection" button verifies token and folder access.
+- **AWS S3** — fields: `access_key_id`, `secret_access_key`, `region`, `bucket`, `prefix`. Guide links to IAM → create user with `s3:PutObject` on the bucket.
+- **Dropbox** — fields: `app_key`, `app_secret`, `refresh_token`, `folder_path`. Guide links to Dropbox App Console.
+- **FTP/SFTP** — fields: `host`, `port`, `username`, `password`, `path`, `use_sftp` toggle.
+- **Generic Webhook** — fields: `url`, `auth_header`. POSTs the backup file as multipart.
 
-&nbsp;
+**Runner**
+
+- `src/lib/backup-runner.server.ts` extended: after building the ZIP, upload to the schedule's destination via the matching adapter (`uploadToGoogleDrive`, `uploadToS3`, etc.). Each adapter lives in `src/lib/backup-adapters/*.server.ts`.
+- Failure → mark schedule `last_status='error'` with the provider's error message (already wired).
+
+**Cron unchanged** — `pg_cron` still hits `/api/public/hooks/run-scheduled-backup`.
+
+## Phase D — Editable chatbot knowledge base (#8)
+
+- New table `chatbot_knowledge`: `id`, `section` (e.g. "About FAGE", "Membership Tiers"), `content` (markdown), `display_order`, `enabled`, `updated_at`.
+- New admin page `/admin/chatbot` — CRUD sections, live preview of the compiled system prompt.
+- `/api/chat` route: at request time, load all enabled rows ordered by `display_order`, concatenate into the system prompt (replacing the hardcoded `FAGE_SYSTEM_PROMPT` in `src/lib/chatbot-knowledge.ts`). Fallback to the current hardcoded prompt if the table is empty.
+- Migration seeds the table with the existing hardcoded content so behaviour is identical on day one.
+
+## Technical notes
+
+- Google Drive uploads use `googleapis` npm package (Worker-compatible via `fetch`-based auth); if it pulls Node-only deps, fall back to raw REST calls to `https://www.googleapis.com/upload/drive/v3/files` with the refresh token → access token exchange done in the handler.
+- S3 uploads use AWS SigV4 signed PUT via `fetch` (no SDK — the SDK is heavy and often Node-only on Workers).
+- All destination credentials read/written only via `supabaseAdmin` from server functions; RLS blocks all client access.
+- Encryption at rest: Supabase already encrypts the DB volume; we won't add app-level encryption here unless requested, but the destinations table is `service_role`-only.
+
+## Suggested order of execution
+
+1. Phase A (directory move + contact map) — small, unblocks the client's immediate ask.
+2. Phase D (chatbot knowledge base) — small, high visible value.
+3. Phase B (role permissions matrix) — medium.
+4. Phase C (external backup destinations) — largest; ship one provider at a time (Google Drive first, then S3, then the rest).
+
+Reply "go" to start with Phase A, or tell me a different order.

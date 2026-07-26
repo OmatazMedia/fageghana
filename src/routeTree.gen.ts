@@ -17,7 +17,6 @@ import { Route as NewsRouteImport } from './routes/news'
 import { Route as MembershipRouteImport } from './routes/membership'
 import { Route as MediaRouteImport } from './routes/media'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as DirectoryRouteImport } from './routes/directory'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -111,11 +110,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DirectoryRoute = DirectoryRouteImport.update({
-  id: '/directory',
-  path: '/directory',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -167,9 +161,9 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
   getParentRoute: () => NewsRoute,
 } as any)
 const DirectorySlugRoute = DirectorySlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => DirectoryRoute,
+  id: '/directory/$slug',
+  path: '/directory/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CertificateIdRoute = CertificateIdRouteImport.update({
   id: '/certificate/$id',
@@ -388,7 +382,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
-  '/directory': typeof DirectoryRouteWithChildren
   '/login': typeof LoginRoute
   '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
@@ -451,7 +444,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
-  '/directory': typeof DirectoryRouteWithChildren
   '/login': typeof LoginRoute
   '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
@@ -515,7 +507,6 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
-  '/directory': typeof DirectoryRouteWithChildren
   '/login': typeof LoginRoute
   '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
@@ -580,7 +571,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/contact'
     | '/dashboard'
-    | '/directory'
     | '/login'
     | '/media'
     | '/membership'
@@ -643,7 +633,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/contact'
     | '/dashboard'
-    | '/directory'
     | '/login'
     | '/media'
     | '/membership'
@@ -706,7 +695,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/contact'
     | '/dashboard'
-    | '/directory'
     | '/login'
     | '/media'
     | '/membership'
@@ -770,7 +758,6 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRoute
-  DirectoryRoute: typeof DirectoryRouteWithChildren
   LoginRoute: typeof LoginRoute
   MediaRoute: typeof MediaRoute
   MembershipRoute: typeof MembershipRoute
@@ -783,6 +770,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApplyTierRoute: typeof ApplyTierRoute
   CertificateIdRoute: typeof CertificateIdRoute
+  DirectorySlugRoute: typeof DirectorySlugRoute
   PaymentCallbackRoute: typeof PaymentCallbackRoute
   ReceiptIdRoute: typeof ReceiptIdRoute
   ApiPublicFlutterwaveWebhookRoute: typeof ApiPublicFlutterwaveWebhookRoute
@@ -847,13 +835,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/directory': {
-      id: '/directory'
-      path: '/directory'
-      fullPath: '/directory'
-      preLoaderRoute: typeof DirectoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -928,10 +909,10 @@ declare module '@tanstack/react-router' {
     }
     '/directory/$slug': {
       id: '/directory/$slug'
-      path: '/$slug'
+      path: '/directory/$slug'
       fullPath: '/directory/$slug'
       preLoaderRoute: typeof DirectorySlugRouteImport
-      parentRoute: typeof DirectoryRoute
+      parentRoute: typeof rootRouteImport
     }
     '/certificate/$id': {
       id: '/certificate/$id'
@@ -1306,18 +1287,6 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface DirectoryRouteChildren {
-  DirectorySlugRoute: typeof DirectorySlugRoute
-}
-
-const DirectoryRouteChildren: DirectoryRouteChildren = {
-  DirectorySlugRoute: DirectorySlugRoute,
-}
-
-const DirectoryRouteWithChildren = DirectoryRoute._addFileChildren(
-  DirectoryRouteChildren,
-)
-
 interface NewsRouteChildren {
   NewsSlugRoute: typeof NewsSlugRoute
 }
@@ -1346,7 +1315,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRoute,
-  DirectoryRoute: DirectoryRouteWithChildren,
   LoginRoute: LoginRoute,
   MediaRoute: MediaRoute,
   MembershipRoute: MembershipRoute,
@@ -1359,6 +1327,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApplyTierRoute: ApplyTierRoute,
   CertificateIdRoute: CertificateIdRoute,
+  DirectorySlugRoute: DirectorySlugRoute,
   PaymentCallbackRoute: PaymentCallbackRoute,
   ReceiptIdRoute: ReceiptIdRoute,
   ApiPublicFlutterwaveWebhookRoute: ApiPublicFlutterwaveWebhookRoute,

@@ -1265,15 +1265,19 @@ function DirectoryTab() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [country, setCountry] = useState("");
+  const [type, setType] = useState<"all" | "association" | "corporate">("all");
 
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase
-        .from("member_profiles")
-        .select("id, company_name, contact_name, industry, country, tier, directory_bio, directory_website, directory_logo_url")
+        .from("directory_entries")
+        .select(
+          "id,slug,entry_type,company_name,short_description,products,category,phone,email,country,region,physical_address,logo_url,director_name,contact_name,featured",
+        )
+        .eq("published", true)
         .eq("status", "approved")
-        .eq("directory_visible", true)
+        .eq("is_active", true)
+        .order("featured", { ascending: false })
         .order("company_name");
       if (error) toast.error(error.message);
       else setRows(data ?? []);
@@ -1281,13 +1285,30 @@ function DirectoryTab() {
     })();
   }, []);
 
-  const countries = Array.from(new Set(rows.map((r) => r.country).filter(Boolean))).sort();
   const filtered = rows.filter((r) => {
+    if (type !== "all" && r.entry_type !== type) return false;
     const term = q.trim().toLowerCase();
-    const matchesQ = !term || [r.company_name, r.industry, r.contact_name].some((v) => (v ?? "").toLowerCase().includes(term));
-    const matchesC = !country || r.country === country;
-    return matchesQ && matchesC;
+    if (!term) return true;
+    return [
+      r.company_name,
+      r.contact_name ?? "",
+      r.director_name ?? "",
+      r.email ?? "",
+      r.phone ?? "",
+      r.category ?? "",
+      r.country ?? "",
+      (r.products ?? []).join(" "),
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(term);
   });
+
+  const counts = {
+    total: rows.length,
+    associations: rows.filter((r) => r.entry_type === "association").length,
+    corporate: rows.filter((r) => r.entry_type === "corporate").length,
+  };
 
   if (loading) return <p className="text-muted-foreground">Loading directory…</p>;
 
@@ -1295,50 +1316,156 @@ function DirectoryTab() {
     <div className="space-y-6">
       <div className="rounded-2xl bg-card p-6 shadow-sm">
         <h2 className="text-xl font-bold">Member Directory</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Connect with fellow FAGE members. To appear here, enable directory visibility in your Profile.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Browse fellow FAGE members. Search by company name, email or phone number.
+        </p>
+        <div className="mt-4 relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search by company, email, phone, product…"
+            className={`${inputCls} pl-9`}
+          />
+        </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search companies or industries…" className={`${inputCls} pl-9`} />
-          </div>
-          <select value={country} onChange={(e) => setCountry(e.target.value)} className={inputCls} style={{ maxWidth: 200 }}>
-            <option value="">All countries</option>
-            {countries.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          {(
+            [
+              ["all", `All (${counts.total})`],
+              ["association", `Associations (${counts.associations})`],
+              ["corporate", `Corporate (${counts.corporate})`],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setType(k)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                type === k
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground shadow-sm">No members match your filters.</p>
+        <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground shadow-sm">
+          No entries match your search.
+        </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((m) => (
-            <div key={m.id} className="rounded-2xl bg-card p-5 shadow-sm">
-              <div className="flex items-start gap-3">
-                {m.directory_logo_url ? (
-                  <img src={m.directory_logo_url} alt={m.company_name} className="h-14 w-14 rounded-lg object-cover" />
-                ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <Building2 className="h-6 w-6" />
+          {filtered.map((e) => {
+            const isAssoc = e.entry_type === "association";
+            const initials = (e.company_name || "?")
+              .split(" ")
+              .slice(0, 2)
+              .map((s: string) => s[0])
+              .join("")
+              .toUpperCase();
+            return (
+              <Link
+                key={e.id}
+                to="/directory/$slug"
+                params={{ slug: e.slug }}
+                className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-lg"
+              >
+                <div className="flex items-start gap-3">
+                  {e.logo_url ? (
+                    <img
+                      src={e.logo_url}
+                      alt={`${e.company_name} logo`}
+                      loading="lazy"
+                      className="h-14 w-14 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div
+                      className={`flex h-14 w-14 items-center justify-center rounded-xl text-sm font-bold ${
+                        isAssoc ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
+                      }`}
+                    >
+                      {initials}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          isAssoc
+                            ? "bg-primary/10 text-primary"
+                            : "bg-emerald-500/10 text-emerald-700"
+                        }`}
+                      >
+                        {isAssoc ? <Users className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
+                        {isAssoc ? "Association" : "Corporate"}
+                      </span>
+                      {e.featured && (
+                        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+                          Featured
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="mt-1 truncate text-base font-semibold leading-tight">
+                      {e.company_name}
+                    </h4>
+                    {e.category && (
+                      <p className="truncate text-xs text-muted-foreground">{e.category}</p>
+                    )}
+                  </div>
+                </div>
+                {e.short_description && (
+                  <p className="mt-3 line-clamp-3 text-sm text-muted-foreground">
+                    {e.short_description}
+                  </p>
+                )}
+                {e.products && e.products.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {e.products.slice(0, 4).map((p: string) => (
+                      <span
+                        key={p}
+                        className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                      >
+                        {p}
+                      </span>
+                    ))}
+                    {e.products.length > 4 && (
+                      <span className="text-[11px] text-muted-foreground">
+                        +{e.products.length - 4}
+                      </span>
+                    )}
                   </div>
                 )}
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-semibold leading-tight truncate">{m.company_name}</h4>
-                  {m.industry && <p className="text-xs text-muted-foreground truncate">{m.industry}</p>}
-                  <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold capitalize text-primary">{m.tier}</span>
+                <div className="mt-4 space-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
+                  {e.phone && (
+                    <p className="flex items-center gap-1.5">
+                      <Phone className="h-3 w-3" /> {e.phone}
+                    </p>
+                  )}
+                  {e.email && (
+                    <p className="flex items-center gap-1.5">
+                      <Mail className="h-3 w-3" />{" "}
+                      <span className="truncate">{e.email}</span>
+                    </p>
+                  )}
+                  {(e.physical_address || e.country) && (
+                    <p className="flex items-start gap-1.5">
+                      <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span className="line-clamp-2">
+                        {e.physical_address ?? e.country}
+                      </span>
+                    </p>
+                  )}
                 </div>
-              </div>
-              {m.directory_bio && <p className="mt-3 line-clamp-3 text-xs text-muted-foreground">{m.directory_bio}</p>}
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                {m.country && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {m.country}</span>}
-                {m.directory_website && (
-                  <a href={m.directory_website.startsWith("http") ? m.directory_website : `https://${m.directory_website}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-semibold text-primary hover:underline">
-                    <Globe className="h-3.5 w-3.5" /> Website
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
+                <div className="mt-3 text-right">
+                  <span className="text-xs font-semibold text-primary group-hover:underline">
+                    View details →
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
