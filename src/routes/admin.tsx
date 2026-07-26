@@ -196,7 +196,7 @@ function AdminLayout() {
     );
   }
 
-  const visibleNav = filterNav(navSections, hasAnyRole);
+  const visibleNav = filterNav(navSections, hasAnyRole, userRoles, isAllowed);
   const isOverview = location.pathname === "/admin";
   const initials = user.email?.slice(0, 2).toUpperCase() ?? "AD";
 
