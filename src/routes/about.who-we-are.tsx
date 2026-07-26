@@ -4,6 +4,7 @@ import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 import { AnimatedStat } from "@/components/site/AnimatedStat";
 import { useEffect, useRef, useState } from "react";
+import whoWeAreHero from "@/assets/who-we-are-hero.jpg";
 
 export const Route = createFileRoute("/about/who-we-are")({
   head: () => ({
@@ -142,7 +143,7 @@ function WhoWeArePage() {
       <PageHero
         eyebrow="About FAGE"
         title="Who we are"
-        imageUrl="https://images.unsplash.com/photo-1595841696677-6489ff3f8cd1?q=80&w=2070&auto=format&fit=crop"
+        imageUrl={whoWeAreHero}
       />
 
       {/* ── Our Story ── */}
