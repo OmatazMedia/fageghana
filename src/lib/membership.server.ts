@@ -3,6 +3,7 @@
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendTemplate } from "@/lib/email/send.server";
+import { tierAbbrev } from "@/lib/member-id";
 
 type Tier = "associate" | "standard" | "corporate";
 
