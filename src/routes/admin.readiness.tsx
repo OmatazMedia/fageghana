@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, X, BarChart3 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, BarChart3, ArrowUp, ArrowDown, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 
