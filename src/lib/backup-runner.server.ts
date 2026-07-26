@@ -251,6 +251,43 @@ export async function runBackupCore(trigger: BackupTrigger) {
 
     const signed = await supabaseAdmin.storage.from("backups").createSignedUrl(filename, 60 * 60);
 
+    // Upload to configured external destinations (default first, then any other enabled).
+    const destUploads: Array<{
+      destination_id: string;
+      provider: string;
+      ok: boolean;
+      message: string | null;
+      external_id: string | null;
+      url: string | null;
+    }> = [];
+    try {
+      const { data: dests } = await supabaseAdmin
+        .from("backup_destinations")
+        .select("id, provider, config, enabled, is_default")
+        .eq("enabled", true)
+        .order("is_default", { ascending: false });
+      if (dests && dests.length) {
+        const { uploadToDestination } = await import("./backup-adapters/index.server");
+        for (const d of dests as any[]) {
+          const res = await uploadToDestination(d.provider, d.config ?? {}, filename, blob);
+          const row = {
+            destination_id: d.id as string,
+            provider: d.provider as string,
+            ok: res.ok,
+            message: res.ok ? null : res.message,
+            external_id: res.ok ? res.external_id : null,
+            url: res.ok ? res.url : null,
+          };
+          destUploads.push(row);
+          log.push(
+            `Destination ${d.provider}: ${res.ok ? `uploaded (${res.external_id})` : `FAILED — ${res.message}`}`,
+          );
+        }
+      }
+    } catch (e: any) {
+      log.push(`[destinations] ${e?.message ?? String(e)}`);
+    }
+
     if (runId) {
       await supabaseAdmin
         .from("backup_runs")
@@ -262,6 +299,11 @@ export async function runBackupCore(trigger: BackupTrigger) {
           tables_count: allTableNames.length,
         })
         .eq("id", runId);
+      if (destUploads.length) {
+        await supabaseAdmin.from("backup_run_uploads" as any).insert(
+          destUploads.map((u) => ({ ...u, run_id: runId })),
+        );
+      }
     }
 
     return {
@@ -273,6 +315,7 @@ export async function runBackupCore(trigger: BackupTrigger) {
       log,
       sizeBytes: blob.byteLength,
       runId,
+      destinations: destUploads,
     };
   } catch (e: any) {
     const msg = e?.message || String(e);

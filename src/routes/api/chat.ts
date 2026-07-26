@@ -23,6 +23,24 @@ export const Route = createFileRoute("/api/chat")({
         const key = process.env.LOVABLE_API_KEY;
         if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
 
+        // Compose system prompt from DB knowledge base; fall back to hardcoded.
+        let systemPrompt = FAGE_SYSTEM_PROMPT;
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: kb } = await supabaseAdmin
+            .from("chatbot_knowledge" as any)
+            .select("section, content, display_order, enabled")
+            .eq("enabled", true)
+            .order("display_order", { ascending: true });
+          if (kb && (kb as any[]).length) {
+            systemPrompt = (kb as any[])
+              .map((r) => `# ${r.section}\n${r.content}`)
+              .join("\n\n");
+          }
+        } catch {
+          /* fall back to hardcoded */
+        }
+
         const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -32,7 +50,7 @@ export const Route = createFileRoute("/api/chat")({
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: FAGE_SYSTEM_PROMPT },
+              { role: "system", content: systemPrompt },
               ...messages.map((m) => ({ role: m.role, content: String(m.content ?? "") })),
             ],
           }),

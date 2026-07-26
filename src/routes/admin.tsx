@@ -105,6 +105,7 @@ const navSections: NavSection[] = [
       { to: "/admin/site-media", label: "Homepage Hero & Partners", icon: ImageIcon },
       { to: "/admin/resources", label: "Resources", icon: BookOpen },
       { to: "/admin/notifications", label: "Notifications", icon: Bell },
+      { to: "/admin/chatbot", label: "Chatbot Knowledge", icon: MessageCircle, roles: ANY_ADMIN },
     ],
   },
   {
