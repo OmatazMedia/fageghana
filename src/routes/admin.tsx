@@ -150,6 +150,12 @@ function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isLoginRoute = location.pathname === "/admin/login";
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Auto-close mobile drawer whenever route changes
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
 
   // Anyone with a role that maps to at least one admin-console section.
   const canAccessConsole =
