@@ -57,6 +57,7 @@ import { Route as AdminDirectoryRouteImport } from './routes/admin.directory'
 import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
 import { Route as AdminCertIssuedRouteImport } from './routes/admin.cert-issued'
 import { Route as AdminCertBatchRouteImport } from './routes/admin.cert-batch'
+import { Route as AdminBackupDestinationsRouteImport } from './routes/admin.backup-destinations'
 import { Route as AdminBackupRouteImport } from './routes/admin.backup'
 import { Route as AdminApplicationsRouteImport } from './routes/admin.applications'
 import { Route as AdminActivityLogRouteImport } from './routes/admin.activity-log'
@@ -311,6 +312,11 @@ const AdminCertBatchRoute = AdminCertBatchRouteImport.update({
   path: '/cert-batch',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBackupDestinationsRoute = AdminBackupDestinationsRouteImport.update({
+  id: '/backup-destinations',
+  path: '/backup-destinations',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBackupRoute = AdminBackupRouteImport.update({
   id: '/backup',
   path: '/backup',
@@ -403,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/admin/activity-log': typeof AdminActivityLogRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
+  '/admin/backup-destinations': typeof AdminBackupDestinationsRoute
   '/admin/cert-batch': typeof AdminCertBatchRoute
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
@@ -466,6 +473,7 @@ export interface FileRoutesByTo {
   '/admin/activity-log': typeof AdminActivityLogRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
+  '/admin/backup-destinations': typeof AdminBackupDestinationsRoute
   '/admin/cert-batch': typeof AdminCertBatchRoute
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
@@ -530,6 +538,7 @@ export interface FileRoutesById {
   '/admin/activity-log': typeof AdminActivityLogRoute
   '/admin/applications': typeof AdminApplicationsRoute
   '/admin/backup': typeof AdminBackupRoute
+  '/admin/backup-destinations': typeof AdminBackupDestinationsRoute
   '/admin/cert-batch': typeof AdminCertBatchRoute
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
@@ -595,6 +604,7 @@ export interface FileRouteTypes {
     | '/admin/activity-log'
     | '/admin/applications'
     | '/admin/backup'
+    | '/admin/backup-destinations'
     | '/admin/cert-batch'
     | '/admin/cert-issued'
     | '/admin/certificates'
@@ -658,6 +668,7 @@ export interface FileRouteTypes {
     | '/admin/activity-log'
     | '/admin/applications'
     | '/admin/backup'
+    | '/admin/backup-destinations'
     | '/admin/cert-batch'
     | '/admin/cert-issued'
     | '/admin/certificates'
@@ -721,6 +732,7 @@ export interface FileRouteTypes {
     | '/admin/activity-log'
     | '/admin/applications'
     | '/admin/backup'
+    | '/admin/backup-destinations'
     | '/admin/cert-batch'
     | '/admin/cert-issued'
     | '/admin/certificates'
@@ -1129,6 +1141,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCertBatchRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/backup-destinations': {
+      id: '/admin/backup-destinations'
+      path: '/backup-destinations'
+      fullPath: '/admin/backup-destinations'
+      preLoaderRoute: typeof AdminBackupDestinationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/backup': {
       id: '/admin/backup'
       path: '/backup'
@@ -1241,6 +1260,7 @@ interface AdminRouteChildren {
   AdminActivityLogRoute: typeof AdminActivityLogRoute
   AdminApplicationsRoute: typeof AdminApplicationsRoute
   AdminBackupRoute: typeof AdminBackupRoute
+  AdminBackupDestinationsRoute: typeof AdminBackupDestinationsRoute
   AdminCertBatchRoute: typeof AdminCertBatchRoute
   AdminCertIssuedRoute: typeof AdminCertIssuedRoute
   AdminCertificatesRoute: typeof AdminCertificatesRoute
@@ -1276,6 +1296,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminActivityLogRoute: AdminActivityLogRoute,
   AdminApplicationsRoute: AdminApplicationsRoute,
   AdminBackupRoute: AdminBackupRoute,
+  AdminBackupDestinationsRoute: AdminBackupDestinationsRoute,
   AdminCertBatchRoute: AdminCertBatchRoute,
   AdminCertIssuedRoute: AdminCertIssuedRoute,
   AdminCertificatesRoute: AdminCertificatesRoute,
