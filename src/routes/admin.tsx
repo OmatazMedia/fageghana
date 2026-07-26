@@ -212,86 +212,130 @@ function AdminLayout() {
   const initials = user.email?.slice(0, 2).toUpperCase() ?? "AD";
 
 
+  const sidebarInner = (
+    <>
+      {/* Logo */}
+      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+        <img
+          src="/images/logos/fage-logo-white.webp"
+          alt="FAGE"
+          className="h-8 w-auto object-contain"
+        />
+        <div className="leading-tight">
+          <div className="text-xs font-bold uppercase tracking-widest text-white/90">Admin</div>
+          <div className="text-[10px] text-white/40">Console</div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 scrollbar-hide">
+        {visibleNav.map((section) => (
+          <div key={section.label}>
+            <div className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+              {section.label}
+            </div>
+            {section.items.map((s) => {
+              const active =
+                "exact" in s && s.exact
+                  ? location.pathname === s.to
+                  : location.pathname === s.to || location.pathname.startsWith(s.to + "/");
+              return (
+                <Link
+                  key={s.to}
+                  to={s.to}
+                  onClick={() => setMobileNavOpen(false)}
+                  className={`mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    active
+                      ? "bg-primary text-white shadow-sm shadow-primary/30"
+                      : "text-white/60 hover:bg-white/8 hover:text-white"
+                  }`}
+                >
+                  <s.icon className="h-4 w-4 shrink-0" />
+                  {s.label}
+                  {active && <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-60" />}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-white/10 p-3 space-y-0.5">
+        <Link
+          to="/admin/account/security"
+          onClick={() => setMobileNavOpen(false)}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/60 hover:bg-white/8 hover:text-white transition-all"
+        >
+          <ShieldCheck className="h-4 w-4" /> Account & Security
+        </Link>
+        <Link
+          to="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white transition-all"
+        >
+          <ExternalLink className="h-4 w-4" /> View site
+        </Link>
+        <button
+          onClick={handleSignOut}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white transition-all"
+        >
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f5f7f5]">
-      {/* ── Sidebar ─────────────────────────────────────────────────── */}
+      {/* ── Desktop sidebar ─────────────────────────────────────────── */}
       <aside className="hidden w-64 flex-shrink-0 flex-col bg-[#0f1a14] lg:flex h-screen sticky top-0 overflow-hidden">
-        {/* Logo */}
-        <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-          <img
-            src="/images/logos/fage-logo-white.webp"
-            alt="FAGE"
-            className="h-8 w-auto object-contain"
-          />
-          <div className="leading-tight">
-            <div className="text-xs font-bold uppercase tracking-widest text-white/90">Admin</div>
-            <div className="text-[10px] text-white/40">Console</div>
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 scrollbar-hide">
-          {visibleNav.map((section) => (
-            <div key={section.label}>
-              <div className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">
-                {section.label}
-              </div>
-              {section.items.map((s) => {
-                const active =
-                  "exact" in s && s.exact
-                    ? location.pathname === s.to
-                    : location.pathname === s.to || location.pathname.startsWith(s.to + "/");
-                return (
-                  <Link
-                    key={s.to}
-                    to={s.to}
-                    className={`mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                      active
-                        ? "bg-primary text-white shadow-sm shadow-primary/30"
-                        : "text-white/60 hover:bg-white/8 hover:text-white"
-                    }`}
-                  >
-                    <s.icon className="h-4 w-4 shrink-0" />
-                    {s.label}
-                    {active && <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-60" />}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-
-        {/* Footer */}
-        <div className="border-t border-white/10 p-3 space-y-0.5">
-          <Link
-            to="/admin/account/security"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/60 hover:bg-white/8 hover:text-white transition-all"
-          >
-            <ShieldCheck className="h-4 w-4" /> Account & Security
-          </Link>
-          <Link
-            to="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white transition-all"
-          >
-            <ExternalLink className="h-4 w-4" /> View site
-          </Link>
-          <button
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white transition-all"
-          >
-            <LogOut className="h-4 w-4" /> Sign out
-          </button>
-        </div>
+        {sidebarInner}
       </aside>
+
+      {/* ── Mobile drawer sidebar ───────────────────────────────────── */}
+      <div
+        className={`fixed inset-0 z-50 lg:hidden transition-opacity duration-300 ${
+          mobileNavOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        aria-hidden={!mobileNavOpen}
+      >
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={() => setMobileNavOpen(false)}
+        />
+        <aside
+          className={`absolute left-0 top-0 flex h-full w-72 max-w-[85%] flex-col bg-[#0f1a14] shadow-2xl transition-transform duration-300 ease-out ${
+            mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <button
+            onClick={() => setMobileNavOpen(false)}
+            className="absolute right-3 top-3 rounded p-1 text-white/60 hover:bg-white/10 z-10"
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          {sidebarInner}
+        </aside>
+      </div>
 
       {/* ── Main ────────────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-hidden min-h-0">
         {/* Top bar */}
         <header className="flex h-14 items-center justify-between border-b border-border bg-white px-4 lg:px-6 shadow-sm">
-          {/* Mobile logo */}
+          {/* Mobile hamburger + logo */}
           <div className="flex items-center gap-2 lg:hidden">
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              className="group flex h-9 w-9 flex-col items-center justify-center gap-[5px] rounded-lg hover:bg-accent transition"
+              aria-label="Open menu"
+            >
+              <span className="block h-[2px] w-5 rounded bg-foreground transition-transform group-hover:translate-x-0.5" />
+              <span className="block h-[2px] w-5 rounded bg-foreground" />
+              <span className="block h-[2px] w-5 rounded bg-foreground transition-transform group-hover:-translate-x-0.5" />
+            </button>
             <img src="/images/logos/fage-logo-main.webp" alt="FAGE" className="h-7 w-auto" />
             <span className="font-bold text-sm">Admin</span>
           </div>
@@ -333,31 +377,6 @@ function AdminLayout() {
             </button>
           </div>
         </header>
-
-        {/* Mobile nav */}
-        <div className="flex gap-1.5 overflow-x-auto border-b border-border bg-white px-3 py-2 lg:hidden">
-          {visibleNav
-            .flatMap((s) => s.items)
-            .map((s) => {
-              const active =
-                "exact" in s && s.exact
-                  ? location.pathname === s.to
-                  : location.pathname.startsWith(s.to);
-              return (
-                <Link
-                  key={s.to}
-                  to={s.to}
-                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                    active
-                      ? "bg-primary text-white"
-                      : "bg-muted text-muted-foreground hover:bg-accent"
-                  }`}
-                >
-                  <s.icon className="h-3.5 w-3.5" /> {s.label}
-                </Link>
-              );
-            })}
-        </div>
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">{isOverview ? <AdminOverview /> : <Outlet />}</main>
