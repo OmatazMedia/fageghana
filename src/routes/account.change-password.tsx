@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { KeyRound, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity.functions";
 
 export const Route = createFileRoute("/account/change-password")({
   head: () => ({ meta: [{ title: "Change Password — FAGE Ghana" }] }),
@@ -27,6 +28,7 @@ export function ChangePasswordPage({ backHref = "/account/security" }: { backHre
     if (error) return toast.error(error.message);
     setPw("");
     setConfirm("");
+    void logActivity({ data: { event_type: "password_changed", detail: null } }).catch(() => {});
     toast.success("Password updated");
   }
 

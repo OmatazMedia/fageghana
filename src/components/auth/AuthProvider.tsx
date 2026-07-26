@@ -1,6 +1,15 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity.functions";
+
+function fireActivity(event_type: string, detail?: string) {
+  try {
+    void logActivity({ data: { event_type, detail: detail ?? null } }).catch(() => {});
+  } catch {
+    /* best-effort */
+  }
+}
 
 export type AppRole =
   | "admin"
@@ -111,6 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) fireActivity("sign_in", email);
+    else fireActivity("sign_in_failed", email);
     return { error: error?.message ?? null };
   }
 
@@ -121,10 +132,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: { emailRedirectTo: redirectUrl },
     });
+    if (!error) fireActivity("sign_up", email);
     return { error: error?.message ?? null };
   }
 
   async function signOut() {
+    fireActivity("sign_out", user?.email ?? undefined);
     // Clear local role state immediately so guards don't briefly see stale admin = true.
     setRoles([]);
     setRoleChecked(false);
@@ -134,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function resetPassword(email: string) {
     const redirectUrl = `${window.location.origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+    if (!error) fireActivity("password_reset_requested", email);
     return { error: error?.message ?? null };
   }
 
