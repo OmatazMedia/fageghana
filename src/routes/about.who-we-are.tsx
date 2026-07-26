@@ -4,6 +4,7 @@ import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 import { AnimatedStat } from "@/components/site/AnimatedStat";
 import { useEffect, useRef, useState } from "react";
+import whoWeAreHero from "@/assets/who-we-are-hero.jpg";
 
 export const Route = createFileRoute("/about/who-we-are")({
   head: () => ({
