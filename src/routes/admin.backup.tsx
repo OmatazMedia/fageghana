@@ -473,6 +473,15 @@ function BackupPage() {
             )}
             {busy === "backing" ? "Generating snapshot…" : "Generate backup"}
           </button>
+          <button
+            onClick={handleCsvBundle}
+            disabled={isBusy || csvBusy}
+            className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-muted disabled:opacity-50"
+            title="Export every public table as a CSV file, bundled into a single .zip"
+          >
+            {csvBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
+            {csvBusy ? "Building CSV bundle…" : "Download CSV bundle"}
+          </button>
         </div>
 
         {/* Restore card */}
