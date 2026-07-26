@@ -376,10 +376,15 @@ function CreateUserModal({
             <input name="email" type="email" required className={inputCls} />
           </FormField>
         </div>
-        <FormField label="Role" hint="Admin: full access · Staff: manage members · Moderator: manage content">
+        <FormField label="Role" hint="Admin/Superadmin: full access · Staff/Finance/CEO/Coordinator/Developer: gated per role permissions matrix">
           <select name="role" required defaultValue="staff" className={inputCls}>
             <option value="admin">Admin (full access)</option>
+            <option value="superadmin">Superadmin (full access)</option>
             <option value="staff">Staff (member management)</option>
+            <option value="finance">Finance</option>
+            <option value="ceo">CEO</option>
+            <option value="coordinator">Project Coordinator</option>
+            <option value="developer">Developer</option>
             <option value="moderator">Moderator (content only)</option>
           </select>
         </FormField>
