@@ -1,6 +1,15 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity.functions";
+
+function fireActivity(event_type: string, detail?: string) {
+  try {
+    void logActivity({ data: { event_type, detail: detail ?? null } }).catch(() => {});
+  } catch {
+    /* best-effort */
+  }
+}
 
 export type AppRole =
   | "admin"
