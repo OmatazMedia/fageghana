@@ -31,10 +31,12 @@ import {
   ShieldCheck,
   Building2,
   BookOpen,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRolePermissions } from "@/lib/role-permissions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — FAGE Ghana" }] }),
