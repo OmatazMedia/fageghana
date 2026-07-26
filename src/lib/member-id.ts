@@ -1,13 +1,16 @@
 // Tier → abbreviation used by generate_structured_member_id(_abbrev, _year).
-// Output format: FAGE/{ABBR}/{YY}/{SEQ}
+// Output format per FAGE spec: FAGE/{ABBR}/{YEAR4}/{SEQ5}
+//   AS = Associate
+//   CR = Corporate
+//   SB = Standard / Startup Business
 export function tierAbbrev(tier: string | null | undefined): string {
   switch ((tier ?? "").toLowerCase()) {
     case "corporate":
-      return "CORP";
+      return "CR";
     case "standard":
-      return "STD";
+      return "SB";
     case "associate":
     default:
-      return "ASSOC";
+      return "AS";
   }
 }
