@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
-    fireActivity("sign_out", user?.email ?? null);
+    fireActivity("sign_out", user?.email ?? undefined);
     // Clear local role state immediately so guards don't briefly see stale admin = true.
     setRoles([]);
     setRoleChecked(false);
