@@ -145,12 +145,32 @@ function AdminLayout() {
     navigate({ to: "/admin/login", replace: true });
   };
 
+  // Paths only developer/superadmin may hit directly (mirrors sidebar DEV_ONLY items).
+  const DEV_ONLY_PATHS = [
+    "/admin/plans",
+    "/admin/forms",
+    "/admin/gateways",
+    "/admin/email-settings",
+    "/admin/email-templates",
+    "/admin/backup",
+    "/admin/activity-log",
+    "/admin/users",
+  ];
+  const isDevPath = DEV_ONLY_PATHS.some(
+    (p) => location.pathname === p || location.pathname.startsWith(p + "/"),
+  );
+  const hasDev = hasAnyRole(["developer", "superadmin", "admin"]);
+
   useEffect(() => {
     if (isLoginRoute) return;
     if (loading || !roleChecked) return;
     if (!user) navigate({ to: "/admin/login", replace: true });
     else if (!canAccessConsole) navigate({ to: "/", replace: true });
-  }, [loading, roleChecked, user, canAccessConsole, navigate, isLoginRoute]);
+    else if (isDevPath && !hasDev) {
+      toast.error("This section is restricted to developers.");
+      navigate({ to: "/admin", replace: true });
+    }
+  }, [loading, roleChecked, user, canAccessConsole, navigate, isLoginRoute, isDevPath, hasDev]);
 
   if (isLoginRoute) return <Outlet />;
   if (loading || !roleChecked || !user || !canAccessConsole) {
@@ -325,7 +345,11 @@ function AdminLayout() {
 
 /* ── Overview ─────────────────────────────────────────────────────────── */
 function AdminOverview() {
-  const { user } = useAuth();
+  const { user, hasAnyRole } = useAuth();
+  const canFinance = hasAnyRole(["admin", "superadmin", "finance", "ceo"]);
+  const canCerts = hasAnyRole(["admin", "superadmin", "coordinator"]);
+  const canContent = hasAnyRole(["admin", "superadmin", "staff"]);
+  const canDev = hasAnyRole(["admin", "superadmin", "developer"]);
   const [stats, setStats] = useState({
     members: 0,
     active: 0,
@@ -379,113 +403,25 @@ function AdminOverview() {
 
   const firstName = user?.email?.split("@")[0] ?? "Admin";
 
-  const kpis = [
-    {
-      label: "Total members",
-      value: stats.members,
-      icon: Users,
-      bg: "bg-blue-50",
-      iconColor: "text-blue-600",
-      border: "border-blue-100",
-      trend: "up",
-    },
-    {
-      label: "Active subscriptions",
-      value: stats.active,
-      icon: Award,
-      bg: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-      border: "border-emerald-100",
-      trend: "up",
-    },
-    {
-      label: "Expiring in 30 days",
-      value: stats.expiring,
-      icon: AlertCircle,
-      bg: "bg-amber-50",
-      iconColor: "text-amber-600",
-      border: "border-amber-100",
-      trend: "warn",
-    },
-    {
-      label: "Pending payments",
-      value: stats.pendingPay,
-      icon: CreditCard,
-      bg: "bg-orange-50",
-      iconColor: "text-orange-600",
-      border: "border-orange-100",
-      trend: "warn",
-    },
-    {
-      label: "Open tickets",
-      value: stats.openTickets,
-      icon: MessageCircle,
-      bg: "bg-purple-50",
-      iconColor: "text-purple-600",
-      border: "border-purple-100",
-      trend: "down",
-    },
-    {
-      label: "Certs issued (mo)",
-      value: stats.certs,
-      icon: Award,
-      bg: "bg-pink-50",
-      iconColor: "text-pink-600",
-      border: "border-pink-100",
-      trend: "up",
-    },
+  const allKpis = [
+    { key: "members", label: "Total members", value: stats.members, icon: Users, bg: "bg-blue-50", iconColor: "text-blue-600", border: "border-blue-100", trend: "up", show: true },
+    { key: "active", label: "Active subscriptions", value: stats.active, icon: Award, bg: "bg-emerald-50", iconColor: "text-emerald-600", border: "border-emerald-100", trend: "up", show: canFinance || canCerts },
+    { key: "expiring", label: "Expiring in 30 days", value: stats.expiring, icon: AlertCircle, bg: "bg-amber-50", iconColor: "text-amber-600", border: "border-amber-100", trend: "warn", show: canFinance },
+    { key: "pendingPay", label: "Pending payments", value: stats.pendingPay, icon: CreditCard, bg: "bg-orange-50", iconColor: "text-orange-600", border: "border-orange-100", trend: "warn", show: canFinance },
+    { key: "openTickets", label: "Open tickets", value: stats.openTickets, icon: MessageCircle, bg: "bg-purple-50", iconColor: "text-purple-600", border: "border-purple-100", trend: "down", show: canContent || canDev },
+    { key: "certs", label: "Certs issued (mo)", value: stats.certs, icon: Award, bg: "bg-pink-50", iconColor: "text-pink-600", border: "border-pink-100", trend: "up", show: canCerts },
   ];
+  const kpis = allKpis.filter((k) => k.show);
 
-  const quickActions = [
-    {
-      to: "/admin/payments",
-      label: "Review payments",
-      desc: "Confirm pending submissions",
-      icon: CreditCard,
-      bg: "bg-orange-50",
-      iconColor: "text-orange-600",
-    },
-    {
-      to: "/admin/cert-batch",
-      label: "Issue certificates",
-      desc: "Batch issue to members",
-      icon: Layers,
-      bg: "bg-purple-50",
-      iconColor: "text-purple-600",
-    },
-    {
-      to: "/admin/certificates",
-      label: "Design certificate",
-      desc: "Edit certificate template",
-      icon: Award,
-      bg: "bg-pink-50",
-      iconColor: "text-pink-600",
-    },
-    {
-      to: "/admin/notifications",
-      label: "Send announcement",
-      desc: "Broadcast to all members",
-      icon: Bell,
-      bg: "bg-blue-50",
-      iconColor: "text-blue-600",
-    },
-    {
-      to: "/admin/news",
-      label: "Add news article",
-      desc: "Publish to the website",
-      icon: Newspaper,
-      bg: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-    },
-    {
-      to: "/admin/gateways",
-      label: "Payment gateways",
-      desc: "Configure Paystack / Hubtel",
-      icon: Settings,
-      bg: "bg-slate-50",
-      iconColor: "text-slate-600",
-    },
+  const allActions = [
+    { to: "/admin/payments", label: "Review payments", desc: "Confirm pending submissions", icon: CreditCard, bg: "bg-orange-50", iconColor: "text-orange-600", show: canFinance },
+    { to: "/admin/cert-batch", label: "Issue certificates", desc: "Batch issue to members", icon: Layers, bg: "bg-purple-50", iconColor: "text-purple-600", show: canCerts },
+    { to: "/admin/certificates", label: "Design certificate", desc: "Edit certificate template", icon: Award, bg: "bg-pink-50", iconColor: "text-pink-600", show: canCerts },
+    { to: "/admin/notifications", label: "Send announcement", desc: "Broadcast to all members", icon: Bell, bg: "bg-blue-50", iconColor: "text-blue-600", show: canContent },
+    { to: "/admin/news", label: "Add news article", desc: "Publish to the website", icon: Newspaper, bg: "bg-emerald-50", iconColor: "text-emerald-600", show: canContent },
+    { to: "/admin/gateways", label: "Payment gateways", desc: "Configure Paystack / Hubtel", icon: Settings, bg: "bg-slate-50", iconColor: "text-slate-600", show: canDev },
   ];
+  const quickActions = allActions.filter((a) => a.show);
 
   const statusConfig: Record<string, { label: string; cls: string }> = {
     pending: { label: "Pending", cls: "bg-amber-100 text-amber-700" },

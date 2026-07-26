@@ -3,6 +3,7 @@
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendTemplate } from "@/lib/email/send.server";
+import { tierAbbrev } from "@/lib/member-id";
 
 type Tier = "associate" | "standard" | "corporate";
 
@@ -176,8 +177,8 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
 
   if (!existing) {
     // brand-new profile
-    const { data: idRow } = await supabaseAdmin.rpc("generate_member_id", {
-      _tier: planTier ?? "associate",
+    const { data: idRow } = await supabaseAdmin.rpc("generate_structured_member_id" as any, {
+      _abbrev: tierAbbrev(planTier ?? "associate"),
     });
     const memberId = (idRow as unknown as string) ?? null;
     let email = "";
@@ -214,7 +215,9 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
   } else if (isRenew) {
     if (planTier && planTier !== existing.tier) {
       // tier change → new member id, reset start
-      const { data: idRow } = await supabaseAdmin.rpc("generate_member_id", { _tier: planTier });
+      const { data: idRow } = await supabaseAdmin.rpc("generate_structured_member_id" as any, {
+        _abbrev: tierAbbrev(planTier),
+      });
       const memberId = (idRow as unknown as string) ?? existing.member_id;
       const reset = new Date();
       reset.setMonth(reset.getMonth() + months);

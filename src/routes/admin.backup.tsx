@@ -241,6 +241,60 @@ function BackupPage() {
   }
 
   const isBusy = busy !== "idle";
+  const [csvBusy, setCsvBusy] = useState(false);
+
+  function toCsv(rows: any[]): string {
+    if (!rows || rows.length === 0) return "";
+    const cols = Array.from(
+      rows.reduce((s: Set<string>, r) => {
+        Object.keys(r ?? {}).forEach((k) => s.add(k));
+        return s;
+      }, new Set<string>()),
+    );
+    const esc = (v: any) => {
+      if (v === null || v === undefined) return "";
+      const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = cols.join(",");
+    const body = rows.map((r) => cols.map((c) => esc(r[c])).join(",")).join("\n");
+    return header + "\n" + body + "\n";
+  }
+
+  async function handleCsvBundle() {
+    setCsvBusy(true);
+    try {
+      const { data: tables, error } = await supabase.rpc("admin_list_public_tables" as any);
+      if (error) throw error;
+      const list = (tables as string[] | null) ?? [];
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      for (const name of list) {
+        const { data: rows, error: dErr } = await supabase.rpc("admin_dump_table" as any, {
+          _name: name,
+        });
+        if (dErr) {
+          zip.file(`${name}.error.txt`, dErr.message);
+          continue;
+        }
+        zip.file(`${name}.csv`, toCsv((rows as any[]) ?? []));
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `fage-csv-bundle-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`CSV bundle ready (${list.length} tables)`);
+    } catch (e: any) {
+      toast.error(e?.message || "CSV export failed");
+    } finally {
+      setCsvBusy(false);
+    }
+  }
 
   return (
     <AdminShell
@@ -472,6 +526,15 @@ function BackupPage() {
               <Download className="h-4 w-4" />
             )}
             {busy === "backing" ? "Generating snapshot…" : "Generate backup"}
+          </button>
+          <button
+            onClick={handleCsvBundle}
+            disabled={isBusy || csvBusy}
+            className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-muted disabled:opacity-50"
+            title="Export every public table as a CSV file, bundled into a single .zip"
+          >
+            {csvBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
+            {csvBusy ? "Building CSV bundle…" : "Download CSV bundle"}
           </button>
         </div>
 

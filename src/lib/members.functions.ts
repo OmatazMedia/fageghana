@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { tierAbbrev } from "@/lib/member-id";
 
 const tierEnum = z.enum(["associate", "standard", "corporate"]);
 const statusEnum = z.enum(["new", "reviewing", "approved", "rejected"]);
@@ -59,7 +60,9 @@ export const createMemberAccount = createServerFn({ method: "POST" })
       .maybeSingle();
     const months = plan?.duration_months ?? 12;
 
-    const { data: idRow } = await supabaseAdmin.rpc("generate_member_id", { _tier: data.tier });
+    const { data: idRow } = await supabaseAdmin.rpc("generate_structured_member_id" as any, {
+      _abbrev: tierAbbrev(data.tier),
+    });
     const memberId = idRow as unknown as string;
 
     const start = new Date();
@@ -140,7 +143,9 @@ export const changeMemberTier = createServerFn({ method: "POST" })
     const patch: Record<string, any> = { tier: data.tier };
 
     if (data.regenerate_member_id) {
-      const { data: idRow } = await supabaseAdmin.rpc("generate_member_id", { _tier: data.tier });
+      const { data: idRow } = await supabaseAdmin.rpc("generate_structured_member_id" as any, {
+        _abbrev: tierAbbrev(data.tier),
+      });
       patch.member_id = idRow as unknown as string;
     }
 
