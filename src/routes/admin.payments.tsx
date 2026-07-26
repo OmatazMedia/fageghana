@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { tierAbbrev } from "@/lib/member-id";
 
 export const Route = createFileRoute("/admin/payments")({
   head: () => ({ meta: [{ title: "Payments — Admin" }] }),
