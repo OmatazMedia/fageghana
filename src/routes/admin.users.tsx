@@ -25,13 +25,23 @@ export const Route = createFileRoute("/admin/users")({
 
 const ROLE_LABEL: Record<AdminUserRow["role"], string> = {
   admin: "Admin",
+  superadmin: "Superadmin",
   staff: "Staff",
   moderator: "Moderator",
+  finance: "Finance",
+  ceo: "CEO",
+  developer: "Developer",
+  coordinator: "Coordinator",
 };
 const ROLE_COLOR: Record<AdminUserRow["role"], string> = {
   admin: "bg-primary/15 text-primary",
+  superadmin: "bg-fuchsia-500/15 text-fuchsia-700",
   staff: "bg-blue-500/15 text-blue-600",
   moderator: "bg-amber-500/15 text-amber-700",
+  finance: "bg-emerald-500/15 text-emerald-700",
+  ceo: "bg-indigo-500/15 text-indigo-700",
+  developer: "bg-slate-500/15 text-slate-700",
+  coordinator: "bg-teal-500/15 text-teal-700",
 };
 
 function UsersPage() {
