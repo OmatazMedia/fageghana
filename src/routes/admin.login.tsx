@@ -127,7 +127,7 @@ function AdminLogin() {
           </div>
 
           {/* No-access warning */}
-          {user && !isAdmin && (
+          {user && roleChecked && !isAdmin && !busy && (
             <div className="w-full mb-5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive text-center">
               You're signed in but don't have admin access. Contact an existing admin.
             </div>
