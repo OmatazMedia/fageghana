@@ -452,7 +452,12 @@ function RoleModal({
         <FormField label="New role">
           <select name="role" defaultValue={user.role} className={inputCls}>
             <option value="admin">Admin (full access)</option>
+            <option value="superadmin">Superadmin (full access)</option>
             <option value="staff">Staff (member management)</option>
+            <option value="finance">Finance</option>
+            <option value="ceo">CEO</option>
+            <option value="coordinator">Project Coordinator</option>
+            <option value="developer">Developer</option>
             <option value="moderator">Moderator (content only)</option>
           </select>
         </FormField>
