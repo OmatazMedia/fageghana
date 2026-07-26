@@ -461,31 +461,24 @@ function HomePage() {
 
           {(() => {
             const s = heroSlides[slide];
-            const href = s.cta_href || "/about/who-we-are";
+            const href = (s.cta_href && s.cta_href.trim()) || "/about/who-we-are";
             const label = s.cta_label || "Learn More";
-            const isExternal = /^https?:\/\//i.test(href);
-            if (isExternal) {
-              return (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="lets-talk-btn mt-10"
-                  style={{ width: "auto", minWidth: 160 }}
-                >
-                  <span className="lets-talk-circle">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                    </svg>
-                  </span>
-                  <span className="lets-talk-text">{label}</span>
-                </a>
-              );
-            }
+            const isExternal = /^(https?:)?\/\//i.test(href) || /^(mailto:|tel:)/i.test(href);
             return (
-              <AnimBtn to={href} className="mt-10">
-                {label}
-              </AnimBtn>
+              <a
+                key={`${slide}-${href}`}
+                href={href}
+                {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className="lets-talk-btn mt-10"
+                style={{ width: "auto", minWidth: 160 }}
+              >
+                <span className="lets-talk-circle">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  </svg>
+                </span>
+                <span className="lets-talk-text">{label}</span>
+              </a>
             );
           })()}
         </div>
