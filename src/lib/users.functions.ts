@@ -31,7 +31,7 @@ export const listAdminUsers = createServerFn({ method: "POST" })
     const { data: roles, error: rErr } = await supabaseAdmin
       .from("user_roles")
       .select("user_id, role, created_at")
-      .in("role", ["admin", "staff", "moderator"]);
+      .in("role", ["admin", "superadmin", "staff", "moderator", "finance", "ceo", "developer", "coordinator"]);
     if (rErr) throw new Error(rErr.message);
 
     const users: AdminUserRow[] = [];
