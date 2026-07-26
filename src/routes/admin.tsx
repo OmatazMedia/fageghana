@@ -31,10 +31,12 @@ import {
   ShieldCheck,
   Building2,
   BookOpen,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRolePermissions } from "@/lib/role-permissions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — FAGE Ghana" }] }),
@@ -116,20 +118,30 @@ const navSections: NavSection[] = [
       { to: "/admin/backup", label: "Backup & Restore", icon: DatabaseBackup, roles: DEV_ONLY },
       { to: "/admin/activity-log", label: "Activity Log", icon: ListChecks, roles: DEV_ONLY },
       { to: "/admin/users", label: "User Management", icon: ShieldCheck, roles: DEV_ONLY },
+      { to: "/admin/roles", label: "Role Permissions", icon: KeyRound, roles: ANY_ADMIN },
     ],
   },
 ];
 
-function filterNav(sections: NavSection[], has: (r: AppRole[]) => boolean): NavSection[] {
+function filterNav(
+  sections: NavSection[],
+  has: (r: AppRole[]) => boolean,
+  userRoles: AppRole[],
+  isAllowed: (roles: AppRole[], key: string, staticRoles?: AppRole[]) => boolean,
+): NavSection[] {
   return sections
     .filter((s) => !s.roles || has(s.roles))
-    .map((s) => ({ ...s, items: s.items.filter((i) => !i.roles || has(i.roles)) }))
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((i) => isAllowed(userRoles, i.to, i.roles)),
+    }))
     .filter((s) => s.items.length > 0);
 }
 
 /* ── Layout ───────────────────────────────────────────────────────────── */
 function AdminLayout() {
-  const { user, isAdmin, hasAnyRole, loading, roleChecked, signOut } = useAuth();
+  const { user, isAdmin, hasAnyRole, roles: userRoles, loading, roleChecked, signOut } = useAuth();
+  const { isAllowed } = useRolePermissions();
   const navigate = useNavigate();
   const location = useLocation();
   const isLoginRoute = location.pathname === "/admin/login";
@@ -184,7 +196,7 @@ function AdminLayout() {
     );
   }
 
-  const visibleNav = filterNav(navSections, hasAnyRole);
+  const visibleNav = filterNav(navSections, hasAnyRole, userRoles, isAllowed);
   const isOverview = location.pathname === "/admin";
   const initials = user.email?.slice(0, 2).toUpperCase() ?? "AD";
 
