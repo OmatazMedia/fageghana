@@ -143,7 +143,9 @@ export const changeMemberTier = createServerFn({ method: "POST" })
     const patch: Record<string, any> = { tier: data.tier };
 
     if (data.regenerate_member_id) {
-      const { data: idRow } = await supabaseAdmin.rpc("generate_member_id", { _tier: data.tier });
+      const { data: idRow } = await supabaseAdmin.rpc("generate_structured_member_id" as any, {
+        _abbrev: tierAbbrev(data.tier),
+      });
       patch.member_id = idRow as unknown as string;
     }
 
