@@ -1,32 +1,54 @@
-## Fix the 3 security findings safely
 
-### 1. `membership_resources` — empty-string tier bypass (fix)
+## Scope
 
-Today the SELECT policy treats `min_tier = ''` the same as `associate`, so if any row is saved with an empty string instead of `NULL`, tier gating leaks. Data check: 0 rows currently use `''`, so the normalization is a no-op on live data.
+Three items from the FAGE analysis doc:
 
-Migration:
-- `UPDATE membership_resources SET min_tier = NULL WHERE min_tier = '';` (defensive; currently 0 rows).
-- Add `CHECK (min_tier IS NULL OR min_tier IN ('associate','standard','corporate'))` so `''` and typos are rejected at write time.
-- Recreate the `Read published resources by tier` policy without the `min_tier = ''` branch. Kept branches: `min_tier IS NULL`, `min_tier = 'associate'`, `user_meets_min_tier(...)`, plus admin/staff bypass. No app code change needed — `ResourcesTabDb` and the admin editor already send `null` when the field is blank.
+1. Role-based access — the 6 roles (admin, finance, ceo, developer, coordinator, superadmin) already exist in `AppRole` and are gated via `/admin/roles` (Phase B). No new role types needed; instead make sure they are all assignable from **User Management** and documented as separate dashboards via the existing `role_permissions` matrix.
+2. Full **Activity Log** upgrade with pagination + filters (by user, by role, by event type, by date range).
+3. Backup page — verify/refresh so any newly-added public tables are captured on the next run.
 
-### 2. `trade_opportunities` — anon read gap (intentional, ignore)
+## 1. Roles: assignability + assignment UI
 
-Trade opportunities are members-only by design (they're surfaced inside the authenticated dashboard, not on public pages). No public route reads them. This is not an oversight, so we'll mark it ignored with that rationale — no schema or code change.
+- In `/admin/users`, ensure the "Add Staff/Admin" role selector lists all 6 roles: `admin`, `superadmin`, `staff`, `finance`, `ceo`, `developer`, `coordinator`. (Members stay separate.)
+- Confirm `/admin/roles` matrix already includes each of these (it does — staff/finance/ceo/coordinator/developer/member columns). Add `superadmin` info row noting "always full access".
+- No new DB changes for the enum — `AppRole` already covers them.
 
-### 3. `blog_reactions` — session_id spoofing (already mitigated, mark fixed)
+## 2. Activity Log — full rebuild at `/admin/activity-log`
 
-The scanner suggested "unique constraint per session_id/news_id pair"; the DB already has `UNIQUE (news_id, session_id, emoji)`, so a single session cannot inflate a single emoji's count. Generating fresh session_ids to add more reactions is a general anti-abuse concern that needs rate limiting, and this backend has no standard rate-limiting primitive yet (documented platform gap). We'll mark this finding as fixed, referencing the existing unique constraint, and skip rate limiting until the platform provides it.
+Backend (`src/lib/activity.functions.ts`):
+- Replace `listActivityLog` with a paginated version returning `{ rows, total }`.
+- Inputs: `page`, `pageSize` (default 25), `event_type?`, `user_id?`, `role?`, `q?` (search email/name), `from?`, `to?` (ISO dates).
+- Join `activities` → `auth.users` (via admin client) → `user_roles` to expose user email + roles, so the UI can filter by role and show who did what.
+- Keep admin-only guard.
 
-### Technical details
+Frontend (`src/routes/admin.activity-log.tsx`):
+- Filters bar: event-type chips, role dropdown, user search (email/name substring), date range (from/to), Reset button.
+- Table columns: When, Event, User (email + role badges), IP, User agent, Detail.
+- Pagination controls (Prev / Next / page X of Y, page-size selector 25/50/100).
+- Persist filter state in URL search params so shares/bookmarks work.
+- Empty + loading states retained.
 
-- One migration:
-  - `UPDATE public.membership_resources SET min_tier = NULL WHERE min_tier = '';`
-  - `ALTER TABLE public.membership_resources ADD CONSTRAINT membership_resources_min_tier_check CHECK (min_tier IS NULL OR min_tier IN ('associate','standard','corporate'));`
-  - `DROP POLICY "Read published resources by tier" ON public.membership_resources;`
-  - Recreate the same policy minus the `min_tier = ''` branch.
-- Scanner tool calls after the migration:
-  - `mark_as_fixed` → `membership_resources_min_tier_empty_string_bypass` (policy tightened + CHECK).
-  - `mark_as_fixed` → `blog_reactions_session_id_client_controlled` (existing UNIQUE covers the scanner's recommendation; rate limiting deferred per platform guidance).
-  - `ignore` → `trade_opportunities_no_admin_all_command_gap` (members-only by design, no public surface reads it).
+Access:
+- Keep visible to admin/superadmin/developer (already gated in sidebar); add `developer` explicitly if missing.
 
-No frontend, RPC, or business-logic changes. Existing dashboards, admin CRUD, blog reactions, and trade-opportunity flows continue to work unchanged.
+Per-user history:
+- Each member/admin already logs `sign_in`, `sign_out`, `password_reset_requested`, etc. via `fireActivity`. Add a small "My activity" section (read-only, last 20 entries) on the member dashboard's Account & Security page so users can see their own documented activities. Server fn `listMyActivity` (auth middleware, own `user_id` only).
+
+## 3. Backup page — capture new tables
+
+Current `admin_list_public_tables()` RPC already returns every base table in `public`, and `backup-runner.server.ts` iterates that list, so newly-added tables (e.g. `chatbot_knowledge`, `backup_destinations`, `role_permissions`, `site_hero_slides`, `site_partner_logos`, `directory_custom_field_defs`) are already picked up.
+
+Actions on `/admin/backup`:
+- Add a "Tables included in next backup" panel that live-queries `admin_list_public_tables()` and lists them with row counts (via `admin_dump_table` length) so the admin can visually confirm coverage.
+- Show a "Last discovered N tables" badge on the schedule card.
+- No schema change required.
+
+## Technical notes
+
+- Types: extend `listActivityLog` return type; update React Query key to include all filters.
+- Route change: `admin.activity-log.tsx` gains `validateSearch` for the filter params.
+- No new migration is strictly required; if we want durable filters on `event_type`, we can add an index on `activities(event_type, created_at desc)` and `activities(user_id, created_at desc)` — recommended for performance.
+
+## Out of scope
+
+- Other doc items already handled in earlier phases (Member ID format, Let's Talk fix, Support/Profile route fix, FAGE Academy/Clothing services, dev-only gating of Plans/Forms/Gateways, chatbot knowledge, map pin).

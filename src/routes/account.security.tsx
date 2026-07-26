@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Mail, Smartphone, ShieldCheck, ShieldOff, Loader2, Copy, Check, ChevronRight } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { KeyRound, Mail, Smartphone, ShieldCheck, ShieldOff, Loader2, Copy, Check, ChevronRight, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { listMyActivity } from "@/lib/activity.functions";
 
 export const Route = createFileRoute("/account/security")({
   head: () => ({ meta: [{ title: "Account & Security" }] }),
@@ -23,7 +25,44 @@ export function SecurityPage({ passwordHref = "/account/change-password" }: { pa
       <PasswordLinkCard href={passwordHref} />
       <EmailCard currentEmail={user?.email ?? ""} />
       <MfaCard />
+      <MyActivityCard />
     </div>
+  );
+}
+
+function MyActivityCard() {
+  const fetcher = useServerFn(listMyActivity);
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetcher({ data: { limit: 20 } })
+      .then((r: any) => setRows(r ?? []))
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false));
+  }, []);
+  return (
+    <Card icon={Activity} title="My recent activity" desc="Last 20 sign-ins and account events logged for your user.">
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No activity yet.</p>
+      ) : (
+        <ul className="divide-y divide-border rounded-lg border border-border bg-background">
+          {rows.map((r) => (
+            <li key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs">
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
+                {r.event_type}
+              </span>
+              <span className="text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
+              {r.ip_address && <span className="text-muted-foreground">· {r.ip_address}</span>}
+              {r.detail && <span className="text-muted-foreground truncate">· {r.detail}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
 

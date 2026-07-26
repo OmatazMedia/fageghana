@@ -25,13 +25,23 @@ export const Route = createFileRoute("/admin/users")({
 
 const ROLE_LABEL: Record<AdminUserRow["role"], string> = {
   admin: "Admin",
+  superadmin: "Superadmin",
   staff: "Staff",
   moderator: "Moderator",
+  finance: "Finance",
+  ceo: "CEO",
+  developer: "Developer",
+  coordinator: "Coordinator",
 };
 const ROLE_COLOR: Record<AdminUserRow["role"], string> = {
   admin: "bg-primary/15 text-primary",
+  superadmin: "bg-fuchsia-500/15 text-fuchsia-700",
   staff: "bg-blue-500/15 text-blue-600",
   moderator: "bg-amber-500/15 text-amber-700",
+  finance: "bg-emerald-500/15 text-emerald-700",
+  ceo: "bg-indigo-500/15 text-indigo-700",
+  developer: "bg-slate-500/15 text-slate-700",
+  coordinator: "bg-teal-500/15 text-teal-700",
 };
 
 function UsersPage() {
@@ -366,10 +376,15 @@ function CreateUserModal({
             <input name="email" type="email" required className={inputCls} />
           </FormField>
         </div>
-        <FormField label="Role" hint="Admin: full access · Staff: manage members · Moderator: manage content">
+        <FormField label="Role" hint="Admin/Superadmin: full access · Staff/Finance/CEO/Coordinator/Developer: gated per role permissions matrix">
           <select name="role" required defaultValue="staff" className={inputCls}>
             <option value="admin">Admin (full access)</option>
+            <option value="superadmin">Superadmin (full access)</option>
             <option value="staff">Staff (member management)</option>
+            <option value="finance">Finance</option>
+            <option value="ceo">CEO</option>
+            <option value="coordinator">Project Coordinator</option>
+            <option value="developer">Developer</option>
             <option value="moderator">Moderator (content only)</option>
           </select>
         </FormField>
@@ -437,7 +452,12 @@ function RoleModal({
         <FormField label="New role">
           <select name="role" defaultValue={user.role} className={inputCls}>
             <option value="admin">Admin (full access)</option>
+            <option value="superadmin">Superadmin (full access)</option>
             <option value="staff">Staff (member management)</option>
+            <option value="finance">Finance</option>
+            <option value="ceo">CEO</option>
+            <option value="coordinator">Project Coordinator</option>
+            <option value="developer">Developer</option>
             <option value="moderator">Moderator (content only)</option>
           </select>
         </FormField>

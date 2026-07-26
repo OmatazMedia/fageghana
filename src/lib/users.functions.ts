@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const roleEnum = z.enum(["admin", "staff", "moderator"]);
+const roleEnum = z.enum(["admin", "superadmin", "staff", "moderator", "finance", "ceo", "developer", "coordinator"]);
 
 async function assertAdmin(context: any) {
   const { data: roleRow } = await context.supabase
@@ -19,7 +19,7 @@ export type AdminUserRow = {
   user_id: string;
   email: string;
   full_name: string;
-  role: "admin" | "staff" | "moderator";
+  role: "admin" | "superadmin" | "staff" | "moderator" | "finance" | "ceo" | "developer" | "coordinator";
   created_at: string;
 };
 
@@ -31,7 +31,7 @@ export const listAdminUsers = createServerFn({ method: "POST" })
     const { data: roles, error: rErr } = await supabaseAdmin
       .from("user_roles")
       .select("user_id, role, created_at")
-      .in("role", ["admin", "staff", "moderator"]);
+      .in("role", ["admin", "superadmin", "staff", "moderator", "finance", "ceo", "developer", "coordinator"]);
     if (rErr) throw new Error(rErr.message);
 
     const users: AdminUserRow[] = [];
