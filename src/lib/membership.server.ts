@@ -177,8 +177,8 @@ export async function finalizePaymentConfirmation(submissionId: string): Promise
 
   if (!existing) {
     // brand-new profile
-    const { data: idRow } = await supabaseAdmin.rpc("generate_member_id", {
-      _tier: planTier ?? "associate",
+    const { data: idRow } = await supabaseAdmin.rpc("generate_structured_member_id" as any, {
+      _abbrev: tierAbbrev(planTier ?? "associate"),
     });
     const memberId = (idRow as unknown as string) ?? null;
     let email = "";
