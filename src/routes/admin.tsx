@@ -345,7 +345,11 @@ function AdminLayout() {
 
 /* ── Overview ─────────────────────────────────────────────────────────── */
 function AdminOverview() {
-  const { user } = useAuth();
+  const { user, hasAnyRole } = useAuth();
+  const canFinance = hasAnyRole(["admin", "superadmin", "finance", "ceo"]);
+  const canCerts = hasAnyRole(["admin", "superadmin", "coordinator"]);
+  const canContent = hasAnyRole(["admin", "superadmin", "staff"]);
+  const canDev = hasAnyRole(["admin", "superadmin", "developer"]);
   const [stats, setStats] = useState({
     members: 0,
     active: 0,
