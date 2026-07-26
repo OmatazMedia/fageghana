@@ -143,7 +143,7 @@ function WhoWeArePage() {
       <PageHero
         eyebrow="About FAGE"
         title="Who we are"
-        imageUrl="https://images.unsplash.com/photo-1595841696677-6489ff3f8cd1?q=80&w=2070&auto=format&fit=crop"
+        imageUrl={whoWeAreHero}
       />
 
       {/* ── Our Story ── */}
