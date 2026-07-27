@@ -1,59 +1,111 @@
-# Status vs. FAGE_WEBSITE_ANALYSIS.docx
 
-Most items from the doc have been addressed in earlier turns. Below is a checklist of what's done and what still remains.
+## Goals
 
-## Already done ✅
+1. Make `menu` and `exit` behave as reliable in-chat commands with confirmation UX.
+2. Collect end-of-chat feedback (thumbs up/down + optional star rating + comment).
+3. Give admins a way to review feedback so they can spot gaps in the knowledge base / acknowledgement page.
 
-- Readiness tab — weight tooltips + display-order controls
-- User Management — "Add staff / admin" on Users page; Bulk invite (CSV) lives on Members page
-- Account & Security vs Change Password — split into separate routes (member + admin)
-- Support & Profile admin links — pointed at `/admin/*` routes
-- Plans, Form builder, Gateways, Email settings/templates — gated to developer/superadmin
-- Member ID format `FAGE/{ABBR}/{YEAR4}/{SEQ5}` (AS/CR/SB)
-- Role-based access — admin, finance, CEO, developer, coordinator, superadmin with permission matrix
-- Google Map — FAGE pin
-- Header "Let's Talk" → `/contact`
-- FAGE Academy + Clothing & Textile added to Services
-- Developer credit removed from footer
-- Chatbot knowledge base + ticket fallback
+---
 
-## Still outstanding ❌
+## 1. Command handling (`src/components/site/ChatWidget.tsx`)
 
-### 1. Issued Certificates — "Verify" column button
+Rework the input handler in `onSend()` so commands are detected against the whole trimmed message, not just as substrings.
 
-Doc says clicking Verify from the cert row and typing name/ID/company returns "Data not found." The row link goes to `/verify/$code` which expects the certificate verification code, not the member fields — but the search side of `/verify` uses `public_search_members` which may be filtering out records that lack a published directory entry. Need to (a) confirm the row-level "Verify" button jumps straight to the certificate result (skip the search UI), and (b) fix `public_search_members` so any approved member with a member_id/company/name is findable regardless of directory entry status.
+- **`exit` as a single word** (case-insensitive, with or without punctuation) at any point → immediately run `handleExit()` (existing flow), regardless of `mode` (including mid-`leave-msg` and mid-`ask`). Confirm to user: "Ending our chat — thanks for stopping by 👋" then close + reset.
+- **`menu` as a single word** at any point →
+  - If `mode === "menu"` and last state was idle: just re-show `QUICK_MENU`.
+  - Otherwise (mid-conversation, mid-ask, mid-leave-msg): pause the current flow and ask: *"You've asked to return to the main menu. Do you want to end this conversation and go back to the menu?"* with Yes / No quick replies.
+    - **Yes** → clear pending flow state (leave form, ask mode), show `QUICK_MENU`, set `mode="menu"`.
+    - **No** → repeat the last bot message verbatim (look up the last `from: "bot"` entry in `msgs`) and restore the prior `mode` (stored before the confirmation).
+- Keep the existing loose `isExitIntent` behavior for polite goodbyes ("thanks", "bye"), but the strict single-word `exit` always terminates.
+- Menu/exit words that appear as part of a longer sentence (e.g. "My name is Menu Adjei") are ignored — checked via `text.trim().toLowerCase() === "menu" | "exit"`.
 
-### 2. Certificate review — "Back to dashboard" button
+State additions:
+- `pendingMenuConfirm: { prevMode: Mode; lastBotText: string } | null` to drive the confirmation branch.
 
-`certificate.$id.tsx` already branches on `isAdminUser`, but the button label still reads "Back to dashboard" for admins. Rename to "Back to Issued Certificates" (and keep the `/admin/cert-issued` href) so it's unambiguous.
+## 2. End-of-chat feedback
 
-### 3. Backup & Restore — redundant local CSV
+Trigger points:
+- After `handleExit()` (before closing), inject a feedback step instead of closing immediately.
+- Also offer a "Was this helpful?" prompt after each `askAI` reply (thumbs up/down inline under the bot bubble — small, non-intrusive).
 
-Currently the manual/scheduled runs produce a ZIP (JSON per table). Doc asks for a redundant **CSV** artifact on the machine that initiated the backup. Add a per-table CSV export alongside the ZIP: the manual "Download backup" action produces a `.zip` containing both `*.json` and `*.csv` for every table, and scheduled runs attach the same bundle to the Google Drive upload.  
-  
-you can leave the zip but add an email to recieve the copy of the backups in the email added by the admin.
+Feedback UI:
+- Thumbs up 👍 / thumbs down 👎 quick actions.
+- If 👎 → prompt "Sorry about that. What were you looking for?" — capture free-text comment.
+- On chat close, a compact 1–5 star rating + optional comment.
 
-### 4. Activity log — IP address, device, event details
+Persist to a new table `chatbot_feedback`:
 
-The `activities` table had `ip_address`, `user_agent`, and `event_type` dropped for a security finding, but the doc explicitly requires IP + device + event type visible on the developer dashboard. Re-introduce those columns on a **separate** admin-only table (`activity_audit`) with RLS locked to `developer`/`superadmin` only (never exposed to `authenticated`), and log auth events (login, password reset, profile changes) into it. Surface it on `/admin/activity-log` behind a developer-only tab.
+```text
+chatbot_feedback
+  id uuid pk
+  kind text check in ('reply','session')   -- inline reply feedback vs end-of-session
+  helpful boolean null                     -- for kind='reply'
+  rating int null check between 1 and 5    -- for kind='session'
+  comment text null
+  question text null                       -- the user question that prompted a 'reply' feedback
+  bot_reply text null                      -- the bot answer being rated
+  transcript jsonb null                    -- full msgs array for 'session' feedback
+  session_id text not null                 -- random per-widget-session id in sessionStorage
+  user_id uuid null                        -- if logged in
+  page_url text
+  created_at timestamptz default now()
+```
 
-### 5. Hero "Let's Talk"/CTA button link ordering
+RLS + grants:
+- Anon + authenticated: `INSERT` allowed (widget is public).
+- Only admin / superadmin / staff / developer: `SELECT`.
+- `GRANT INSERT ON public.chatbot_feedback TO anon, authenticated;`
+- `GRANT SELECT ON public.chatbot_feedback TO authenticated;` (RLS gates by role).
+- `GRANT ALL ON public.chatbot_feedback TO service_role;`
 
-The homepage hero button now honors `cta_href`, but the doc's original complaint was that slides load in the wrong order on first paint. Confirm slides are queried `order by display_order asc nulls last` and that the first paint uses index 0 of that ordered array (no state race). leave the lets talk t the contact page.
+Widget inserts directly via the anon supabase client.
 
-when the certificate "Verify" is clicked from the admin dashboard, it loads link like this "/verify/FAGE-SB-0026-00001-2FB594" but does not show the details for the certificate to be verified, but shows the page "/verify" waiting for the user to still enter the details. its ment to skip all of that and show the details for the certificate to be verified. fix that
+## 3. Knowledge base coverage (Acknowledgement content)
 
-## Technical notes
+The chatbot already composes its system prompt from `chatbot_knowledge` (see `/api/chat`). To make it answer acknowledgement-page questions:
+- Add one or more seeded rows to `chatbot_knowledge` (`section = "Acknowledgement"`, content = the acknowledgement page copy — I'll pull the visible text from the current acknowledgement route as the seed).
+- No code change needed beyond the seed; admins can then edit at `/admin/chatbot`.
 
-- **CSV export**: use `PapaParse` (already in tree if not, add it) inside `backup-runner.server.ts`; write both `table.json` and `table.csv` into the same ZIP.
-- **activity_audit table**: `id uuid pk, user_id uuid, event_type text, ip inet, user_agent text, meta jsonb, created_at timestamptz`. Grants: `service_role` only; RLS policy `select` for `has_role(auth.uid(),'developer') OR has_role(auth.uid(),'superadmin')`. Populate from a lightweight server-fn `logAuditEvent` called from auth flows.
-- **verify search RPC**: change `public_search_members` to search `member_profiles` by `member_id/company_name/contact_name/email` where `status='approved'` (drop the join to `directory_entries`).
-- **cert row Verify button**: it already links to `/verify/$code`; keep as-is but ensure `verify_certificate` returns rows even when subscription is expired (doc's "displays Data not found" hints the RPC filters those out).
+## 4. Admin: Feedback dashboard
 
-## Suggested build order
+New route: `src/routes/admin.chatbot-feedback.tsx`
 
-1. Verify RPC + row-Verify + certificate back-button label (small, one migration + two edits)
-2. Redundant CSV in backup ZIP
-3. `activity_audit` table + developer-only tab
+- Sidebar link under "Content" (or next to "Chatbot Knowledge"), gated to admin / superadmin / developer / staff.
+- Tabs / filters:
+  - **Unhelpful replies** — rows where `kind='reply' AND helpful=false`, showing question, bot reply, optional comment, date. Sortable, paginated. Highlights knowledge-base gaps.
+  - **Session ratings** — rows where `kind='session'`, showing stars, comment, transcript preview (expandable).
+  - **All feedback** — combined.
+- Simple stats header: total responses, % helpful, avg star rating (last 30 days).
+- Optional: "Add to knowledge base" quick action on an unhelpful row → opens `/admin/chatbot` with a prefilled draft (nice-to-have; skip if scope tight).
 
-Confirm and I'll execute in that order.
+## 5. Small touches
+
+- Update the input placeholder to keep the current hint: *"Type a message, 'menu' for options, or 'exit' to close."* — already present, verify.
+- After the menu confirmation "No" branch, re-issue the exact prior bot prompt so the user doesn't lose flow.
+
+---
+
+## Answer to your question
+
+> "Would there be need to see the reaction of feedbacks in the dashboard?"
+
+**Yes — strongly recommended.** Two payoffs:
+1. **Unhelpful answers become a to-do list**: every 👎 with the user's question tells you exactly which topic to add to the Chatbot Knowledge Base (or to the acknowledgement page). Without this visibility, gaps stay invisible.
+2. **Star ratings + comments** give a qualitative pulse — you'll see if the widget is delighting or frustrating people, and can act before users escalate to WhatsApp or email.
+
+Keeping it lightweight (just an admin table + filters) is enough — no need for charts unless you want them later.
+
+## Files touched
+
+- `src/components/site/ChatWidget.tsx` — command handling, feedback UI hooks
+- `src/routes/admin.chatbot-feedback.tsx` — new admin page
+- `src/routes/admin.tsx` — sidebar entry + gate
+- Migration: `chatbot_feedback` table + RLS + grants
+- Seed: acknowledgement content into `chatbot_knowledge`
+
+## Out of scope
+
+- Rewriting the acknowledgement page itself.
+- Emailing admins when unhelpful feedback lands (can add later via a trigger + edge function if desired).
+- Analytics dashboards / charts.
