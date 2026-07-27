@@ -269,10 +269,11 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     text: string,
     quickReplies?: { label: string; action: string }[],
     link?: { to: string; label: string },
+    extra?: Partial<Msg>,
   ) {
     setMsgs((m) => [
       ...m,
-      { id: generateId(), from: "bot", text, quickReplies, link, ts: Date.now() },
+      { id: generateId(), from: "bot", text, quickReplies, link, ts: Date.now(), ...extra },
     ]);
   }
   function addUser(text: string) {
@@ -297,27 +298,94 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     return EXIT_WORDS.some((w) => t === w || t.startsWith(w + " ") || t.endsWith(" " + w));
   }
 
-  async function handleExit() {
-    setTyping(true);
-    await delayMs(800);
-    setTyping(false);
-    addBot(
-      "Thank you for chatting with us today! 🙏 We hope we were helpful. Have a wonderful day — goodbye! 👋",
-    );
-    if (idleTimer.current) clearTimeout(idleTimer.current);
-    setTimeout(() => {
-      setOpen(false);
-      setTimeout(() => {
-        setMsgs([]);
-        greetedRef.current = false;
-        idleMenuSentRef.current = false;
-        setMode("menu");
-        sessionStorage.removeItem("fage_chat_msgs");
-        sessionStorage.removeItem("fage_chat_mode");
-        sessionStorage.removeItem("fage_chat_pinged");
-      }, 500);
-    }, 2500);
+  function isStrictCommand(text: string, cmd: string) {
+    return text.trim().toLowerCase().replace(/[.!?]+$/, "") === cmd;
   }
+  function isAffirmative(text: string) {
+    const t = text.trim().toLowerCase().replace(/[.!?]+$/, "");
+    return ["yes", "y", "yeah", "yep", "sure", "ok", "okay"].includes(t);
+  }
+  function isNegative(text: string) {
+    const t = text.trim().toLowerCase().replace(/[.!?]+$/, "");
+    return ["no", "n", "nope", "nah"].includes(t);
+  }
+
+  function lastBotText(): string {
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].from === "bot" && msgs[i].text) return msgs[i].text!;
+    }
+    return "";
+  }
+
+  async function submitFeedback(payload: {
+    kind: "reply" | "session";
+    helpful?: boolean;
+    rating?: number;
+    comment?: string;
+    question?: string;
+    bot_reply?: string;
+    transcript?: any;
+  }) {
+    try {
+      await supabase.from("chatbot_feedback" as any).insert({
+        session_id: sessionIdRef.current || "unknown",
+        page_url: typeof window !== "undefined" ? window.location.href : null,
+        ...payload,
+      });
+    } catch {
+      /* silent */
+    }
+  }
+
+  function handleReplyThumb(msgId: string, up: boolean, question: string, answer: string) {
+    setMsgs((m) => m.map((x) => (x.id === msgId ? { ...x, feedback: { ...(x.feedback ?? { question, answer }), submitted: up ? "up" : "down" } } : x)));
+    if (up) {
+      submitFeedback({ kind: "reply", helpful: true, question, bot_reply: answer });
+      botReply("Glad that helped! 🙌", undefined, undefined, 400);
+    } else {
+      submitFeedback({ kind: "reply", helpful: false, question, bot_reply: answer });
+      setPendingDownVote({ question, answer });
+      setMode("await-comment");
+      botReply("Sorry about that. What were you hoping to find? (or type 'skip' to move on)", undefined, undefined, 400);
+    }
+  }
+
+  async function startExitFlow() {
+    setTyping(true);
+    await delayMs(600);
+    setTyping(false);
+    addBot("Before you go — how would you rate this chat?", undefined, undefined, { ratingStep: true });
+    setMode("await-rating-comment");
+  }
+
+  function finalizeClose() {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    setOpen(false);
+    setTimeout(() => {
+      setMsgs([]);
+      greetedRef.current = false;
+      idleMenuSentRef.current = false;
+      setMode("menu");
+      setPendingMenu(null);
+      setPendingDownVote(null);
+      setPendingRating(null);
+      sessionStorage.removeItem("fage_chat_msgs");
+      sessionStorage.removeItem("fage_chat_mode");
+      sessionStorage.removeItem("fage_chat_pinged");
+      sessionStorage.removeItem("fage_chat_sid");
+    }, 500);
+  }
+
+  async function handleRating(stars: number) {
+    setPendingRating(stars);
+    setMsgs((m) => m.map((x) => (x.ratingStep ? { ...x, ratingStep: false, text: `You rated this chat ${stars}/5 ⭐` } : x)));
+    await botReply("Thanks! Any comment to help us improve? (or type 'skip')", undefined, undefined, 400);
+  }
+
+  async function handleExit() {
+    await startExitFlow();
+  }
+
 
   async function handleAction(action: string, label?: string) {
     addUser(label ?? action);
