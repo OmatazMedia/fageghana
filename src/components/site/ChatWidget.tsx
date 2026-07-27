@@ -820,6 +820,44 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
                       ))}
                     </div>
                   )}
+                  {m.from === "bot" && m.feedback && !m.feedback.submitted && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Was this helpful?</span>
+                      <button
+                        onClick={() => handleReplyThumb(m.id, true, m.feedback!.question, m.feedback!.answer)}
+                        aria-label="Helpful"
+                        className="rounded-full p-1 hover:bg-emerald-100 hover:text-emerald-700 transition"
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleReplyThumb(m.id, false, m.feedback!.question, m.feedback!.answer)}
+                        aria-label="Not helpful"
+                        className="rounded-full p-1 hover:bg-red-100 hover:text-red-700 transition"
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  {m.from === "bot" && m.feedback?.submitted && (
+                    <div className="mt-1.5 text-[11px] text-muted-foreground">
+                      {m.feedback.submitted === "up" ? "👍 Thanks!" : "👎 Noted — thanks for the feedback."}
+                    </div>
+                  )}
+                  {m.from === "bot" && m.ratingStep && (
+                    <div className="mt-2 flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => handleRating(n)}
+                          aria-label={`Rate ${n} stars`}
+                          className="p-1 text-amber-500 hover:scale-110 transition"
+                        >
+                          <Star className="w-5 h-5 fill-current" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
