@@ -474,6 +474,84 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     if (!text) return;
     setInput("");
 
+    // Strict single-word 'exit' terminates at any point.
+    if (isStrictCommand(text, "exit")) {
+      addUser(text);
+      await handleExit();
+      return;
+    }
+
+    // Strict single-word 'menu' — confirm if mid-flow.
+    if (isStrictCommand(text, "menu")) {
+      addUser(text);
+      if (mode === "menu") {
+        await botReply("Here's the main menu:", QUICK_MENU);
+        return;
+      }
+      const prev = lastBotText();
+      setPendingMenu({ prevMode: mode, lastBot: prev });
+      await botReply(
+        "You've asked to return to the main menu. Do you want to end this conversation and go back to the menu?",
+        [
+          { label: "Yes, go to menu", action: "__menu_yes" },
+          { label: "No, continue", action: "__menu_no" },
+        ],
+      );
+      return;
+    }
+
+    // Answering the menu confirmation via typed text.
+    if (pendingMenu) {
+      addUser(text);
+      if (isAffirmative(text)) {
+        await confirmMenuYes();
+        return;
+      }
+      if (isNegative(text)) {
+        await confirmMenuNo();
+        return;
+      }
+      // Ambiguous — treat as continuation: clear pending and let normal flow handle it.
+      setPendingMenu(null);
+    }
+
+    // Down-vote follow-up comment.
+    if (mode === "await-comment") {
+      addUser(text);
+      const skip = text.trim().toLowerCase() === "skip";
+      if (!skip && pendingDownVote) {
+        await submitFeedback({
+          kind: "reply",
+          helpful: false,
+          comment: text,
+          question: pendingDownVote.question,
+          bot_reply: pendingDownVote.answer,
+        });
+      }
+      setPendingDownVote(null);
+      await botReply("Thanks — your feedback helps us improve. What else can I help with?", QUICK_MENU);
+      setMode("menu");
+      return;
+    }
+
+    // End-of-chat rating comment.
+    if (mode === "await-rating-comment") {
+      addUser(text);
+      const skip = text.trim().toLowerCase() === "skip";
+      await submitFeedback({
+        kind: "session",
+        rating: pendingRating ?? undefined,
+        comment: skip ? undefined : text,
+        transcript: msgs.map((m) => ({ from: m.from, text: m.text, ts: m.ts })),
+      });
+      setTyping(true);
+      await delayMs(500);
+      setTyping(false);
+      addBot("Thanks for chatting with us today! 🙏 Have a wonderful day — goodbye! 👋");
+      setTimeout(finalizeClose, 2000);
+      return;
+    }
+
     if (isExitIntent(text)) {
       addUser(text);
       await handleExit();
@@ -548,16 +626,29 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       }
     }
 
-    if (text.toLowerCase() === "menu") {
-      addUser(text);
-      await botReply("Here's the main menu:", QUICK_MENU);
-      setMode("menu");
-      return;
-    }
-
     // Free-form question → route to FAGE AI assistant.
     addUser(text);
+    lastQuestionRef.current = text;
     await askAI(text);
+  }
+
+  async function confirmMenuYes() {
+    setPendingMenu(null);
+    setPendingDownVote(null);
+    setLeave({ step: "name", name: "", phone: "", email: "", message: "" });
+    await botReply("Back to the main menu — what would you like to do?", QUICK_MENU);
+    setMode("menu");
+  }
+
+  async function confirmMenuNo() {
+    const restore = pendingMenu;
+    setPendingMenu(null);
+    if (restore?.lastBot) {
+      await botReply(restore.lastBot);
+    } else {
+      await botReply("Okay, let's continue.");
+    }
+    if (restore) setMode(restore.prevMode);
   }
 
   async function askAI(question: string) {
@@ -574,7 +665,13 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       });
       if (!res.ok) throw new Error(await res.text());
       const data = (await res.json()) as { reply: string; escalated?: boolean };
-      addBot(data.reply, data.escalated ? QUICK_MENU : undefined);
+      // Attach inline feedback to the AI reply so the user can rate this specific answer.
+      addBot(
+        data.reply,
+        data.escalated ? QUICK_MENU : undefined,
+        undefined,
+        data.escalated ? undefined : { feedback: { question, answer: data.reply } },
+      );
       setMode(data.escalated ? "menu" : "ask");
     } catch {
       addBot(
@@ -584,6 +681,7 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       setMode("menu");
     }
   }
+
 
   function backToMenu() {
     addBot("Main menu — what would you like to do?", QUICK_MENU);
