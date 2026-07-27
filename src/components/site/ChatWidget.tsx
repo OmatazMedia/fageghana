@@ -115,6 +115,98 @@ function buildTranscript(msgs: Msg[]) {
   return `Hello FAGE Team — I was chatting on your website and would like to continue here.\n\n--- Chat Transcript ---\n${lines}\n--- End ---`;
 }
 
+/* ── Local knowledge-base keyword matcher ─────────────────────────────
+   Rather than always hitting the AI endpoint, first try to answer from
+   the admin-maintained chatbot_knowledge sections. This makes replies
+   instant and topic-accurate; the AI is used only as a fallback. */
+type KbRow = { section: string; content: string; display_order: number };
+
+const STOPWORDS = new Set([
+  "the","a","an","of","is","are","was","were","be","been","being","and","or",
+  "to","for","in","on","at","by","with","about","from","as","that","this",
+  "these","those","it","its","i","you","he","she","we","they","me","my","your",
+  "our","us","them","do","does","did","done","have","has","had","can","could",
+  "would","should","will","shall","may","might","if","then","so","not","no",
+  "yes","what","how","who","where","when","why","which","whose","whom","please",
+  "kindly","hi","hello","hey","tell","know","want","need","get","give","show",
+  "there","here","much","many","any","some","all","just","also","too","been",
+]);
+
+// Question keyword → knowledge section title fragment.
+// The value is matched (case-insensitive substring) against KB `section`.
+const SYNONYMS: Record<string, string> = {
+  join: "member", register: "member", signup: "member", "sign up": "member",
+  enroll: "member", apply: "member", application: "member",
+  cost: "tier", price: "tier", fee: "tier", fees: "tier", pricing: "tier",
+  plan: "tier", plans: "tier", subscription: "tier",
+  call: "contact", phone: "contact", email: "contact", office: "contact",
+  address: "contact", reach: "contact", location: "contact", whatsapp: "contact",
+  training: "academy", course: "academy", courses: "academy", learn: "academy",
+  workshop: "academy", seminar: "academy",
+  event: "event", events: "event",
+  news: "news", blog: "news", article: "news",
+  export: "service", exporting: "service", trade: "service", buyer: "service",
+  market: "service", matchmaking: "service", advocacy: "service",
+  verify: "verify", verification: "verify", certificate: "verify",
+  who: "about", what: "about", "who are you": "about",
+};
+
+function tokenize(s: string): string[] {
+  return s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 1 && !STOPWORDS.has(t));
+}
+
+function matchKnowledge(
+  question: string,
+  rows: KbRow[],
+): { top: KbRow; related: KbRow[] } | null {
+  if (!rows.length) return null;
+  const rawLower = question.toLowerCase();
+  const tokens = tokenize(question);
+  if (tokens.length === 0) return null;
+
+  // Expand tokens with synonym hints — synonym hits count as title matches.
+  const synHints: string[] = [];
+  for (const [k, v] of Object.entries(SYNONYMS)) {
+    if (rawLower.includes(k)) synHints.push(v);
+  }
+
+  const scored = rows.map((r) => {
+    const title = r.section.toLowerCase();
+    const body = r.content.toLowerCase();
+    let score = 0;
+    let titleHits = 0;
+    for (const t of tokens) {
+      if (title.includes(t)) { score += 3; titleHits++; }
+      else if (body.includes(t)) { score += 1; }
+    }
+    for (const h of synHints) {
+      if (title.includes(h)) { score += 3; titleHits++; }
+      else if (body.includes(h)) { score += 1; }
+    }
+    return { row: r, score, titleHits };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  const best = scored[0];
+  if (!best || best.score < 3) return null;
+  // Require at least a title hit OR 2 body-token matches
+  if (best.titleHits === 0 && best.score < 4) return null;
+
+  const threshold = best.score * 0.85;
+  const related = scored
+    .slice(1)
+    .filter((s) => s.score >= threshold && s.score >= 3)
+    .slice(0, 2)
+    .map((s) => s.row);
+
+  return { top: best.row, related };
+}
+
+
 export function ChatWidget({ raised }: { raised?: boolean }) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -151,6 +243,24 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
   const idleMenuSentRef = useRef(false);
   const sessionIdRef = useRef<string>("");
   const lastQuestionRef = useRef<string>("");
+  const kbRef = useRef<KbRow[]>([]);
+  const kbLoadedRef = useRef(false);
+
+  async function loadKb() {
+    if (kbLoadedRef.current) return;
+    kbLoadedRef.current = true;
+    try {
+      const { data } = await supabase
+        .from("chatbot_knowledge" as any)
+        .select("section, content, display_order")
+        .eq("enabled", true)
+        .order("display_order", { ascending: true });
+      kbRef.current = ((data as any) ?? []) as KbRow[];
+    } catch {
+      /* leave empty — falls back to AI */
+    }
+  }
+
 
 
   const generateId = () => {
@@ -222,6 +332,7 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       clearInterval(danceTimer.current);
       danceTimer.current = null;
     }
+    void loadKb();
   }
 
   /* ── Greeting on first open ── */
@@ -666,6 +777,26 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
   }
 
   async function askAI(question: string) {
+    // 1) Try the local knowledge base first — instant, on-topic replies
+    //    without the transferring animation.
+    await loadKb();
+    const match = matchKnowledge(question, kbRef.current);
+    if (match) {
+      setTyping(true);
+      await delayMs(600);
+      setTyping(false);
+      const relatedLine = match.related.length
+        ? `\n\n_Related:_ ${match.related.map((r) => `**${r.section}**`).join(", ")}`
+        : "";
+      const reply = `${match.top.content.trim()}${relatedLine}\n\n_I'm a bot and can make mistakes — please verify important details with our team._`;
+      addBot(reply, undefined, undefined, {
+        feedback: { question, answer: `[KB: ${match.top.section}] ${match.top.content}` },
+      });
+      setMode("ask");
+      return;
+    }
+
+    // 2) Fall back to the AI assistant.
     setMode("sending");
     try {
       const history = [...msgs, { id: "x", from: "user" as const, text: question, ts: Date.now() }]
@@ -679,9 +810,9 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       });
       if (!res.ok) throw new Error(await res.text());
       const data = (await res.json()) as { reply: string; escalated?: boolean };
-      // Attach inline feedback to the AI reply so the user can rate this specific answer.
+      const reply = `${data.reply}\n\n_I'm a bot and can make mistakes — please verify important details with our team._`;
       addBot(
-        data.reply,
+        reply,
         data.escalated ? QUICK_MENU : undefined,
         undefined,
         data.escalated ? undefined : { feedback: { question, answer: data.reply } },
@@ -695,6 +826,7 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       setMode("menu");
     }
   }
+
 
 
   function backToMenu() {
