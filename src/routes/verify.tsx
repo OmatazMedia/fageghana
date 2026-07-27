@@ -58,16 +58,16 @@ function StatusBadge({ expiry }: { expiry: string | null }) {
 
 function VerifyMemberPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (pathname.replace(/\/$/, "") !== "/verify") {
-    return <Outlet />;
-  }
-
   const [mode, setMode] = useState<SearchMode>("member");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [members, setMembers] = useState<MemberResult[]>([]);
   const [certResult, setCertResult] = useState<any | null | "not_found">(null);
+
+  if (pathname.replace(/\/$/, "") !== "/verify") {
+    return <Outlet />;
+  }
 
   async function searchMember(e: React.FormEvent) {
     e.preventDefault();
