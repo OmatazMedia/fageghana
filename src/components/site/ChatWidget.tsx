@@ -140,12 +140,18 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     email: string;
     message: string;
   }>({ step: "name", name: "", phone: "", email: "", message: "" });
+  const [pendingMenu, setPendingMenu] = useState<{ prevMode: Mode; lastBot: string } | null>(null);
+  const [pendingDownVote, setPendingDownVote] = useState<{ question: string; answer: string } | null>(null);
+  const [pendingRating, setPendingRating] = useState<number | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const danceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const greetedRef = useRef(false);
   const idleMenuSentRef = useRef(false);
+  const sessionIdRef = useRef<string>("");
+  const lastQuestionRef = useRef<string>("");
+
 
   const generateId = () => {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
