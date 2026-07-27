@@ -332,6 +332,7 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       clearInterval(danceTimer.current);
       danceTimer.current = null;
     }
+    void loadKb();
   }
 
   /* ── Greeting on first open ── */
