@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import {
   Newspaper,
