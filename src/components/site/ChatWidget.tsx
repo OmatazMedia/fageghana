@@ -728,28 +728,75 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       addUser(text);
       const s = leave.step;
       if (s === "name") {
-        setLeave({ ...leave, name: text, step: "phone" });
-        await botReply("Thanks! What's the best phone number to reach you?");
+        if (!isValidName(text)) {
+          await botReply(
+            "Please enter your name using letters only (at least 2 characters). What's your name?",
+          );
+          return;
+        }
+        const cleaned = text.trim().replace(/\s+/g, " ");
+        setLeave({ ...leave, name: cleaned, step: "confirm-name" });
+        await botReply(
+          `Just to confirm, is your name **${cleaned}**?`,
+          [
+            { label: "Yes, that's me", action: "__leave_name_yes" },
+            { label: "No, re-enter", action: "__leave_name_no" },
+          ],
+        );
+        return;
+      }
+      if (s === "confirm-name") {
+        // Also accept typed yes/no
+        if (isAffirmative(text)) {
+          await handleAction("__leave_name_yes", "Yes");
+          return;
+        }
+        if (isNegative(text)) {
+          await handleAction("__leave_name_no", "No");
+          return;
+        }
+        await botReply(
+          `Please tap **Yes** or **No** — is your name "${leave.name}"?`,
+          [
+            { label: "Yes, that's me", action: "__leave_name_yes" },
+            { label: "No, re-enter", action: "__leave_name_no" },
+          ],
+        );
         return;
       }
       if (s === "phone") {
-        setLeave({ ...leave, phone: text, step: "email" });
-        await botReply("Got it. And your email address?");
+        const normalized = normalizeGhanaPhone(text);
+        if (!normalized) {
+          await botReply(
+            "That doesn't look like a valid Ghana phone number. Please use **+233 24 123 4567** or **024 123 4567**.",
+          );
+          return;
+        }
+        setLeave({ ...leave, phone: normalized, step: "email" });
+        await botReply(`Thanks, ${leave.name.split(" ")[0]}. What's your email address?`);
         return;
       }
       if (s === "email") {
-        if (!EMAIL_RE.test(text)) {
+        const email = text.trim().toLowerCase();
+        if (!EMAIL_RE.test(email) || email.length > 255) {
           await botReply(
             "That doesn't look like a valid email. Please try again (e.g. you@example.com).",
           );
           return;
         }
-        setLeave({ ...leave, email: text, step: "message" });
+        setLeave({ ...leave, email, step: "message" });
         await botReply("Perfect. Now, what's your message?");
         return;
       }
       if (s === "message") {
-        const payload = { ...leave, message: text };
+        const trimmed = text.trim();
+        if (trimmed.length < 3 || trimmed.length > 2000) {
+          await botReply(
+            "Please share a bit more (3–2000 characters). What's your message?",
+          );
+          return;
+        }
+        const payload = { ...leave, message: trimmed };
         setLeave({ ...payload, step: "done" });
         setMode("sending");
         await botReply("Sending your message…");
