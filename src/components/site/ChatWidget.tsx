@@ -244,7 +244,7 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState("");
   const [leave, setLeave] = useState<{
-    step: "name" | "phone" | "email" | "message" | "done";
+    step: "name" | "confirm-name" | "phone" | "email" | "message" | "done";
     name: string;
     phone: string;
     email: string;
