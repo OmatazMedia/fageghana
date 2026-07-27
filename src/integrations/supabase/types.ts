@@ -466,6 +466,51 @@ export type Database = {
           },
         ]
       }
+      chatbot_feedback: {
+        Row: {
+          bot_reply: string | null
+          comment: string | null
+          created_at: string
+          helpful: boolean | null
+          id: string
+          kind: string
+          page_url: string | null
+          question: string | null
+          rating: number | null
+          session_id: string
+          transcript: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          bot_reply?: string | null
+          comment?: string | null
+          created_at?: string
+          helpful?: boolean | null
+          id?: string
+          kind: string
+          page_url?: string | null
+          question?: string | null
+          rating?: number | null
+          session_id: string
+          transcript?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          bot_reply?: string | null
+          comment?: string | null
+          created_at?: string
+          helpful?: boolean | null
+          id?: string
+          kind?: string
+          page_url?: string | null
+          question?: string | null
+          rating?: number | null
+          session_id?: string
+          transcript?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chatbot_knowledge: {
         Row: {
           content: string

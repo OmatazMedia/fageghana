@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { MessageCircle, X, Send, ArrowLeft, Bot } from "lucide-react";
+import { MessageCircle, X, Send, ArrowLeft, Bot, ThumbsUp, ThumbsDown, Star } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
 const WHATSAPP_NUMBER = "233535170780";
 const MEMBERSHIP_EMAIL = "membership@fageghana.org";
-const EXIT_WORDS = ["exit", "bye", "goodbye", "quit", "close", "done", "thank you", "thanks"];
+const EXIT_WORDS = ["bye", "goodbye", "quit", "close", "done", "thank you", "thanks"];
 
 type Msg = {
   id: string;
@@ -14,9 +14,14 @@ type Msg = {
   quickReplies?: { label: string; action: string }[];
   link?: { to: string; label: string };
   ts: number;
+  // Feedback attached to an AI reply
+  feedback?: { question: string; answer: string; submitted?: "up" | "down" };
+  // Session rating step
+  ratingStep?: boolean;
 };
 
-type Mode = "menu" | "leave-msg" | "whatsapp-input" | "transferring" | "sending" | "ask";
+type Mode = "menu" | "leave-msg" | "whatsapp-input" | "transferring" | "sending" | "ask" | "await-comment" | "await-rating-comment";
+
 
 const QUICK_MENU: { label: string; action: string }[] = [
   { label: "Ask FAGE Assistant", action: "ask" },
@@ -135,12 +140,18 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     email: string;
     message: string;
   }>({ step: "name", name: "", phone: "", email: "", message: "" });
+  const [pendingMenu, setPendingMenu] = useState<{ prevMode: Mode; lastBot: string } | null>(null);
+  const [pendingDownVote, setPendingDownVote] = useState<{ question: string; answer: string } | null>(null);
+  const [pendingRating, setPendingRating] = useState<number | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const danceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const greetedRef = useRef(false);
   const idleMenuSentRef = useRef(false);
+  const sessionIdRef = useRef<string>("");
+  const lastQuestionRef = useRef<string>("");
+
 
   const generateId = () => {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -152,11 +163,22 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     });
   };
 
+  /* ── Init chat session id (per widget session) ── */
+  useEffect(() => {
+    let sid = sessionStorage.getItem("fage_chat_sid");
+    if (!sid) {
+      sid = generateId();
+      sessionStorage.setItem("fage_chat_sid", sid);
+    }
+    sessionIdRef.current = sid;
+  }, []);
+
   /* ── Clear any stale keys from previous broken sessions ── */
   useEffect(() => {
     sessionStorage.removeItem("fage_chat_open");
     sessionStorage.removeItem("fage_chat_active");
   }, []);
+
 
   /* ── Sync msgs and mode to sessionStorage (not open — always starts closed) ── */
   useEffect(() => {
@@ -247,10 +269,11 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     text: string,
     quickReplies?: { label: string; action: string }[],
     link?: { to: string; label: string },
+    extra?: Partial<Msg>,
   ) {
     setMsgs((m) => [
       ...m,
-      { id: generateId(), from: "bot", text, quickReplies, link, ts: Date.now() },
+      { id: generateId(), from: "bot", text, quickReplies, link, ts: Date.now(), ...extra },
     ]);
   }
   function addUser(text: string) {
@@ -275,33 +298,114 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     return EXIT_WORDS.some((w) => t === w || t.startsWith(w + " ") || t.endsWith(" " + w));
   }
 
-  async function handleExit() {
-    setTyping(true);
-    await delayMs(800);
-    setTyping(false);
-    addBot(
-      "Thank you for chatting with us today! 🙏 We hope we were helpful. Have a wonderful day — goodbye! 👋",
-    );
-    if (idleTimer.current) clearTimeout(idleTimer.current);
-    setTimeout(() => {
-      setOpen(false);
-      setTimeout(() => {
-        setMsgs([]);
-        greetedRef.current = false;
-        idleMenuSentRef.current = false;
-        setMode("menu");
-        sessionStorage.removeItem("fage_chat_msgs");
-        sessionStorage.removeItem("fage_chat_mode");
-        sessionStorage.removeItem("fage_chat_pinged");
-      }, 500);
-    }, 2500);
+  function isStrictCommand(text: string, cmd: string) {
+    return text.trim().toLowerCase().replace(/[.!?]+$/, "") === cmd;
+  }
+  function isAffirmative(text: string) {
+    const t = text.trim().toLowerCase().replace(/[.!?]+$/, "");
+    return ["yes", "y", "yeah", "yep", "sure", "ok", "okay"].includes(t);
+  }
+  function isNegative(text: string) {
+    const t = text.trim().toLowerCase().replace(/[.!?]+$/, "");
+    return ["no", "n", "nope", "nah"].includes(t);
   }
 
+  function lastBotText(): string {
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].from === "bot" && msgs[i].text) return msgs[i].text!;
+    }
+    return "";
+  }
+
+  async function submitFeedback(payload: {
+    kind: "reply" | "session";
+    helpful?: boolean;
+    rating?: number;
+    comment?: string;
+    question?: string;
+    bot_reply?: string;
+    transcript?: any;
+  }) {
+    try {
+      await supabase.from("chatbot_feedback" as any).insert({
+        session_id: sessionIdRef.current || "unknown",
+        page_url: typeof window !== "undefined" ? window.location.href : null,
+        ...payload,
+      });
+    } catch {
+      /* silent */
+    }
+  }
+
+  function handleReplyThumb(msgId: string, up: boolean, question: string, answer: string) {
+    setMsgs((m) => m.map((x) => (x.id === msgId ? { ...x, feedback: { ...(x.feedback ?? { question, answer }), submitted: up ? "up" : "down" } } : x)));
+    if (up) {
+      submitFeedback({ kind: "reply", helpful: true, question, bot_reply: answer });
+      botReply("Glad that helped! 🙌", undefined, undefined, 400);
+    } else {
+      submitFeedback({ kind: "reply", helpful: false, question, bot_reply: answer });
+      setPendingDownVote({ question, answer });
+      setMode("await-comment");
+      botReply("Sorry about that. What were you hoping to find? (or type 'skip' to move on)", undefined, undefined, 400);
+    }
+  }
+
+  async function startExitFlow() {
+    setTyping(true);
+    await delayMs(600);
+    setTyping(false);
+    addBot("Before you go — how would you rate this chat?", undefined, undefined, { ratingStep: true });
+    setMode("await-rating-comment");
+  }
+
+  function finalizeClose() {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    setOpen(false);
+    setTimeout(() => {
+      setMsgs([]);
+      greetedRef.current = false;
+      idleMenuSentRef.current = false;
+      setMode("menu");
+      setPendingMenu(null);
+      setPendingDownVote(null);
+      setPendingRating(null);
+      sessionStorage.removeItem("fage_chat_msgs");
+      sessionStorage.removeItem("fage_chat_mode");
+      sessionStorage.removeItem("fage_chat_pinged");
+      sessionStorage.removeItem("fage_chat_sid");
+    }, 500);
+  }
+
+  async function handleRating(stars: number) {
+    setPendingRating(stars);
+    setMsgs((m) => m.map((x) => (x.ratingStep ? { ...x, ratingStep: false, text: `You rated this chat ${stars}/5 ⭐` } : x)));
+    await botReply("Thanks! Any comment to help us improve? (or type 'skip')", undefined, undefined, 400);
+  }
+
+  async function handleExit() {
+    await startExitFlow();
+  }
+
+
   async function handleAction(action: string, label?: string) {
+    // Menu confirmation quick replies
+    if (action === "__menu_yes") {
+      addUser(label ?? "Yes");
+      await confirmMenuYes();
+      return;
+    }
+    if (action === "__menu_no") {
+      addUser(label ?? "No");
+      await confirmMenuNo();
+      return;
+    }
+
     addUser(label ?? action);
     setTyping(true);
     await delayMs(800);
     setTyping(false);
+
+
 
     switch (action) {
       case "about":
@@ -384,6 +488,84 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     if (!text) return;
     setInput("");
 
+    // Strict single-word 'exit' terminates at any point.
+    if (isStrictCommand(text, "exit")) {
+      addUser(text);
+      await handleExit();
+      return;
+    }
+
+    // Strict single-word 'menu' — confirm if mid-flow.
+    if (isStrictCommand(text, "menu")) {
+      addUser(text);
+      if (mode === "menu") {
+        await botReply("Here's the main menu:", QUICK_MENU);
+        return;
+      }
+      const prev = lastBotText();
+      setPendingMenu({ prevMode: mode, lastBot: prev });
+      await botReply(
+        "You've asked to return to the main menu. Do you want to end this conversation and go back to the menu?",
+        [
+          { label: "Yes, go to menu", action: "__menu_yes" },
+          { label: "No, continue", action: "__menu_no" },
+        ],
+      );
+      return;
+    }
+
+    // Answering the menu confirmation via typed text.
+    if (pendingMenu) {
+      addUser(text);
+      if (isAffirmative(text)) {
+        await confirmMenuYes();
+        return;
+      }
+      if (isNegative(text)) {
+        await confirmMenuNo();
+        return;
+      }
+      // Ambiguous — treat as continuation: clear pending and let normal flow handle it.
+      setPendingMenu(null);
+    }
+
+    // Down-vote follow-up comment.
+    if (mode === "await-comment") {
+      addUser(text);
+      const skip = text.trim().toLowerCase() === "skip";
+      if (!skip && pendingDownVote) {
+        await submitFeedback({
+          kind: "reply",
+          helpful: false,
+          comment: text,
+          question: pendingDownVote.question,
+          bot_reply: pendingDownVote.answer,
+        });
+      }
+      setPendingDownVote(null);
+      await botReply("Thanks — your feedback helps us improve. What else can I help with?", QUICK_MENU);
+      setMode("menu");
+      return;
+    }
+
+    // End-of-chat rating comment.
+    if (mode === "await-rating-comment") {
+      addUser(text);
+      const skip = text.trim().toLowerCase() === "skip";
+      await submitFeedback({
+        kind: "session",
+        rating: pendingRating ?? undefined,
+        comment: skip ? undefined : text,
+        transcript: msgs.map((m) => ({ from: m.from, text: m.text, ts: m.ts })),
+      });
+      setTyping(true);
+      await delayMs(500);
+      setTyping(false);
+      addBot("Thanks for chatting with us today! 🙏 Have a wonderful day — goodbye! 👋");
+      setTimeout(finalizeClose, 2000);
+      return;
+    }
+
     if (isExitIntent(text)) {
       addUser(text);
       await handleExit();
@@ -458,16 +640,29 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       }
     }
 
-    if (text.toLowerCase() === "menu") {
-      addUser(text);
-      await botReply("Here's the main menu:", QUICK_MENU);
-      setMode("menu");
-      return;
-    }
-
     // Free-form question → route to FAGE AI assistant.
     addUser(text);
+    lastQuestionRef.current = text;
     await askAI(text);
+  }
+
+  async function confirmMenuYes() {
+    setPendingMenu(null);
+    setPendingDownVote(null);
+    setLeave({ step: "name", name: "", phone: "", email: "", message: "" });
+    await botReply("Back to the main menu — what would you like to do?", QUICK_MENU);
+    setMode("menu");
+  }
+
+  async function confirmMenuNo() {
+    const restore = pendingMenu;
+    setPendingMenu(null);
+    if (restore?.lastBot) {
+      await botReply(restore.lastBot);
+    } else {
+      await botReply("Okay, let's continue.");
+    }
+    if (restore) setMode(restore.prevMode);
   }
 
   async function askAI(question: string) {
@@ -484,7 +679,13 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       });
       if (!res.ok) throw new Error(await res.text());
       const data = (await res.json()) as { reply: string; escalated?: boolean };
-      addBot(data.reply, data.escalated ? QUICK_MENU : undefined);
+      // Attach inline feedback to the AI reply so the user can rate this specific answer.
+      addBot(
+        data.reply,
+        data.escalated ? QUICK_MENU : undefined,
+        undefined,
+        data.escalated ? undefined : { feedback: { question, answer: data.reply } },
+      );
       setMode(data.escalated ? "menu" : "ask");
     } catch {
       addBot(
@@ -494,6 +695,7 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       setMode("menu");
     }
   }
+
 
   function backToMenu() {
     addBot("Main menu — what would you like to do?", QUICK_MENU);
@@ -614,6 +816,44 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
                           className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground transition hover:bg-primary hover:text-primary-foreground cursor-pointer"
                         >
                           {q.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {m.from === "bot" && m.feedback && !m.feedback.submitted && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Was this helpful?</span>
+                      <button
+                        onClick={() => handleReplyThumb(m.id, true, m.feedback!.question, m.feedback!.answer)}
+                        aria-label="Helpful"
+                        className="rounded-full p-1 hover:bg-emerald-100 hover:text-emerald-700 transition"
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleReplyThumb(m.id, false, m.feedback!.question, m.feedback!.answer)}
+                        aria-label="Not helpful"
+                        className="rounded-full p-1 hover:bg-red-100 hover:text-red-700 transition"
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  {m.from === "bot" && m.feedback?.submitted && (
+                    <div className="mt-1.5 text-[11px] text-muted-foreground">
+                      {m.feedback.submitted === "up" ? "👍 Thanks!" : "👎 Noted — thanks for the feedback."}
+                    </div>
+                  )}
+                  {m.from === "bot" && m.ratingStep && (
+                    <div className="mt-2 flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => handleRating(n)}
+                          aria-label={`Rate ${n} stars`}
+                          className="p-1 text-amber-500 hover:scale-110 transition"
+                        >
+                          <Star className="w-5 h-5 fill-current" />
                         </button>
                       ))}
                     </div>
