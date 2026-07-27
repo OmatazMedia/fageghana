@@ -1233,6 +1233,27 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_reads: {
+        Row: {
+          read_at: string
+          source_id: string
+          source_table: string
+          user_id: string
+        }
+        Insert: {
+          read_at?: string
+          source_id: string
+          source_table: string
+          user_id: string
+        }
+        Update: {
+          read_at?: string
+          source_id?: string
+          source_table?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string

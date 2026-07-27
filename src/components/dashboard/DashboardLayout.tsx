@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 type Item = { label: string; icon: any; to: string; tab?: string };
 
@@ -159,17 +160,6 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         >
           <Home className="h-4 w-4" /> View site
         </Link>
-        <button
-          onClick={() =>
-            signOut().then(() => {
-              toast.success("You have been successfully signed out");
-              navigate({ to: "/login" });
-            })
-          }
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/10 hover:text-white transition-all"
-        >
-          <LogOut className="h-4 w-4" /> Sign out
-        </button>
       </div>
     </div>
   );
@@ -210,7 +200,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">FAGE Member Portal</span>
           </div>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2">
+            <NotificationBell scope="member" />
             <div className="relative">
               <button
                 onClick={() => setMenuOpen((o) => !o)}

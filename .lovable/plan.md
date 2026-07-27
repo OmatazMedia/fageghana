@@ -1,54 +1,85 @@
+## Goal
+Replace the standalone "Sign out" button in both the admin and member dashboard top bars with a clickable avatar menu, and add a bell notification icon with a dropdown that shows a unified feed of relevant events.
 
-## Scope
+## 1. Top bar: avatar menu (both dashboards)
 
-Three items from the FAGE analysis doc:
+**Admin** (`src/routes/admin.tsx`, header block ~lines 361-378)
+- Remove the standalone `<LogOut> Sign out` button.
+- Wrap the avatar + name in a button that toggles a dropdown containing:
+  - Profile (→ `/admin/account/security`)
+  - Change password (→ `/admin/account/change-password`)
+  - Sign out (calls `handleSignOut`)
+- Close on outside click / Esc / route change.
 
-1. Role-based access — the 6 roles (admin, finance, ceo, developer, coordinator, superadmin) already exist in `AppRole` and are gated via `/admin/roles` (Phase B). No new role types needed; instead make sure they are all assignable from **User Management** and documented as separate dashboards via the existing `role_permissions` matrix.
-2. Full **Activity Log** upgrade with pagination + filters (by user, by role, by event type, by date range).
-3. Backup page — verify/refresh so any newly-added public tables are captured on the next run.
+**Member** (`src/components/dashboard/DashboardLayout.tsx`)
+- The avatar menu already exists in the top bar (View profile / Account & security / Sign out) — leave it, but:
+  - Remove the "Sign out" button that lives at the bottom of the sidebar (lines ~162-172) so sign-out only lives in the avatar dropdown, matching admin.
+  - Keep the "View site" link in the sidebar.
 
-## 1. Roles: assignability + assignment UI
+## 2. Bell notification icon (both dashboards)
 
-- In `/admin/users`, ensure the "Add Staff/Admin" role selector lists all 6 roles: `admin`, `superadmin`, `staff`, `finance`, `ceo`, `developer`, `coordinator`. (Members stay separate.)
-- Confirm `/admin/roles` matrix already includes each of these (it does — staff/finance/ceo/coordinator/developer/member columns). Add `superadmin` info row noting "always full access".
-- No new DB changes for the enum — `AppRole` already covers them.
+Add a bell button to the immediate left of the avatar in both top bars. Clicking opens a dropdown panel (max-height with internal scroll) that shows a unified, time-sorted feed.
 
-## 2. Activity Log — full rebuild at `/admin/activity-log`
+**Shared component:** new `src/components/notifications/NotificationBell.tsx`
+- Props: `scope: "admin" | "member"`.
+- Uses TanStack Query with a 30s refetch; also subscribes to Supabase realtime on the underlying tables so new items appear without reload.
+- Renders unread badge count, "Mark all as read" action, and per-item "mark read" on click.
+- Each item: icon (by type), title, one-line context, relative time, click → deep link.
 
-Backend (`src/lib/activity.functions.ts`):
-- Replace `listActivityLog` with a paginated version returning `{ rows, total }`.
-- Inputs: `page`, `pageSize` (default 25), `event_type?`, `user_id?`, `role?`, `q?` (search email/name), `from?`, `to?` (ISO dates).
-- Join `activities` → `auth.users` (via admin client) → `user_roles` to expose user email + roles, so the UI can filter by role and show who did what.
-- Keep admin-only guard.
+**Feed sources**
 
-Frontend (`src/routes/admin.activity-log.tsx`):
-- Filters bar: event-type chips, role dropdown, user search (email/name substring), date range (from/to), Reset button.
-- Table columns: When, Event, User (email + role badges), IP, User agent, Detail.
-- Pagination controls (Prev / Next / page X of Y, page-size selector 25/50/100).
-- Persist filter state in URL search params so shares/bookmarks work.
-- Empty + loading states retained.
+Member scope (filtered to the current `user_id`):
+- `notifications` (existing direct + broadcast) → title/body, link to `/dashboard?tab=notifications`.
+- `payment_submissions` status changes for this user → link to `/dashboard?tab=invoices`.
+- `ticket_messages` on tickets owned by this user where sender ≠ self → link to `/dashboard?tab=support`.
+- Login notice: on successful sign-in, `AuthProvider` already writes `activity_log` (`sign_in`) — surface the most recent one as a "Signed in from …" item for the current user.
+- Subscription expiry reminder: derived client-side from `member_profiles.subscription_expiry` when < 30 days.
 
-Access:
-- Keep visible to admin/superadmin/developer (already gated in sidebar); add `developer` explicitly if missing.
+Admin scope (visible to admin / staff / superadmin / relevant roles):
+- New `membership_applications` (status = pending) → `/admin/applications`.
+- New `payment_submissions` (status = pending/awaiting review) → `/admin/payments`.
+- New `contact_messages` (unread) → `/admin/tickets` or dedicated section.
+- New `support_tickets` + latest `ticket_messages` from members → `/admin/tickets`.
+- New `directory_entries` with status = pending → `/admin/directory-entries`.
+- New member registrations (`member_profiles` rows created in last N days) → `/admin/members`.
+- Recent notable `activity_log` events (sign_in_failed spikes, password_reset_requested) → `/admin/activity-log`.
 
-Per-user history:
-- Each member/admin already logs `sign_in`, `sign_out`, `password_reset_requested`, etc. via `fireActivity`. Add a small "My activity" section (read-only, last 20 entries) on the member dashboard's Account & Security page so users can see their own documented activities. Server fn `listMyActivity` (auth middleware, own `user_id` only).
+Role gating on the admin bell uses the existing `useRolePermissions` / `hasAnyRole` so, e.g., finance-only users see payments but not tickets.
 
-## 3. Backup page — capture new tables
+**Read state**
 
-Current `admin_list_public_tables()` RPC already returns every base table in `public`, and `backup-runner.server.ts` iterates that list, so newly-added tables (e.g. `chatbot_knowledge`, `backup_destinations`, `role_permissions`, `site_hero_slides`, `site_partner_logos`, `directory_custom_field_defs`) are already picked up.
+- Add lightweight per-user read tracking via a new `notification_reads` table (see technical details) so "unread" is durable across sessions and devices without mutating the source tables.
 
-Actions on `/admin/backup`:
-- Add a "Tables included in next backup" panel that live-queries `admin_list_public_tables()` and lists them with row counts (via `admin_dump_table` length) so the admin can visually confirm coverage.
-- Show a "Last discovered N tables" badge on the schedule card.
-- No schema change required.
+## 3. Wiring events into the feed
 
-## Technical notes
+No new event emitters are required for MVP — every source table above is already written to by existing flows (applications, payments, tickets, contact form, directory submissions, auth activity). The bell reads from them directly, so new sign-ins, submissions, and registrations show up automatically.
 
-- Types: extend `listActivityLog` return type; update React Query key to include all filters.
-- Route change: `admin.activity-log.tsx` gains `validateSearch` for the filter params.
-- No new migration is strictly required; if we want durable filters on `event_type`, we can add an index on `activities(event_type, created_at desc)` and `activities(user_id, created_at desc)` — recommended for performance.
+## Technical details
+
+- New file: `src/components/notifications/NotificationBell.tsx` — self-contained, uses `supabase` client, `useAuth`, `useQuery`, and `supabase.channel(...)` for realtime.
+- New file: `src/lib/notifications.ts` — pure helpers that map each source row to a `FeedItem { id, type, title, subtitle, href, createdAt, sourceTable, sourceId }`, plus admin/member fetchers combining the queries with `Promise.all` and merging by `createdAt desc, limit 50`.
+- Admin header edit: `src/routes/admin.tsx` header (~L361-378) — inject `<NotificationBell scope="admin" />`, replace sign-out button with avatar dropdown (reuse the pattern already in `DashboardLayout`).
+- Member layout edit: `src/components/dashboard/DashboardLayout.tsx` — inject `<NotificationBell scope="member" />` next to the existing avatar button; remove the sidebar Sign out button.
+- New migration for read state:
+
+```sql
+CREATE TABLE public.notification_reads (
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  source_table text NOT NULL,
+  source_id text NOT NULL,
+  read_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, source_table, source_id)
+);
+GRANT SELECT, INSERT, DELETE ON public.notification_reads TO authenticated;
+GRANT ALL ON public.notification_reads TO service_role;
+ALTER TABLE public.notification_reads ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "own reads" ON public.notification_reads
+  FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+```
+
+- No changes to existing RLS on source tables; admin queries rely on existing admin/staff SELECT policies already in place.
 
 ## Out of scope
-
-- Other doc items already handled in earlier phases (Member ID format, Let's Talk fix, Support/Profile route fix, FAGE Academy/Clothing services, dev-only gating of Plans/Forms/Gateways, chatbot knowledge, map pin).
+- Email/push notifications.
+- New audit events beyond what's already logged.
+- Redesigning the notifications tab page (bell links to it).
