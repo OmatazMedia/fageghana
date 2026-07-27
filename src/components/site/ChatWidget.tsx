@@ -528,6 +528,20 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       await confirmMenuNo();
       return;
     }
+    if (action === "__leave_name_yes") {
+      addUser(label ?? "Yes");
+      setLeave((l) => ({ ...l, step: "phone" }));
+      await botReply(
+        `Nice to meet you, ${leave.name.split(" ")[0]}! What's the best phone number to reach you? (e.g. +233 24 123 4567)`,
+      );
+      return;
+    }
+    if (action === "__leave_name_no") {
+      addUser(label ?? "No");
+      setLeave((l) => ({ ...l, name: "", step: "name" }));
+      await botReply("No problem — what's your name?");
+      return;
+    }
 
     addUser(label ?? action);
     setTyping(true);
