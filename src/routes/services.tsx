@@ -63,7 +63,7 @@ const serviceList: Array<{
   {
     icon: GraduationCap,
     title: "FAGE Academy",
-    text: "Capacity-building programmes, structured export training, mentorship and certification for members and their teams.",
+    text: "Export readiness training, capacity-building workshops, mentorship programmes and professional certification to equip members and their teams for global trade.",
   },
   {
     icon: Briefcase,
