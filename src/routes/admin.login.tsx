@@ -14,8 +14,12 @@ export const Route = createFileRoute("/admin/login")({
 const REMEMBER_KEY = "fage_admin_email";
 
 function AdminLogin() {
-  const { signIn, user, isAdmin, loading, roleChecked } = useAuth();
+  const { signIn, signOut, user, isAdmin, hasAnyRole, loading, roleChecked } = useAuth();
   const navigate = useNavigate();
+
+  // Any non-member role may log in here.
+  const canAccessConsole =
+    isAdmin || hasAnyRole(["staff", "finance", "ceo", "developer", "coordinator"]);
 
   const [email, setEmail] = useState(() => localStorage.getItem(REMEMBER_KEY) ?? "");
   const [password, setPassword] = useState("");
@@ -26,8 +30,19 @@ function AdminLogin() {
 
   useEffect(() => {
     if (loading || !roleChecked || mfaFactorId) return;
-    if (user && isAdmin) navigate({ to: "/admin" });
-  }, [loading, roleChecked, user, isAdmin, navigate, mfaFactorId]);
+    if (user && canAccessConsole) navigate({ to: "/admin" });
+  }, [loading, roleChecked, user, canAccessConsole, navigate, mfaFactorId]);
+
+  // If a pure member (no console role) signs in here, sign them out and warn.
+  useEffect(() => {
+    if (loading || !roleChecked || busy || mfaFactorId) return;
+    if (user && !canAccessConsole) {
+      void signOut().then(() => {
+        toast.error("This account is not authorised to access the admin dashboard.");
+      });
+    }
+  }, [loading, roleChecked, busy, mfaFactorId, user, canAccessConsole, signOut]);
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -127,11 +142,13 @@ function AdminLogin() {
           </div>
 
           {/* No-access warning */}
-          {user && roleChecked && !isAdmin && !busy && (
+          {user && roleChecked && !canAccessConsole && !busy && (
             <div className="w-full mb-5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive text-center">
-              You're signed in but don't have admin access. Contact an existing admin.
+              This account is not authorised to access the admin dashboard. Members should sign in
+              at the member portal.
             </div>
           )}
+
 
           {/* Form */}
           <form onSubmit={submit} className="w-full space-y-5">

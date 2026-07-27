@@ -39,8 +39,14 @@ export function useRolePermissions() {
     key: string,
     staticRoles?: AppRole[],
   ): boolean {
-    // Admin & superadmin always see everything.
-    if (userRoles.includes("admin") || userRoles.includes("superadmin")) return true;
+    // Admin, superadmin, and developer always see everything.
+    if (
+      userRoles.includes("admin") ||
+      userRoles.includes("superadmin") ||
+      userRoles.includes("developer")
+    )
+      return true;
+
     for (const r of userRoles) {
       const ov = overrides.get(`${r}|${key}`);
       if (ov === true) return true;
