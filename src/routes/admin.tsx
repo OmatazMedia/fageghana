@@ -36,6 +36,8 @@ import {
   CloudUpload,
   Menu,
   X,
+  ChevronDown,
+  User as UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
