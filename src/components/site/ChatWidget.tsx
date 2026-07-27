@@ -98,7 +98,25 @@ function playNotificationSound() {
   }
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+// Ghana phone: accepts +233XXXXXXXXX (12 digits after +), 233XXXXXXXXX, or 0XXXXXXXXX (10 digits).
+// Local mobile prefixes start with 02x/05x; we accept any 0X + 9 digits so landlines pass too.
+function normalizeGhanaPhone(raw: string): string | null {
+  const digits = raw.replace(/[\s\-().]/g, "");
+  if (/^\+233\d{9}$/.test(digits)) return digits;
+  if (/^233\d{9}$/.test(digits)) return "+" + digits;
+  if (/^0\d{9}$/.test(digits)) return "+233" + digits.slice(1);
+  return null;
+}
+
+function isValidName(raw: string): boolean {
+  const t = raw.trim();
+  if (t.length < 2 || t.length > 80) return false;
+  // Letters, spaces, apostrophes, hyphens, dots (initials)
+  return /^[\p{L}][\p{L}\s'.-]*$/u.test(t);
+}
+
 
 // Fires once per page load — resets on every refresh
 let _notifFired = false;
