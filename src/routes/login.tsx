@@ -241,7 +241,7 @@ function FloatField({
 }
 
 function MemberLogin() {
-  const { signIn, resetPassword, user, loading } = useAuth();
+  const { signIn, signOut, resetPassword, user, loading, roleChecked, hasAnyRole, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "reset">("login");
   const [email, setEmail] = useState("");
@@ -254,9 +254,23 @@ function MemberLogin() {
   const [visible, setVisible] = useState(true);
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
 
+  const isConsoleRole =
+    isAdmin || hasAnyRole(["staff", "finance", "ceo", "developer", "coordinator"]);
+
   useEffect(() => {
-    if (!loading && user && !mfaFactorId) navigate({ to: "/dashboard" });
-  }, [loading, user, navigate, mfaFactorId]);
+    if (loading || !roleChecked || mfaFactorId) return;
+    if (!user) return;
+    if (isConsoleRole) {
+      // Staff/admin roles must use the admin login page.
+      void signOut().then(() => {
+        toast.error("Staff accounts must sign in via the admin portal.");
+        navigate({ to: "/admin/login", replace: true });
+      });
+      return;
+    }
+    navigate({ to: "/dashboard" });
+  }, [loading, roleChecked, user, isConsoleRole, mfaFactorId, navigate, signOut]);
+
 
   function switchMode(next: "login" | "reset") {
     setVisible(false);
