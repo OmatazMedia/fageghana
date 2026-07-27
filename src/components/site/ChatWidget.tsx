@@ -388,10 +388,24 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
 
 
   async function handleAction(action: string, label?: string) {
+    // Menu confirmation quick replies
+    if (action === "__menu_yes") {
+      addUser(label ?? "Yes");
+      await confirmMenuYes();
+      return;
+    }
+    if (action === "__menu_no") {
+      addUser(label ?? "No");
+      await confirmMenuNo();
+      return;
+    }
+
     addUser(label ?? action);
     setTyping(true);
     await delayMs(800);
     setTyping(false);
+
+
 
     switch (action) {
       case "about":
