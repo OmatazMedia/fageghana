@@ -200,7 +200,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">FAGE Member Portal</span>
           </div>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2">
+            <NotificationBell scope="member" />
             <div className="relative">
               <button
                 onClick={() => setMenuOpen((o) => !o)}
