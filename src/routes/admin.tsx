@@ -362,22 +362,13 @@ function AdminLayout() {
           </div>
 
           {/* User */}
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right lg:block">
-              <div className="text-xs font-semibold text-foreground leading-none">
-                {user.email?.split("@")[0]}
-              </div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">Administrator</div>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow">
-              {initials}
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="hidden lg:flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition"
-            >
-              <LogOut className="h-3.5 w-3.5" /> Sign out
-            </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell scope="admin" />
+            <AdminUserMenu
+              email={user.email ?? ""}
+              initials={initials}
+              onSignOut={handleSignOut}
+            />
           </div>
         </header>
 
