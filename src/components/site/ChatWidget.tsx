@@ -163,11 +163,22 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
     });
   };
 
+  /* ── Init chat session id (per widget session) ── */
+  useEffect(() => {
+    let sid = sessionStorage.getItem("fage_chat_sid");
+    if (!sid) {
+      sid = generateId();
+      sessionStorage.setItem("fage_chat_sid", sid);
+    }
+    sessionIdRef.current = sid;
+  }, []);
+
   /* ── Clear any stale keys from previous broken sessions ── */
   useEffect(() => {
     sessionStorage.removeItem("fage_chat_open");
     sessionStorage.removeItem("fage_chat_active");
   }, []);
+
 
   /* ── Sync msgs and mode to sessionStorage (not open — always starts closed) ── */
   useEffect(() => {
