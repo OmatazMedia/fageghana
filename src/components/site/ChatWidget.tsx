@@ -243,6 +243,24 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
   const idleMenuSentRef = useRef(false);
   const sessionIdRef = useRef<string>("");
   const lastQuestionRef = useRef<string>("");
+  const kbRef = useRef<KbRow[]>([]);
+  const kbLoadedRef = useRef(false);
+
+  async function loadKb() {
+    if (kbLoadedRef.current) return;
+    kbLoadedRef.current = true;
+    try {
+      const { data } = await supabase
+        .from("chatbot_knowledge" as any)
+        .select("section, content, display_order")
+        .eq("enabled", true)
+        .order("display_order", { ascending: true });
+      kbRef.current = ((data as any) ?? []) as KbRow[];
+    } catch {
+      /* leave empty — falls back to AI */
+    }
+  }
+
 
 
   const generateId = () => {
