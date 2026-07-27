@@ -57,6 +57,11 @@ function StatusBadge({ expiry }: { expiry: string | null }) {
 }
 
 function VerifyMemberPage() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname.replace(/\/$/, "") !== "/verify") {
+    return <Outlet />;
+  }
+
   const [mode, setMode] = useState<SearchMode>("member");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
