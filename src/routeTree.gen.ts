@@ -54,6 +54,7 @@ import { Route as AdminEmailSettingsRouteImport } from './routes/admin.email-set
 import { Route as AdminDirectoryFieldsRouteImport } from './routes/admin.directory-fields'
 import { Route as AdminDirectoryEntriesRouteImport } from './routes/admin.directory-entries'
 import { Route as AdminDirectoryRouteImport } from './routes/admin.directory'
+import { Route as AdminChatbotFeedbackRouteImport } from './routes/admin.chatbot-feedback'
 import { Route as AdminChatbotRouteImport } from './routes/admin.chatbot'
 import { Route as AdminCertificatesRouteImport } from './routes/admin.certificates'
 import { Route as AdminCertIssuedRouteImport } from './routes/admin.cert-issued'
@@ -298,6 +299,11 @@ const AdminDirectoryRoute = AdminDirectoryRouteImport.update({
   path: '/directory',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminChatbotFeedbackRoute = AdminChatbotFeedbackRouteImport.update({
+  id: '/chatbot-feedback',
+  path: '/chatbot-feedback',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminChatbotRoute = AdminChatbotRouteImport.update({
   id: '/chatbot',
   path: '/chatbot',
@@ -420,6 +426,7 @@ export interface FileRoutesByFullPath {
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/chatbot': typeof AdminChatbotRoute
+  '/admin/chatbot-feedback': typeof AdminChatbotFeedbackRoute
   '/admin/directory': typeof AdminDirectoryRoute
   '/admin/directory-entries': typeof AdminDirectoryEntriesRoute
   '/admin/directory-fields': typeof AdminDirectoryFieldsRoute
@@ -485,6 +492,7 @@ export interface FileRoutesByTo {
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/chatbot': typeof AdminChatbotRoute
+  '/admin/chatbot-feedback': typeof AdminChatbotFeedbackRoute
   '/admin/directory': typeof AdminDirectoryRoute
   '/admin/directory-entries': typeof AdminDirectoryEntriesRoute
   '/admin/directory-fields': typeof AdminDirectoryFieldsRoute
@@ -551,6 +559,7 @@ export interface FileRoutesById {
   '/admin/cert-issued': typeof AdminCertIssuedRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/chatbot': typeof AdminChatbotRoute
+  '/admin/chatbot-feedback': typeof AdminChatbotFeedbackRoute
   '/admin/directory': typeof AdminDirectoryRoute
   '/admin/directory-entries': typeof AdminDirectoryEntriesRoute
   '/admin/directory-fields': typeof AdminDirectoryFieldsRoute
@@ -618,6 +627,7 @@ export interface FileRouteTypes {
     | '/admin/cert-issued'
     | '/admin/certificates'
     | '/admin/chatbot'
+    | '/admin/chatbot-feedback'
     | '/admin/directory'
     | '/admin/directory-entries'
     | '/admin/directory-fields'
@@ -683,6 +693,7 @@ export interface FileRouteTypes {
     | '/admin/cert-issued'
     | '/admin/certificates'
     | '/admin/chatbot'
+    | '/admin/chatbot-feedback'
     | '/admin/directory'
     | '/admin/directory-entries'
     | '/admin/directory-fields'
@@ -748,6 +759,7 @@ export interface FileRouteTypes {
     | '/admin/cert-issued'
     | '/admin/certificates'
     | '/admin/chatbot'
+    | '/admin/chatbot-feedback'
     | '/admin/directory'
     | '/admin/directory-entries'
     | '/admin/directory-fields'
@@ -1132,6 +1144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDirectoryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/chatbot-feedback': {
+      id: '/admin/chatbot-feedback'
+      path: '/chatbot-feedback'
+      fullPath: '/admin/chatbot-feedback'
+      preLoaderRoute: typeof AdminChatbotFeedbackRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/chatbot': {
       id: '/admin/chatbot'
       path: '/chatbot'
@@ -1284,6 +1303,7 @@ interface AdminRouteChildren {
   AdminCertIssuedRoute: typeof AdminCertIssuedRoute
   AdminCertificatesRoute: typeof AdminCertificatesRoute
   AdminChatbotRoute: typeof AdminChatbotRoute
+  AdminChatbotFeedbackRoute: typeof AdminChatbotFeedbackRoute
   AdminDirectoryRoute: typeof AdminDirectoryRoute
   AdminDirectoryEntriesRoute: typeof AdminDirectoryEntriesRoute
   AdminDirectoryFieldsRoute: typeof AdminDirectoryFieldsRoute
@@ -1321,6 +1341,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCertIssuedRoute: AdminCertIssuedRoute,
   AdminCertificatesRoute: AdminCertificatesRoute,
   AdminChatbotRoute: AdminChatbotRoute,
+  AdminChatbotFeedbackRoute: AdminChatbotFeedbackRoute,
   AdminDirectoryRoute: AdminDirectoryRoute,
   AdminDirectoryEntriesRoute: AdminDirectoryEntriesRoute,
   AdminDirectoryFieldsRoute: AdminDirectoryFieldsRoute,

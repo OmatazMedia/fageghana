@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { MessageCircle, X, Send, ArrowLeft, Bot } from "lucide-react";
+import { MessageCircle, X, Send, ArrowLeft, Bot, ThumbsUp, ThumbsDown, Star } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
 const WHATSAPP_NUMBER = "233535170780";
 const MEMBERSHIP_EMAIL = "membership@fageghana.org";
-const EXIT_WORDS = ["exit", "bye", "goodbye", "quit", "close", "done", "thank you", "thanks"];
+const EXIT_WORDS = ["bye", "goodbye", "quit", "close", "done", "thank you", "thanks"];
 
 type Msg = {
   id: string;
@@ -14,9 +14,14 @@ type Msg = {
   quickReplies?: { label: string; action: string }[];
   link?: { to: string; label: string };
   ts: number;
+  // Feedback attached to an AI reply
+  feedback?: { question: string; answer: string; submitted?: "up" | "down" };
+  // Session rating step
+  ratingStep?: boolean;
 };
 
-type Mode = "menu" | "leave-msg" | "whatsapp-input" | "transferring" | "sending" | "ask";
+type Mode = "menu" | "leave-msg" | "whatsapp-input" | "transferring" | "sending" | "ask" | "await-comment" | "await-rating-comment";
+
 
 const QUICK_MENU: { label: string; action: string }[] = [
   { label: "Ask FAGE Assistant", action: "ask" },
