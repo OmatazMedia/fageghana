@@ -777,6 +777,26 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
   }
 
   async function askAI(question: string) {
+    // 1) Try the local knowledge base first — instant, on-topic replies
+    //    without the transferring animation.
+    await loadKb();
+    const match = matchKnowledge(question, kbRef.current);
+    if (match) {
+      setTyping(true);
+      await delayMs(600);
+      setTyping(false);
+      const relatedLine = match.related.length
+        ? `\n\n_Related:_ ${match.related.map((r) => `**${r.section}**`).join(", ")}`
+        : "";
+      const reply = `${match.top.content.trim()}${relatedLine}\n\n_I'm a bot and can make mistakes — please verify important details with our team._`;
+      addBot(reply, undefined, undefined, {
+        feedback: { question, answer: `[KB: ${match.top.section}] ${match.top.content}` },
+      });
+      setMode("ask");
+      return;
+    }
+
+    // 2) Fall back to the AI assistant.
     setMode("sending");
     try {
       const history = [...msgs, { id: "x", from: "user" as const, text: question, ts: Date.now() }]
@@ -790,9 +810,9 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       });
       if (!res.ok) throw new Error(await res.text());
       const data = (await res.json()) as { reply: string; escalated?: boolean };
-      // Attach inline feedback to the AI reply so the user can rate this specific answer.
+      const reply = `${data.reply}\n\n_I'm a bot and can make mistakes — please verify important details with our team._`;
       addBot(
-        data.reply,
+        reply,
         data.escalated ? QUICK_MENU : undefined,
         undefined,
         data.escalated ? undefined : { feedback: { question, answer: data.reply } },
@@ -806,6 +826,7 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
       setMode("menu");
     }
   }
+
 
 
   function backToMenu() {
