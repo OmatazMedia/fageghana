@@ -142,11 +142,13 @@ function AdminLogin() {
           </div>
 
           {/* No-access warning */}
-          {user && roleChecked && !isAdmin && !busy && (
+          {user && roleChecked && !canAccessConsole && !busy && (
             <div className="w-full mb-5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive text-center">
-              You're signed in but don't have admin access. Contact an existing admin.
+              This account is not authorised to access the admin dashboard. Members should sign in
+              at the member portal.
             </div>
           )}
+
 
           {/* Form */}
           <form onSubmit={submit} className="w-full space-y-5">
