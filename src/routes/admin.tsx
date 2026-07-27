@@ -606,3 +606,68 @@ function getGreeting() {
   if (h < 17) return "afternoon";
   return "evening";
 }
+
+function AdminUserMenu({
+  email,
+  initials,
+  onSignOut,
+}: {
+  email: string;
+  initials: string;
+  onSignOut: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 rounded-full border border-border bg-background py-1 pl-1 pr-3 text-sm hover:bg-accent transition"
+      >
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+          {initials}
+        </span>
+        <span className="hidden text-left lg:block leading-tight">
+          <span className="block text-xs font-semibold">{email.split("@")[0]}</span>
+          <span className="block text-[10px] text-muted-foreground">Administrator</span>
+        </span>
+        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+      </button>
+      {open && (
+        <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+          <Link
+            to="/admin/account/security"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent"
+          >
+            <UserIcon className="h-4 w-4" /> Profile
+          </Link>
+          <Link
+            to="/admin/account/change-password"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent"
+          >
+            <ShieldCheck className="h-4 w-4" /> Account &amp; security
+          </Link>
+          <button
+            onClick={() => {
+              setOpen(false);
+              onSignOut();
+            }}
+            className="flex w-full items-center gap-2 border-t border-border px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10"
+          >
+            <LogOut className="h-4 w-4" /> Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
