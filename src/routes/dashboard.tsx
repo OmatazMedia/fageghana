@@ -424,7 +424,9 @@ function Dashboard() {
         </header>
 
         <main className="flex-1 overflow-auto p-4 lg:p-8">
-          {lockedReason ? (
+          {lockedReason && tab === "support" ? (
+            <SupportTab userId={user!.id} />
+          ) : lockedReason ? (
             <RenewalLockScreen
               reason={lockedReason}
               expiryDate={profile.subscription_expiry ?? null}

@@ -133,7 +133,7 @@ export async function fetchAdminFeed(): Promise<FeedItem[]> {
       .limit(15),
     supabase
       .from("contact_messages")
-      .select("id,name,subject,created_at")
+      .select("id,name,subject,source,message,created_at")
       .order("created_at", { ascending: false })
       .limit(15),
     supabase
@@ -179,18 +179,23 @@ export async function fetchAdminFeed(): Promise<FeedItem[]> {
     }),
   );
 
-  (contacts.data ?? []).forEach((c: any) =>
+  (contacts.data ?? []).forEach((c: any) => {
+    const isChat = c.source === "chat_widget";
     items.push({
       id: key("contact_messages", c.id),
       type: "contact",
-      title: `Contact: ${c.subject ?? "New message"}`,
-      subtitle: `From ${c.name ?? "—"}`,
-      href: "/admin/tickets",
+      title: isChat
+        ? `Chatbot message from ${c.name ?? "—"}`
+        : `Contact: ${c.subject ?? "New message"}`,
+      subtitle: isChat ? (c.message ? String(c.message).slice(0, 80) : "") : `From ${c.name ?? "—"}`,
+      href: isChat
+        ? `/admin/tickets?tab=chat#msg-${c.id}`
+        : "/admin/tickets?tab=tickets",
       createdAt: c.created_at,
       sourceTable: "contact_messages",
       sourceId: c.id,
-    }),
-  );
+    });
+  });
 
   (tickets.data ?? []).forEach((t: any) =>
     items.push({

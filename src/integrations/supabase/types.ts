@@ -98,6 +98,24 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notification_settings: {
+        Row: {
+          chat_message_recipients: string[]
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          chat_message_recipients?: string[]
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          chat_message_recipients?: string[]
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       application_forms: {
         Row: {
           created_at: string
@@ -545,6 +563,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          handled_at: string | null
           id: string
           message: string
           name: string
@@ -555,6 +574,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          handled_at?: string | null
           id?: string
           message: string
           name: string
@@ -565,6 +585,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          handled_at?: string | null
           id?: string
           message?: string
           name?: string

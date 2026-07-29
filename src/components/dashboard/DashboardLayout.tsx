@@ -164,6 +164,27 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   );
 
+  // Renewal countdown: show when 90 days or less remain until expiry. Dismiss per session only.
+  const daysToExpiry = (() => {
+    if (!profile?.subscription_expiry) return null;
+    const ms = new Date(profile.subscription_expiry).getTime() - Date.now();
+    return ms > 0 ? Math.ceil(ms / 86400000) : 0;
+  })();
+  const [bannerDismissed, setBannerDismissed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("fage-renewal-banner-dismissed") === "1";
+  });
+  function dismissBanner() {
+    setBannerDismissed(true);
+    try {
+      sessionStorage.setItem("fage-renewal-banner-dismissed", "1");
+    } catch {
+      /* ignore */
+    }
+  }
+  const showBanner =
+    daysToExpiry !== null && daysToExpiry > 0 && daysToExpiry <= 90 && !bannerDismissed;
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f5f7f5]">
       {sidebarOpen && (
@@ -189,6 +210,35 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex flex-1 flex-col overflow-hidden min-h-0">
+        {showBanner && (
+          <div className="flex items-center justify-between gap-3 bg-red-600 px-4 py-2 text-sm font-medium text-white lg:px-6">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
+                {daysToExpiry}
+              </span>
+              <span>
+                Your membership expires in <strong>{daysToExpiry} day{daysToExpiry === 1 ? "" : "s"}</strong>
+                {" — "}renew now to avoid interruption.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/dashboard"
+                search={{ tab: "subscription" } as any}
+                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+              >
+                Renew now
+              </Link>
+              <button
+                onClick={dismissBanner}
+                aria-label="Dismiss"
+                className="rounded-full p-1 hover:bg-white/20"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
         <header className="flex h-14 items-center justify-between border-b border-border bg-white px-4 lg:px-6 shadow-sm">
           <button
             onClick={() => setSidebarOpen(true)}

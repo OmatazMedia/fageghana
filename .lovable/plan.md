@@ -1,41 +1,73 @@
-## Goal
+## 1. Redesign Admin Support page with tabs
 
-When a user asks a free-text question, first try to answer it by keyword-matching against the `chatbot_knowledge` sections. Only fall back to `/api/chat` (or the "leave a message" flow with the flying-email animation) when no section matches. This keeps most answers instant, on-topic, and removes the transferring animation for common questions.
+Chat widget "Leave a message" writes to `contact_messages` with `source='chat_widget'`, but the notification bell links to `/admin/tickets` which only shows `support_tickets` — so the message appears missing.
 
-## Behaviour
+Rebuild `src/routes/admin.tickets.tsx` as a tabbed page:
 
-1. User types a question in `ask` mode (or first message after opening).
-2. Widget picks the best-scoring `chatbot_knowledge` section:
-  - Score = weighted keyword overlap of the question against each row's `section` title (×3) and `content` (×1), after lowercasing, stripping punctuation, and removing stopwords (`the, a, of, is, and, to, for, in, on, what, how, who, where, when, do, does…`).
-  - Also match common synonyms/aliases per topic (e.g. "join / register / sign up" → Membership; "cost / price / fee" → Tiers; "call / phone / email / office" → Contact; "training / academy / course" → FAGE Academy).
-  - Require a minimum score threshold (e.g. ≥ 2 matched non-stopword tokens, or ≥ 1 that also appears in the section title) to count as a hit.
-3. Match found → bot replies with that section's `content` (trimmed to a reasonable length, markdown-safe), attaches the 👍/👎 feedback controls, and stays in `ask` mode.
-4. Multiple close matches → pick the top score; if a second section is within ~15 % of the top, append a "Related: [Section B], [Section C]" line as quick-reply chips.
-5. No match → fall through to the existing `/api/chat` call (AI) — no automatic escalation, no email/transferring animation.
-6. Escalation (the flying-email flow) only runs when the user explicitly chooses **Leave a message** from the menu or types a clear "talk to human" phrase.
+- **Tab 1 – Support Tickets** (default): all tickets from members with sub-filters *Open · Pending · Resolved · Closed · All*, search by subject/member, priority badges, reply drawer (existing ticket flow preserved).
+- **Tab 2 – Chatbot Messages**: lists `contact_messages` where `source='chat_widget'`, showing name / phone / email / message / created_at, with a "Convert to ticket" action and "Mark handled" (adds a `handled_at` column via migration).
+- Deep-link support: `/admin/tickets?tab=chat` opens directly on the Chatbot Messages tab.
+- Update `src/lib/notifications.ts` so `contact_messages` feed items link to `/admin/tickets?tab=chat` and scroll to the row (`#msg-<id>`). Tab 1 tickets keep `/admin/tickets?tab=tickets&id=<id>`.
 
-## Data & caching
+## 2. Email notifications for chatbot "Leave a message"
 
-- On widget open (or on first `ask`), fetch `chatbot_knowledge` rows where `enabled = true`, ordered by `display_order`, via the existing supabase client. Cache the array in a `useRef` for the session so repeat questions are instant.
-- Rows already contain `section` and `content` — no schema change needed.
-- Admin's edits in `/admin/chatbot` take effect on the next widget open (or after a manual "Refresh" — not needed for MVP).
+- Add `admin_notification_settings` (singleton) with `chat_message_recipients text[]` — admin-editable list of emails.
+- New admin page **Admin → Settings → Notifications** to edit the recipient list.
+- Create branded React Email template `chat-message.tsx` (logo header, name/phone/email/message body, "Reply" CTA to `/admin/tickets?tab=chat`, footer) — mobile-responsive using the existing email theme.
+- After the chat widget inserts a `contact_messages` row, POST to a new server function that renders the template and sends via the existing email sender to every recipient. Silent failure so the user flow isn't blocked.
 
-## Feedback loop stays intact
+## 3. Member subscription lifecycle
 
-- Local-match replies still render the 👍/👎 controls, storing the matched section as `question` context in `chatbot_feedback` so admin can see which topic missed.
-- 👎 with a comment on a local match is a strong signal that the section wording needs updating — surfaced in the existing `/admin/chatbot-feedback` page.
+**Current behaviour (verified from `RenewalLockScreen.tsx` + `dashboard.tsx`):** once `subscription_expiry < now()`, members can still sign in but the dashboard is fully replaced by a lock screen offering renewal (bank details + proof upload). Support page is not accessible from that screen today.
 
-## Files touched
+**Changes:**
 
-- `src/components/site/ChatWidget.tsx`
-  - Add `kbRef` (useRef holding cached knowledge rows) and a `loadKb()` helper.
-  - Add `matchKnowledge(question)` utility with tokenize/stopword/score logic and synonym map.
-  - In `onSend` / `askAI`, call `matchKnowledge` first; if it returns a hit, render locally and skip the `/api/chat` fetch and the `transferring` mode.
-  - Keep `/api/chat` as the fallback for no-match questions.
+- Add a "Contact support" link on `RenewalLockScreen` that opens the existing support ticket form (allowed while locked).
+- Add a **3-month renewal countdown banner** for active members:
+  - Shown when `subscription_expiry - now() ≤ 90 days`.
+  - Sits directly above the dashboard top bar, red background, live countdown ("Your membership expires in 42 days — Renew now").
+  - Dismissible via "×" per-session only (stored in `sessionStorage`, so every fresh login re-shows it until renewal).
+  - Renew button opens the same renewal flow used on the lock screen.
+- Write up "What happens on expiry" as an in-app help note under Account → Membership so members know: they can still log in, dashboard is locked to renewal + support until they renew, no data is deleted.
 
-No database or admin-UI changes. Existing `chatbot_knowledge` content is the source of truth; better/more sections = better matches automatically.
+## 4. Fix directory submission enum error
 
-## Out of scope
+`submit_my_directory_entry` currently does:
 
-- Full semantic/embedding search — deliberately using lightweight keyword matching so it stays client-side and instant. Can be upgraded later if match quality is poor.
-- Add a caveat somewhere in the chat that bot can make mistakes too
+```
+COALESCE(_payload->>'entry_type', entry_type)  -- text vs directory_entry_type
+```
+
+Postgres refuses to mix `text` and the enum. Migration will replace the two offending lines to cast explicitly:
+
+```
+COALESCE((_payload->>'entry_type')::directory_entry_type, 'corporate'::directory_entry_type)  -- INSERT
+COALESCE((_payload->>'entry_type')::directory_entry_type, entry_type)                          -- UPDATE
+```
+
+No other function/behaviour changes.
+
+## Technical details
+
+**Migrations**
+
+- `ALTER TABLE contact_messages ADD COLUMN handled_at timestamptz;`
+- `CREATE TABLE admin_notification_settings (id int PK default 1, chat_message_recipients text[] default '{}', updated_at timestamptz)` + GRANTs + admin-only RLS.
+- Rewrite `submit_my_directory_entry` with the two casts above.
+
+**Files touched**
+
+- `src/routes/admin.tickets.tsx` — tabbed rewrite.
+- `src/lib/notifications.ts` — `contact_messages` href.
+- `src/components/dashboard/DashboardLayout.tsx` — renewal countdown banner.
+- `src/components/dashboard/RenewalLockScreen.tsx` — support link.
+- `src/lib/email-templates/chat-message.tsx` (new).
+- `src/lib/email/chat-notify.functions.ts` (new) — recipient lookup + send.
+- `src/components/site/ChatWidget.tsx` — call the notify server fn after insert.
+- `src/routes/admin.notifications-settings.tsx` (new) — recipient list editor.
+
+No changes to auth, RLS beyond the new settings table, or any other admin surface.  
+  
+any one you didnt fnish should be written out so i can continue later
+
+&nbsp;
