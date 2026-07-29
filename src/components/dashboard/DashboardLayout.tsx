@@ -239,6 +239,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         )}
+        <header className="flex h-14 items-center justify-between border-b border-border bg-white px-4 lg:px-6 shadow-sm">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-lg p-2 hover:bg-accent lg:hidden"
