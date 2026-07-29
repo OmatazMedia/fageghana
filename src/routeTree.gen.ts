@@ -43,6 +43,7 @@ import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminPlansRouteImport } from './routes/admin.plans'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
+import { Route as AdminNotificationSettingsRouteImport } from './routes/admin.notification-settings'
 import { Route as AdminNewsRouteImport } from './routes/admin.news'
 import { Route as AdminMembersRouteImport } from './routes/admin.members'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
@@ -244,6 +245,12 @@ const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminNotificationSettingsRoute =
+  AdminNotificationSettingsRouteImport.update({
+    id: '/notification-settings',
+    path: '/notification-settings',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminNewsRoute = AdminNewsRouteImport.update({
   id: '/news',
   path: '/news',
@@ -438,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/admin/media': typeof AdminMediaRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
+  '/admin/notification-settings': typeof AdminNotificationSettingsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
@@ -504,6 +512,7 @@ export interface FileRoutesByTo {
   '/admin/media': typeof AdminMediaRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
+  '/admin/notification-settings': typeof AdminNotificationSettingsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
@@ -571,6 +580,7 @@ export interface FileRoutesById {
   '/admin/media': typeof AdminMediaRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
+  '/admin/notification-settings': typeof AdminNotificationSettingsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
@@ -639,6 +649,7 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/members'
     | '/admin/news'
+    | '/admin/notification-settings'
     | '/admin/notifications'
     | '/admin/payments'
     | '/admin/plans'
@@ -705,6 +716,7 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/members'
     | '/admin/news'
+    | '/admin/notification-settings'
     | '/admin/notifications'
     | '/admin/payments'
     | '/admin/plans'
@@ -771,6 +783,7 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/members'
     | '/admin/news'
+    | '/admin/notification-settings'
     | '/admin/notifications'
     | '/admin/payments'
     | '/admin/plans'
@@ -1067,6 +1080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNotificationsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/notification-settings': {
+      id: '/admin/notification-settings'
+      path: '/notification-settings'
+      fullPath: '/admin/notification-settings'
+      preLoaderRoute: typeof AdminNotificationSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/news': {
       id: '/admin/news'
       path: '/news'
@@ -1315,6 +1335,7 @@ interface AdminRouteChildren {
   AdminMediaRoute: typeof AdminMediaRoute
   AdminMembersRoute: typeof AdminMembersRoute
   AdminNewsRoute: typeof AdminNewsRoute
+  AdminNotificationSettingsRoute: typeof AdminNotificationSettingsRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPlansRoute: typeof AdminPlansRoute
@@ -1353,6 +1374,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMediaRoute: AdminMediaRoute,
   AdminMembersRoute: AdminMembersRoute,
   AdminNewsRoute: AdminNewsRoute,
+  AdminNotificationSettingsRoute: AdminNotificationSettingsRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPlansRoute: AdminPlansRoute,
