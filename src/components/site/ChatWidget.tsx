@@ -815,13 +815,33 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
         setMode("sending");
         await botReply("Sending your message…");
         setTimeout(async () => {
-          await supabase.from("contact_messages").insert({
-            name: payload.name,
-            email: payload.email,
-            subject: `Chat widget message from ${payload.name}`,
-            message: `Phone: ${payload.phone}\n\n${payload.message}`,
-            source: 'chat_widget',
-          });
+          const { data: inserted } = await supabase
+            .from("contact_messages")
+            .insert({
+              name: payload.name,
+              email: payload.email,
+              phone: payload.phone,
+              subject: `Chat widget message from ${payload.name}`,
+              message: payload.message,
+              source: 'chat_widget',
+            })
+            .select("id")
+            .single();
+          // Fire-and-forget email notification to configured admins.
+          try {
+            const { notifyChatMessage } = await import("@/lib/chat-notify.functions");
+            void notifyChatMessage({
+              data: {
+                name: payload.name,
+                email: payload.email,
+                phone: payload.phone || null,
+                message: payload.message,
+                contact_message_id: (inserted as any)?.id ?? null,
+              },
+            });
+          } catch {
+            /* ignore — message is already stored */
+          }
           addBot("✅ Your message has been sent. Our team will reach out within working hours.");
           setTimeout(() => addBot("Anything else? Pick an option below.", QUICK_MENU), 1500);
           setMode("menu");
