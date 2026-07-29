@@ -133,7 +133,7 @@ export async function fetchAdminFeed(): Promise<FeedItem[]> {
       .limit(15),
     supabase
       .from("contact_messages")
-      .select("id,name,subject,created_at")
+      .select("id,name,subject,source,message,created_at")
       .order("created_at", { ascending: false })
       .limit(15),
     supabase
