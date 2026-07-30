@@ -37,9 +37,8 @@ function AdminLogin() {
   useEffect(() => {
     if (loading || !roleChecked || busy || mfaFactorId) return;
     if (user && !canAccessConsole) {
-      void signOut().then(() => {
-        toast.error("This account is not authorised to access the admin dashboard.");
-      });
+      toast.error("This account is not authorised to access the admin dashboard.");
+      void signOut("wrong_portal", "");
     }
   }, [loading, roleChecked, busy, mfaFactorId, user, canAccessConsole, signOut]);
 

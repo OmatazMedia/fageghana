@@ -262,10 +262,8 @@ function MemberLogin() {
     if (!user) return;
     if (isConsoleRole) {
       // Staff/admin roles must use the admin login page.
-      void signOut().then(() => {
-        toast.error("Staff accounts must sign in via the admin portal.");
-        navigate({ to: "/admin/login", replace: true });
-      });
+      toast.error("Staff accounts must sign in via the admin portal.");
+      void signOut("wrong_portal", "");
       return;
     }
     navigate({ to: "/dashboard" });

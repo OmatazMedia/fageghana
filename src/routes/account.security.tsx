@@ -6,6 +6,8 @@ import { KeyRound, Mail, Smartphone, ShieldCheck, ShieldOff, Loader2, Copy, Chec
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { listMyActivity } from "@/lib/activity.functions";
+import { ActiveSessionsCard } from "@/components/account/ActiveSessionsCard";
+
 
 export const Route = createFileRoute("/account/security")({
   head: () => ({ meta: [{ title: "Account & Security" }] }),
@@ -25,7 +27,9 @@ export function SecurityPage({ passwordHref = "/account/change-password" }: { pa
       <PasswordLinkCard href={passwordHref} />
       <EmailCard currentEmail={user?.email ?? ""} />
       <MfaCard />
+      <ActiveSessionsCard />
       <MyActivityCard />
+
     </div>
   );
 }

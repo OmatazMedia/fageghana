@@ -1,7 +1,11 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity.functions";
+import { SessionGuard } from "@/components/auth/SessionGuard";
 
 function fireActivity(event_type: string, detail?: string) {
   try {
@@ -10,6 +14,36 @@ function fireActivity(event_type: string, detail?: string) {
     /* best-effort */
   }
 }
+
+/** App-owned browser storage keys wiped on every sign-out. */
+const APP_STORAGE_KEYS = [
+  "fage.session.lastActivity",
+  "fage.session.startedAt",
+  "fage.session.id",
+  "fage.session.signout",
+  "fage.session.fp",
+];
+const APP_STORAGE_PREFIXES = ["fage.", "renewal-banner", "chatwidget", "fage-chat"];
+
+function purgeAppStorage() {
+  if (typeof window === "undefined") return;
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        if (!k) continue;
+        if (APP_STORAGE_KEYS.includes(k) || APP_STORAGE_PREFIXES.some((p) => k.startsWith(p))) {
+          keys.push(k);
+        }
+      }
+      keys.forEach((k) => store.removeItem(k));
+    } catch {
+      /* storage blocked */
+    }
+  }
+}
+
 
 export type AppRole =
   | "admin"
@@ -46,7 +80,13 @@ type AuthContextValue = {
   roleChecked: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  /**
+   * Single exit path for every sign-out (menu, idle timeout, absolute expiry,
+   * remote revoke). Cancels queries, clears cache + app storage, revokes the
+   * device session, then replaces history with the right login route.
+   */
+  signOut: (reason?: string, message?: string) => Promise<void>;
+
   resetPassword: (email: string) => Promise<{ error: string | null }>;
 };
 
@@ -62,7 +102,10 @@ async function fetchRolesSync(userId: string): Promise<AppRole[]> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
+
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [roleChecked, setRoleChecked] = useState(false);
@@ -136,13 +179,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
-  async function signOut() {
-    fireActivity("sign_out", user?.email ?? undefined);
+  async function signOut(reason = "manual", message = "You have been successfully signed out") {
+    const isConsoleUser = roles.some((r) => ADMIN_CONSOLE_ROLES.includes(r));
+    fireActivity(reason === "manual" ? "sign_out" : `sign_out_${reason}`, user?.email ?? undefined);
+
     // Clear local role state immediately so guards don't briefly see stale admin = true.
     setRoles([]);
     setRoleChecked(false);
+
+    // 1. Stop in-flight queries before they 401, then drop cached protected data.
+    try {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+    } catch {
+      /* noop */
+    }
+
+    // 2. Mark this device's session row revoked (best-effort).
+    try {
+      const sid = typeof window !== "undefined" ? localStorage.getItem("fage.session.id") : null;
+      if (sid) await supabase.rpc("revoke_user_session" as any, { _id: sid, _reason: reason } as any);
+    } catch {
+      /* noop */
+    }
+
+    // 3. End the Supabase session.
     await supabase.auth.signOut();
+
+    // 4. Tell other tabs, then wipe app-owned browser storage.
+    try {
+      localStorage.setItem("fage.session.signout", String(Date.now()));
+    } catch {
+      /* noop */
+    }
+    purgeAppStorage();
+
+    // 5. Replace history so protected pages stay off the back stack.
+    if (message) toast.success(message);
+    navigate({ to: isConsoleUser ? "/admin/login" : "/login", replace: true });
   }
+
 
   async function resetPassword(email: string) {
     const redirectUrl = `${window.location.origin}/reset-password`;
@@ -173,6 +249,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      <SessionGuard />
+
     </AuthContext.Provider>
   );
 }

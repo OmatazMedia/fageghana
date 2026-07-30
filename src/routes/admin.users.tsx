@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Plus, X, Trash2, MoreHorizontal, ShieldCheck, Users as UsersIcon, ExternalLink } from "lucide-react";
+import { Plus, X, Trash2, MoreHorizontal, ShieldCheck, Users as UsersIcon, ExternalLink, MonitorSmartphone } from "lucide-react";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
+import { ActiveSessionsCard } from "@/components/account/ActiveSessionsCard";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -48,6 +49,7 @@ function UsersPage() {
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [sessionsFor, setSessionsFor] = useState<{ user_id: string; email: string } | null>(null);
   const [roleFor, setRoleFor] = useState<AdminUserRow | null>(null);
   const [deleting, setDeleting] = useState<AdminUserRow | null>(null);
   
@@ -225,6 +227,11 @@ function UsersPage() {
                           <ShieldCheck className="mr-2 h-4 w-4" /> Change role
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          onClick={() => setSessionsFor({ user_id: r.user_id, email: r.email })}
+                        >
+                          <MonitorSmartphone className="mr-2 h-4 w-4" /> Active sessions
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => setDeleting(r)}
                           className="text-destructive focus:text-destructive"
                         >
@@ -256,6 +263,28 @@ function UsersPage() {
         />
       </div>
 
+      {sessionsFor && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setSessionsFor(null)}
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-2xl overflow-auto rounded-2xl bg-background p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Sessions — {sessionsFor.email}</h2>
+              <button
+                onClick={() => setSessionsFor(null)}
+                className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted"
+              >
+                Close
+              </button>
+            </div>
+            <ActiveSessionsCard userId={sessionsFor.user_id} />
+          </div>
+        </div>
+      )}
       {open && <CreateUserModal onClose={() => setOpen(false)} onSubmit={submitCreate} />}
       {roleFor && (
         <RoleModal user={roleFor} onClose={() => setRoleFor(null)} onSubmit={submitRole} />
