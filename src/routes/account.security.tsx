@@ -27,7 +27,9 @@ export function SecurityPage({ passwordHref = "/account/change-password" }: { pa
       <PasswordLinkCard href={passwordHref} />
       <EmailCard currentEmail={user?.email ?? ""} />
       <MfaCard />
+      <ActiveSessionsCard />
       <MyActivityCard />
+
     </div>
   );
 }
