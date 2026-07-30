@@ -80,7 +80,13 @@ type AuthContextValue = {
   roleChecked: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  /**
+   * Single exit path for every sign-out (menu, idle timeout, absolute expiry,
+   * remote revoke). Cancels queries, clears cache + app storage, revokes the
+   * device session, then replaces history with the right login route.
+   */
+  signOut: (reason?: string, message?: string) => Promise<void>;
+
   resetPassword: (email: string) => Promise<{ error: string | null }>;
 };
 
