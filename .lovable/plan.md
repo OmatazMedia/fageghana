@@ -1,73 +1,80 @@
-## 1. Redesign Admin Support page with tabs
+## Goal
 
-Chat widget "Leave a message" writes to `contact_messages` with `source='chat_widget'`, but the notification bell links to `/admin/tickets` which only shows `support_tickets` — so the message appears missing.
+Harden signed-in sessions across both the member dashboard and the admin console: automatic idle timeout, hard session lifetime, visible device/session management with remote revoke, hijack detection, and a clean wipe of cached data on sign-out.
 
-Rebuild `src/routes/admin.tickets.tsx` as a tabbed page:
+## 1. Idle timeout — 15 min inactivity + 60s countdown
 
-- **Tab 1 – Support Tickets** (default): all tickets from members with sub-filters *Open · Pending · Resolved · Closed · All*, search by subject/member, priority badges, reply drawer (existing ticket flow preserved).
-- **Tab 2 – Chatbot Messages**: lists `contact_messages` where `source='chat_widget'`, showing name / phone / email / message / created_at, with a "Convert to ticket" action and "Mark handled" (adds a `handled_at` column via migration).
-- Deep-link support: `/admin/tickets?tab=chat` opens directly on the Chatbot Messages tab.
-- Update `src/lib/notifications.ts` so `contact_messages` feed items link to `/admin/tickets?tab=chat` and scroll to the row (`#msg-<id>`). Tab 1 tickets keep `/admin/tickets?tab=tickets&id=<id>`.
+A single `SessionGuard` component mounted once inside `AuthProvider` (so it covers every signed-in page, member and admin).
 
-## 2. Email notifications for chatbot "Leave a message"
+- Tracks activity: `mousemove`, `keydown`, `click`, `scroll`, `touchstart`, `visibilitychange` — throttled to one write per ~5s.
+- Last-activity timestamp is stored in `localStorage` so **all open tabs share one timer** (activity in any tab keeps every tab alive).
+- At 15 min idle: a modal appears — "Are you still there? You'll be signed out in 0:59" with **Stay signed in** / **Sign out now**.
+- No response within 60s → automatic sign-out with reason `idle_timeout`; user lands on the correct login page (`/login` for members, `/admin/login` for console roles) with a toast: "You were signed out due to inactivity."
+- "Stay signed in" refreshes the Supabase token and resets the timer.
+- Timer only runs when a session exists; public pages are unaffected.
 
-- Add `admin_notification_settings` (singleton) with `chat_message_recipients text[]` — admin-editable list of emails.
-- New admin page **Admin → Settings → Notifications** to edit the recipient list.
-- Create branded React Email template `chat-message.tsx` (logo header, name/phone/email/message body, "Reply" CTA to `/admin/tickets?tab=chat`, footer) — mobile-responsive using the existing email theme.
-- After the chat widget inserts a `contact_messages` row, POST to a new server function that renders the template and sends via the existing email sender to every recipient. Silent failure so the user flow isn't blocked.
+## 2. Absolute session lifetime — 12 hours
 
-## 3. Member subscription lifecycle
+- Session start time recorded at sign-in. Once `now - session_start > 12h`, the user is signed out regardless of activity, with reason `absolute_expiry` and message "Your session has expired, please sign in again."
+- Checked on a 60s tick and on tab focus, so a laptop woken after hours is signed out immediately rather than resuming.
 
-**Current behaviour (verified from `RenewalLockScreen.tsx` + `dashboard.tsx`):** once `subscription_expiry < now()`, members can still sign in but the dashboard is fully replaced by a lock screen offering renewal (bank details + proof upload). Support page is not accessible from that screen today.
+## 3. Device / session registry + remote sign-out
 
-**Changes:**
+New table `user_sessions`:
 
-- Add a "Contact support" link on `RenewalLockScreen` that opens the existing support ticket form (allowed while locked).
-- Add a **3-month renewal countdown banner** for active members:
-  - Shown when `subscription_expiry - now() ≤ 90 days`.
-  - Sits directly above the dashboard top bar, red background, live countdown ("Your membership expires in 42 days — Renew now").
-  - Dismissible via "×" per-session only (stored in `sessionStorage`, so every fresh login re-shows it until renewal).
-  - Renew button opens the same renewal flow used on the lock screen.
-- Write up "What happens on expiry" as an in-app help note under Account → Membership so members know: they can still log in, dashboard is locked to renewal + support until they renew, no data is deleted.
+| column | purpose |
+|---|---|
+| `id` | session row |
+| `user_id` | owner |
+| `session_fingerprint` | hash of UA + platform + screen + timezone + language |
+| `device_label`, `browser`, `os` | human-readable ("Chrome on Windows") |
+| `ip_address` | captured server-side |
+| `created_at`, `last_seen_at` | activity |
+| `revoked_at`, `revoked_reason` | revocation |
+| `is_current` | derived client-side |
 
-## 4. Fix directory submission enum error
+- On sign-in a row is created (or refreshed) via a server function; a heartbeat updates `last_seen_at` every ~2 min while active.
+- **Member view:** new "Active sessions" card on `/account/security` — list of devices with last-seen time, "This device" badge, **Sign out this device** and **Sign out all other devices**.
+- **Admin view:** the same list per user in User Management, plus admin-side force-revoke (useful for a compromised staff account).
+- Revocation is enforced client-side on each heartbeat: if the current session row is revoked, the app signs out immediately (max ~2 min lag).
+- Each new device sign-in writes an `activity_log` entry ("New device sign-in — Chrome on Windows, Accra") so it shows in the notification bell / audit log.
 
-`submit_my_directory_entry` currently does:
+## 4. Hijack / anomaly detection
 
-```
-COALESCE(_payload->>'entry_type', entry_type)  -- text vs directory_entry_type
-```
+- The heartbeat sends the current fingerprint + server-observed IP. If the fingerprint for a live session row changes, or the IP jumps to a different network in a short window, the server marks the session `suspicious`.
+- Behaviour: session is revoked and the user must sign in again, and an `activity_log` entry `session_anomaly` is recorded (visible to admins in the audit log).
+- Fingerprint is a non-invasive hash — no third-party tracking library.
 
-Postgres refuses to mix `text` and the enum. Migration will replace the two offending lines to cast explicitly:
+## 5. Full cache / storage purge on sign-out
 
-```
-COALESCE((_payload->>'entry_type')::directory_entry_type, 'corporate'::directory_entry_type)  -- INSERT
-COALESCE((_payload->>'entry_type')::directory_entry_type, entry_type)                          -- UPDATE
-```
+Centralise sign-out in `AuthProvider.signOut()` so **every** exit path (menu, idle timeout, absolute expiry, remote revoke) does the same thing in order:
 
-No other function/behaviour changes.
+1. `queryClient.cancelQueries()` then `queryClient.clear()` — no 401 storms, no stale data restored by Back.
+2. Mark the `user_sessions` row revoked.
+3. `supabase.auth.signOut()`.
+4. Remove app-owned `localStorage` / `sessionStorage` keys (renewal banner dismissal, chat widget state, activity timestamp, Supabase auth key).
+5. `navigate({ replace: true })` to the right login route — protected pages stay off the back stack.
+6. A `storage` event broadcasts sign-out so **other open tabs sign out too**.
 
 ## Technical details
 
-**Migrations**
+**Migration**
+- `CREATE TABLE public.user_sessions (...)` with GRANTs (`authenticated`: select/insert/update own; `service_role`: all), RLS: users see/revoke only their own rows; admin/superadmin/developer can select and revoke any.
+- `revoke_user_session(_id uuid)` security-definer RPC enforcing that ownership/admin check.
+- Index on `(user_id, last_seen_at desc)`.
 
-- `ALTER TABLE contact_messages ADD COLUMN handled_at timestamptz;`
-- `CREATE TABLE admin_notification_settings (id int PK default 1, chat_message_recipients text[] default '{}', updated_at timestamptz)` + GRANTs + admin-only RLS.
-- Rewrite `submit_my_directory_entry` with the two casts above.
+**New files**
+- `src/components/auth/SessionGuard.tsx` — idle timer, countdown modal, absolute-expiry check, heartbeat, cross-tab sync.
+- `src/lib/session-registry.functions.ts` — `registerSession`, `heartbeatSession`, `revokeSession`, `listMySessions` (auth-middleware protected; IP read from request headers server-side).
+- `src/lib/session-fingerprint.ts` — browser-safe fingerprint hash.
+- `src/components/account/ActiveSessionsCard.tsx` — shared UI for member + admin views.
 
-**Files touched**
+**Edited**
+- `src/components/auth/AuthProvider.tsx` — centralised `signOut(reason)`, session-start tracking, mounts `SessionGuard`.
+- `src/routes/account.security.tsx` and `src/routes/admin.account.security.tsx` — add Active Sessions card.
+- `src/routes/admin.users.tsx` — per-user session list + force sign-out.
+- `src/components/dashboard/DashboardLayout.tsx` / `AdminShell.tsx` — use the centralised sign-out.
 
-- `src/routes/admin.tickets.tsx` — tabbed rewrite.
-- `src/lib/notifications.ts` — `contact_messages` href.
-- `src/components/dashboard/DashboardLayout.tsx` — renewal countdown banner.
-- `src/components/dashboard/RenewalLockScreen.tsx` — support link.
-- `src/lib/email-templates/chat-message.tsx` (new).
-- `src/lib/email/chat-notify.functions.ts` (new) — recipient lookup + send.
-- `src/components/site/ChatWidget.tsx` — call the notify server fn after insert.
-- `src/routes/admin.notifications-settings.tsx` (new) — recipient list editor.
+**Not changed:** RLS on existing tables, login flows, roles, or any business logic. Supabase JWT refresh continues as-is — the idle/absolute rules sit on top of it.
 
-No changes to auth, RLS beyond the new settings table, or any other admin surface.  
-  
-any one you didnt fnish should be written out so i can continue later
-
-&nbsp;
+**Trade-off worth knowing:** a 15-minute idle timeout will interrupt anyone slowly filling a long form (directory listing, application). The timer counts keystrokes as activity, so this only bites on genuinely idle tabs, but the value is easy to change later if members complain.
