@@ -262,7 +262,7 @@ function Dashboard() {
           <Home className="h-4 w-4" /> View site
         </Link>
         <button
-          onClick={() => signOut().then(() => { toast.success("You have been successfully signed out"); navigate({ to: "/login" }); })}
+          onClick={() => void signOut()}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white transition-all"
         >
           <LogOut className="h-4 w-4" /> Sign out
@@ -412,7 +412,7 @@ function Dashboard() {
                     <Home className="h-4 w-4" /> Back to website
                   </Link>
                   <button
-                    onClick={() => signOut().then(() => { toast.success("You have been successfully signed out"); navigate({ to: "/login" }); })}
+                    onClick={() => void signOut()}
                     className="flex w-full items-center gap-2 border-t border-border px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" /> Sign out
@@ -434,12 +434,7 @@ function Dashboard() {
               userId={user!.id}
               email={profile.email ?? user!.email ?? ""}
               onActivated={loadProfile}
-              onSignOut={() =>
-                signOut().then(() => {
-                  toast.success("You have been successfully signed out");
-                  navigate({ to: "/login" });
-                })
-              }
+              onSignOut={() => void signOut()}
             />
           ) : (
             <>

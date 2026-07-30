@@ -169,8 +169,6 @@ function AdminLayout() {
 
   const handleSignOut = async () => {
     await signOut();
-    toast.success("You have been successfully signed out");
-    navigate({ to: "/admin/login", replace: true });
   };
 
   // Paths only developer/superadmin may hit directly (mirrors sidebar DEV_ONLY items).
