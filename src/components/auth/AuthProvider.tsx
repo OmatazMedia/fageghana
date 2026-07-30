@@ -176,13 +176,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
-  async function signOut() {
-    fireActivity("sign_out", user?.email ?? undefined);
+  async function signOut(reason = "manual", message = "You have been successfully signed out") {
+    const isConsoleUser = roles.some((r) => ADMIN_CONSOLE_ROLES.includes(r));
+    fireActivity(reason === "manual" ? "sign_out" : `sign_out_${reason}`, user?.email ?? undefined);
+
     // Clear local role state immediately so guards don't briefly see stale admin = true.
     setRoles([]);
     setRoleChecked(false);
+
+    // 1. Stop in-flight queries before they 401, then drop cached protected data.
+    try {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+    } catch {
+      /* noop */
+    }
+
+    // 2. Mark this device's session row revoked (best-effort).
+    try {
+      const sid = typeof window !== "undefined" ? localStorage.getItem("fage.session.id") : null;
+      if (sid) await supabase.rpc("revoke_user_session" as any, { _id: sid, _reason: reason } as any);
+    } catch {
+      /* noop */
+    }
+
+    // 3. End the Supabase session.
     await supabase.auth.signOut();
+
+    // 4. Tell other tabs, then wipe app-owned browser storage.
+    try {
+      localStorage.setItem("fage.session.signout", String(Date.now()));
+    } catch {
+      /* noop */
+    }
+    purgeAppStorage();
+
+    // 5. Replace history so protected pages stay off the back stack.
+    if (message) toast.success(message);
+    navigate({ to: isConsoleUser ? "/admin/login" : "/login", replace: true });
   }
+
 
   async function resetPassword(email: string) {
     const redirectUrl = `${window.location.origin}/reset-password`;
