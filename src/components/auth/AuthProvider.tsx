@@ -249,6 +249,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      <SessionGuard />
+
     </AuthContext.Provider>
   );
 }
