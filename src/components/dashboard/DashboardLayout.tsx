@@ -291,12 +291,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                     <ShieldCheck className="h-4 w-4" /> Account & security
                   </Link>
                   <button
-                    onClick={() =>
-                      signOut().then(() => {
-                        toast.success("You have been successfully signed out");
-                        navigate({ to: "/login" });
-                      })
-                    }
+                    onClick={() => {
+                      setMenuOpen(false);
+                      void signOut();
+                    }}
+
                     className="flex w-full items-center gap-2 border-t border-border px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" /> Sign out
