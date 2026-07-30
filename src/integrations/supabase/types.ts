@@ -1923,6 +1923,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          browser: string | null
+          created_at: string
+          device_label: string | null
+          id: string
+          ip_address: string | null
+          last_seen_at: string
+          os: string | null
+          revoked_at: string | null
+          revoked_reason: string | null
+          session_fingerprint: string
+          suspicious: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          device_label?: string | null
+          id?: string
+          ip_address?: string | null
+          last_seen_at?: string
+          os?: string | null
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          session_fingerprint: string
+          suspicious?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          device_label?: string | null
+          id?: string
+          ip_address?: string | null
+          last_seen_at?: string
+          os?: string | null
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          session_fingerprint?: string
+          suspicious?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       directory_entries_public: {
@@ -2191,6 +2239,14 @@ export type Database = {
           subscription_expiry: string
           tier: Database["public"]["Enums"]["membership_tier"]
         }[]
+      }
+      revoke_my_other_sessions: {
+        Args: { _keep_fingerprint: string }
+        Returns: number
+      }
+      revoke_user_session: {
+        Args: { _id: string; _reason?: string }
+        Returns: undefined
       }
       submit_my_directory_entry: {
         Args: { _payload: Json; _submit?: boolean }
