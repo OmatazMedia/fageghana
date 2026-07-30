@@ -102,7 +102,10 @@ async function fetchRolesSync(userId: string): Promise<AppRole[]> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
+
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [roleChecked, setRoleChecked] = useState(false);
