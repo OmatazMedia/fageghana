@@ -1,7 +1,11 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity.functions";
+import { SessionGuard } from "@/components/auth/SessionGuard";
 
 function fireActivity(event_type: string, detail?: string) {
   try {
@@ -10,6 +14,36 @@ function fireActivity(event_type: string, detail?: string) {
     /* best-effort */
   }
 }
+
+/** App-owned browser storage keys wiped on every sign-out. */
+const APP_STORAGE_KEYS = [
+  "fage.session.lastActivity",
+  "fage.session.startedAt",
+  "fage.session.id",
+  "fage.session.signout",
+  "fage.session.fp",
+];
+const APP_STORAGE_PREFIXES = ["fage.", "renewal-banner", "chatwidget", "fage-chat"];
+
+function purgeAppStorage() {
+  if (typeof window === "undefined") return;
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        if (!k) continue;
+        if (APP_STORAGE_KEYS.includes(k) || APP_STORAGE_PREFIXES.some((p) => k.startsWith(p))) {
+          keys.push(k);
+        }
+      }
+      keys.forEach((k) => store.removeItem(k));
+    } catch {
+      /* storage blocked */
+    }
+  }
+}
+
 
 export type AppRole =
   | "admin"
