@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Plus, X, Trash2, MoreHorizontal, ShieldCheck, Users as UsersIcon, ExternalLink, MonitorSmartphone } from "lucide-react";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
+import { ActiveSessionsCard } from "@/components/account/ActiveSessionsCard";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
