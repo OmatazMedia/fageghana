@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
+
 import { getDeviceInfo } from "@/lib/session-fingerprint";
 import { registerSession, heartbeatSession } from "@/lib/session-registry.functions";
 
