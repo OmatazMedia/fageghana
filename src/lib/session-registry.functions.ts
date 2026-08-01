@@ -43,7 +43,7 @@ function sameNetwork(a: string | null, b: string | null): boolean {
 export const registerSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (d: { fingerprint: string; deviceLabel: string; browser: string; os: string }) => d,
+    (d: { fingerprint: string; deviceLabel: string; browser: string; os: string; origin?: string }) => d,
   )
   .handler(async ({ data, context }) => {
     const ip = clientIp();
@@ -94,7 +94,34 @@ export const registerSession = createServerFn({ method: "POST" })
         ip_address: ip,
         user_agent: getRequestHeader("user-agent") ?? null,
       } as any);
+
+      // Branded "new sign-in" alert — only for devices we haven't seen before.
+      const email = (context.claims as any)?.email as string | undefined;
+      if (email) {
+        try {
+          const { describeLocation } = await import("@/lib/login-alert.server");
+          const { sendTemplate } = await import("@/lib/email/send.server");
+          const when = new Intl.DateTimeFormat("en-GB", {
+            dateStyle: "full",
+            timeStyle: "short",
+            timeZone: "Africa/Accra",
+          }).format(new Date());
+          await sendTemplate("login_alert", email, {
+            email,
+            device: data.deviceLabel,
+            browser: data.browser,
+            os: data.os,
+            ip: ip ?? "unknown",
+            location: await describeLocation(ip),
+            time: `${when} (Accra)`,
+            reset_url: `${data.origin ?? "https://fageghana.lovable.app"}/reset-password?from=login_alert`,
+          });
+        } catch {
+          /* alert emails must never block sign-in */
+        }
+      }
     }
+
 
     return { sessionId: (created as any)?.id as string, isNewDevice: !knownDevice };
   });

@@ -87,8 +87,10 @@ export function SessionGuard() {
         deviceLabel: info.deviceLabel,
         browser: info.browser,
         os: info.os,
+        origin: typeof window !== "undefined" ? window.location.origin : undefined,
       },
     })
+
       .then((r: any) => {
         if (cancelled || !r?.sessionId) return;
         sessionIdRef.current = r.sessionId;

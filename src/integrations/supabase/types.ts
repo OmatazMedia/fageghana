@@ -909,6 +909,87 @@ export type Database = {
           },
         ]
       }
+      ip_bans: {
+        Row: {
+          banned_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          ip: string
+          last_email_tried: string | null
+          reason: string | null
+          strikes: number
+          subnet: string
+          unbanned_at: string | null
+          unbanned_by: string | null
+          updated_at: string
+          warning_count: number
+        }
+        Insert: {
+          banned_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip: string
+          last_email_tried?: string | null
+          reason?: string | null
+          strikes?: number
+          subnet: string
+          unbanned_at?: string | null
+          unbanned_by?: string | null
+          updated_at?: string
+          warning_count?: number
+        }
+        Update: {
+          banned_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip?: string
+          last_email_tried?: string | null
+          reason?: string | null
+          strikes?: number
+          subnet?: string
+          unbanned_at?: string | null
+          unbanned_by?: string | null
+          updated_at?: string
+          warning_count?: number
+        }
+        Relationships: []
+      }
+      login_attempts: {
+        Row: {
+          created_at: string
+          email_tried: string | null
+          id: string
+          ip: string
+          outcome: string
+          portal: string
+          subnet: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_tried?: string | null
+          id?: string
+          ip: string
+          outcome: string
+          portal?: string
+          subnet: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_tried?: string | null
+          id?: string
+          ip?: string
+          outcome?: string
+          portal?: string
+          subnet?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       media: {
         Row: {
           category: string
@@ -2173,6 +2254,13 @@ export type Database = {
         Returns: undefined
       }
       admin_set_member_id_start: { Args: { _n: number }; Returns: number }
+      console_account_for_email: {
+        Args: { _email: string }
+        Returns: {
+          exists_console: boolean
+          user_id: string
+        }[]
+      }
       delete_blog_reaction: {
         Args: { p_emoji: string; p_news_id: string; p_session_id: string }
         Returns: undefined
@@ -2240,6 +2328,7 @@ export type Database = {
           tier: Database["public"]["Enums"]["membership_tier"]
         }[]
       }
+      purge_old_login_attempts: { Args: never; Returns: undefined }
       revoke_my_other_sessions: {
         Args: { _keep_fingerprint: string }
         Returns: number

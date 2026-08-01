@@ -22,6 +22,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VerifyCodeRouteImport } from './routes/verify.$code'
 import { Route as ReceiptIdRouteImport } from './routes/receipt.$id'
@@ -47,6 +48,7 @@ import { Route as AdminNotificationSettingsRouteImport } from './routes/admin.no
 import { Route as AdminNewsRouteImport } from './routes/admin.news'
 import { Route as AdminMembersRouteImport } from './routes/admin.members'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
+import { Route as AdminLoginSecurityRouteImport } from './routes/admin.login-security'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
@@ -138,6 +140,11 @@ const ActivitiesRoute = ActivitiesRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -264,6 +271,11 @@ const AdminMembersRoute = AdminMembersRouteImport.update({
 const AdminMediaRoute = AdminMediaRouteImport.update({
   id: '/media',
   path: '/media',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLoginSecurityRoute = AdminLoginSecurityRouteImport.update({
+  id: '/login-security',
+  path: '/login-security',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -408,6 +420,7 @@ const ApiPublicHooksRunScheduledBackupRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/account': typeof AccountRouteWithChildren
   '/activities': typeof ActivitiesRoute
   '/admin': typeof AdminRouteWithChildren
@@ -442,6 +455,7 @@ export interface FileRoutesByFullPath {
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
@@ -475,6 +489,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/account': typeof AccountRouteWithChildren
   '/activities': typeof ActivitiesRoute
   '/admin': typeof AdminRouteWithChildren
@@ -509,6 +524,7 @@ export interface FileRoutesByTo {
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
@@ -543,6 +559,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/account': typeof AccountRouteWithChildren
   '/activities': typeof ActivitiesRoute
   '/admin': typeof AdminRouteWithChildren
@@ -577,6 +594,7 @@ export interface FileRoutesById {
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
@@ -612,6 +630,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$'
     | '/account'
     | '/activities'
     | '/admin'
@@ -646,6 +665,7 @@ export interface FileRouteTypes {
     | '/admin/forms'
     | '/admin/gateways'
     | '/admin/login'
+    | '/admin/login-security'
     | '/admin/media'
     | '/admin/members'
     | '/admin/news'
@@ -679,6 +699,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$'
     | '/account'
     | '/activities'
     | '/admin'
@@ -713,6 +734,7 @@ export interface FileRouteTypes {
     | '/admin/forms'
     | '/admin/gateways'
     | '/admin/login'
+    | '/admin/login-security'
     | '/admin/media'
     | '/admin/members'
     | '/admin/news'
@@ -746,6 +768,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/$'
     | '/account'
     | '/activities'
     | '/admin'
@@ -780,6 +803,7 @@ export interface FileRouteTypes {
     | '/admin/forms'
     | '/admin/gateways'
     | '/admin/login'
+    | '/admin/login-security'
     | '/admin/media'
     | '/admin/members'
     | '/admin/news'
@@ -814,6 +838,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SplatRoute: typeof SplatRoute
   AccountRoute: typeof AccountRouteWithChildren
   ActivitiesRoute: typeof ActivitiesRoute
   AdminRoute: typeof AdminRouteWithChildren
@@ -931,6 +956,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1106,6 +1138,13 @@ declare module '@tanstack/react-router' {
       path: '/media'
       fullPath: '/admin/media'
       preLoaderRoute: typeof AdminMediaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/login-security': {
+      id: '/admin/login-security'
+      path: '/login-security'
+      fullPath: '/admin/login-security'
+      preLoaderRoute: typeof AdminLoginSecurityRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/login': {
@@ -1332,6 +1371,7 @@ interface AdminRouteChildren {
   AdminFormsRoute: typeof AdminFormsRoute
   AdminGatewaysRoute: typeof AdminGatewaysRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminLoginSecurityRoute: typeof AdminLoginSecurityRoute
   AdminMediaRoute: typeof AdminMediaRoute
   AdminMembersRoute: typeof AdminMembersRoute
   AdminNewsRoute: typeof AdminNewsRoute
@@ -1371,6 +1411,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminFormsRoute: AdminFormsRoute,
   AdminGatewaysRoute: AdminGatewaysRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminLoginSecurityRoute: AdminLoginSecurityRoute,
   AdminMediaRoute: AdminMediaRoute,
   AdminMembersRoute: AdminMembersRoute,
   AdminNewsRoute: AdminNewsRoute,
@@ -1416,6 +1457,7 @@ const VerifyRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SplatRoute: SplatRoute,
   AccountRoute: AccountRouteWithChildren,
   ActivitiesRoute: ActivitiesRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -1444,13 +1486,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
