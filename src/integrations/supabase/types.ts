@@ -2254,6 +2254,13 @@ export type Database = {
         Returns: undefined
       }
       admin_set_member_id_start: { Args: { _n: number }; Returns: number }
+      console_account_for_email: {
+        Args: { _email: string }
+        Returns: {
+          exists_console: boolean
+          user_id: string
+        }[]
+      }
       delete_blog_reaction: {
         Args: { p_emoji: string; p_news_id: string; p_session_id: string }
         Returns: undefined
