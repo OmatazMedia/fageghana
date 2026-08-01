@@ -238,7 +238,8 @@ export async function recordAttempt(input: {
     /* noop */
   }
 
-  if (shouldBan && (!existing || existing.warning_count ?? 0) < MAX_WARNINGS) {
+  const prevWarnings: number = existing ? Number(existing.warning_count ?? 0) : 0;
+  if (shouldBan && prevWarnings < MAX_WARNINGS) {
     await log("login_ip_banned", `${ip} (${subnet}) blocked for 24h after ${failures} failed attempts`, ip);
     try {
       await supabaseAdmin.from("notifications" as any).insert({
