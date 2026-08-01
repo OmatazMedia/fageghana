@@ -48,6 +48,7 @@ import { Route as AdminNotificationSettingsRouteImport } from './routes/admin.no
 import { Route as AdminNewsRouteImport } from './routes/admin.news'
 import { Route as AdminMembersRouteImport } from './routes/admin.members'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
+import { Route as AdminLoginSecurityRouteImport } from './routes/admin.login-security'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
@@ -272,6 +273,11 @@ const AdminMediaRoute = AdminMediaRouteImport.update({
   path: '/media',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLoginSecurityRoute = AdminLoginSecurityRouteImport.update({
+  id: '/login-security',
+  path: '/login-security',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -449,6 +455,7 @@ export interface FileRoutesByFullPath {
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
@@ -517,6 +524,7 @@ export interface FileRoutesByTo {
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
@@ -586,6 +594,7 @@ export interface FileRoutesById {
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/news': typeof AdminNewsRoute
@@ -656,6 +665,7 @@ export interface FileRouteTypes {
     | '/admin/forms'
     | '/admin/gateways'
     | '/admin/login'
+    | '/admin/login-security'
     | '/admin/media'
     | '/admin/members'
     | '/admin/news'
@@ -724,6 +734,7 @@ export interface FileRouteTypes {
     | '/admin/forms'
     | '/admin/gateways'
     | '/admin/login'
+    | '/admin/login-security'
     | '/admin/media'
     | '/admin/members'
     | '/admin/news'
@@ -792,6 +803,7 @@ export interface FileRouteTypes {
     | '/admin/forms'
     | '/admin/gateways'
     | '/admin/login'
+    | '/admin/login-security'
     | '/admin/media'
     | '/admin/members'
     | '/admin/news'
@@ -1128,6 +1140,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMediaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/login-security': {
+      id: '/admin/login-security'
+      path: '/login-security'
+      fullPath: '/admin/login-security'
+      preLoaderRoute: typeof AdminLoginSecurityRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/login'
@@ -1352,6 +1371,7 @@ interface AdminRouteChildren {
   AdminFormsRoute: typeof AdminFormsRoute
   AdminGatewaysRoute: typeof AdminGatewaysRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminLoginSecurityRoute: typeof AdminLoginSecurityRoute
   AdminMediaRoute: typeof AdminMediaRoute
   AdminMembersRoute: typeof AdminMembersRoute
   AdminNewsRoute: typeof AdminNewsRoute
@@ -1391,6 +1411,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminFormsRoute: AdminFormsRoute,
   AdminGatewaysRoute: AdminGatewaysRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminLoginSecurityRoute: AdminLoginSecurityRoute,
   AdminMediaRoute: AdminMediaRoute,
   AdminMembersRoute: AdminMembersRoute,
   AdminNewsRoute: AdminNewsRoute,
