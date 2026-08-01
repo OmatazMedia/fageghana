@@ -1,80 +1,93 @@
 ## Goal
 
-Harden signed-in sessions across both the member dashboard and the admin console: automatic idle timeout, hard session lifetime, visible device/session management with remote revoke, hijack detection, and a clean wipe of cached data on sign-out.
+Lock down the admin console entrance: an unlinked login page, a two-step (email-then-password) form, IP throttling with warnings and 24-hour bans, an admin ban manager, custom password-reset checks, plus login-alert emails for new devices and idle-session termination.
 
-## 1. Idle timeout — 15 min inactivity + 60s countdown
+## 1. Hidden admin entrance + catch-all redirect
 
-A single `SessionGuard` component mounted once inside `AuthProvider` (so it covers every signed-in page, member and admin).
+- Remove every link/button pointing to `/admin/login` across the site (header, footer, member login page, any CTA). The URL keeps working when typed directly, so admins can never be locked out.
+- Add a catch-all route so any unmatched URL (`/adminn`, `/admin/foo`, typos, probing paths) redirects to the homepage instead of showing the 404 card. The root 404 component is replaced by a redirect.
+- `/login` (member login) stays public and linked exactly as today.
+- Existing real admin pages keep their current role gate: signed-out visitors to `/admin/...` land on the homepage rather than a login screen, since the login page is unlinked.
 
-- Tracks activity: `mousemove`, `keydown`, `click`, `scroll`, `touchstart`, `visibilitychange` — throttled to one write per ~5s.
-- Last-activity timestamp is stored in `localStorage` so **all open tabs share one timer** (activity in any tab keeps every tab alive).
-- At 15 min idle: a modal appears — "Are you still there? You'll be signed out in 0:59" with **Stay signed in** / **Sign out now**.
-- No response within 60s → automatic sign-out with reason `idle_timeout`; user lands on the correct login page (`/login` for members, `/admin/login` for console roles) with a toast: "You were signed out due to inactivity."
-- "Stay signed in" refreshes the Supabase token and resets the timer.
-- Timer only runs when a session exists; public pages are unaffected.
+## 2. Two-step admin login form
 
-## 2. Absolute session lifetime — 12 hours
+Step 1 — email only:
+- Input is sanitised: trimmed, lowercased, max 254 chars, strict email pattern. Anything containing SQL/NoSQL-style syntax (quotes, `;`, `--`, `/*`, `=`, `<`, `>`, `{`, `}`, `$`) is rejected before it ever reaches the server.
+- A server check confirms the address belongs to an account with a console role (admin, superadmin, developer, staff, finance, ceo, coordinator).
+- Recognised → the password field slides in, with the email shown and an "Use a different email" link.
+- Not recognised → "This email is not recognised for admin access." and the attempt is counted.
 
-- Session start time recorded at sign-in. Once `now - session_start > 12h`, the user is signed out regardless of activity, with reason `absolute_expiry` and message "Your session has expired, please sign in again."
-- Checked on a 60s tick and on tab focus, so a laptop woken after hours is signed out immediately rather than resuming.
+Step 2 — password:
+- Password field only exists after a successful email check, so credential-stuffing bots must pass step 1 first.
+- Existing MFA challenge and role verification flow is preserved.
 
-## 3. Device / session registry + remote sign-out
+Note: the email check is deliberately rate-limited and IP-counted, because it does reveal whether an address is a console account. The throttle in section 3 is what keeps it from being used for enumeration.
 
-New table `user_sessions`:
+## 3. Throttling, warnings and bans
 
-| column | purpose |
+Server-side counters keyed by IP (and `/24` subnet):
+
+| Trigger | Result |
 |---|---|
-| `id` | session row |
-| `user_id` | owner |
-| `session_fingerprint` | hash of UA + platform + screen + timezone + language |
-| `device_label`, `browser`, `os` | human-readable ("Chrome on Windows") |
-| `ip_address` | captured server-side |
-| `created_at`, `last_seen_at` | activity |
-| `revoked_at`, `revoked_reason` | revocation |
-| `is_current` | derived client-side |
+| Failed email check or wrong password | attempt recorded with IP, email tried, reason |
+| 5 attempts in 15 min | Warning 1 — "5 failed attempts. After 3 warnings this network will be blocked for 24 hours." |
+| Next 5 attempts | Warning 2, then Warning 3 |
+| 3rd warning reached | IP **and its `/24` subnet** banned for 24 hours |
 
-- On sign-in a row is created (or refreshed) via a server function; a heartbeat updates `last_seen_at` every ~2 min while active.
-- **Member view:** new "Active sessions" card on `/account/security` — list of devices with last-seen time, "This device" badge, **Sign out this device** and **Sign out all other devices**.
-- **Admin view:** the same list per user in User Management, plus admin-side force-revoke (useful for a compromised staff account).
-- Revocation is enforced client-side on each heartbeat: if the current session row is revoked, the app signs out immediately (max ~2 min lag).
-- Each new device sign-in writes an `activity_log` entry ("New device sign-in — Chrome on Windows, Accra") so it shows in the notification bell / audit log.
+- Warnings are shown in the form with the remaining-attempt count so the user knows exactly where they stand.
+- While banned, `/admin/login` itself redirects to the homepage — no form, no message, no matter how it is reached.
+- Successful sign-in clears that IP's attempt counters and warnings.
+- Every warning and ban writes an `activity_log` entry and an admin notification.
 
-## 4. Hijack / anomaly detection
+## 4. Admin ban manager
 
-- The heartbeat sends the current fingerprint + server-observed IP. If the fingerprint for a live session row changes, or the IP jumps to a different network in a short window, the server marks the session `suspicious`.
-- Behaviour: session is revoked and the user must sign in again, and an `activity_log` entry `session_anomaly` is recorded (visible to admins in the audit log).
-- Fingerprint is a non-invasive hash — no third-party tracking library.
+New admin page **Security → Login Attempts & Bans** (visible to admin / superadmin / developer):
 
-## 5. Full cache / storage purge on sign-out
+- **Bans tab:** active and expired bans — IP, subnet, warning count, banned at, expires at, last email tried — with **Unban** (for bans made in error) and manual **Ban an IP**.
+- **Attempts tab:** paginated recent attempts with filters by IP, email and outcome, so a genuine lockout can be diagnosed.
+- Unbanning clears counters and warnings for that IP so the user gets a clean slate.
 
-Centralise sign-out in `AuthProvider.signOut()` so **every** exit path (menu, idle timeout, absolute expiry, remote revoke) does the same thing in order:
+## 5. Forgot password (admin)
 
-1. `queryClient.cancelQueries()` then `queryClient.clear()` — no 401 storms, no stale data restored by Back.
-2. Mark the `user_sessions` row revoked.
-3. `supabase.auth.signOut()`.
-4. Remove app-owned `localStorage` / `sessionStorage` keys (renewal banner dismissal, chat widget state, activity timestamp, Supabase auth key).
-5. `navigate({ replace: true })` to the right login route — protected pages stay off the back stack.
-6. A `storage` event broadcasts sign-out so **other open tabs sign out too**.
+- The reset form checks the email against console accounts first. Unknown → "This email is not recognised for admin access." Known → the reset email is sent and a confirmation is shown.
+- The reset email is a branded FAGE template (logo header, reset button, expiry note, footer) matching the existing email designs, and reset attempts are IP-counted like sign-in attempts.
+
+## 6. Login alert emails (new device only)
+
+- After each successful sign-in — member or console — the system compares the device fingerprint/IP against that user's known sessions.
+- New device or new network → a branded "New sign-in to your FAGE account" email with device (browser + OS), IP, approximate location (country/city from IP), and timestamp in Ghana time, plus a prominent **"This wasn't me — reset my password"** button that starts a password reset and signs out all other sessions.
+- Known device → no email, so regular daily logins don't spam inboxes.
+
+## 7. Idle session termination and hijack protection
+
+The session guard already built (15-minute idle detection, "Are you still there?" 60-second countdown modal, 12-hour hard cap, device registry with heartbeats, fingerprint/IP anomaly revocation, full storage and cache purge on sign-out) covers this requirement. This phase verifies and finishes it:
+
+- Confirm the countdown modal appears on both member and admin dashboards and that hitting 0 terminates the session and returns the user to the correct login route.
+- Confirm anomaly detection (changed fingerprint or a network jump) revokes the session and logs it for admins.
+- Fix a server-rendering crash in the admin login page caused by reading browser storage during SSR (`localStorage is not defined`), which currently makes that page fall back to client rendering.
 
 ## Technical details
 
 **Migration**
-- `CREATE TABLE public.user_sessions (...)` with GRANTs (`authenticated`: select/insert/update own; `service_role`: all), RLS: users see/revoke only their own rows; admin/superadmin/developer can select and revoke any.
-- `revoke_user_session(_id uuid)` security-definer RPC enforcing that ownership/admin check.
-- Index on `(user_id, last_seen_at desc)`.
+- `login_attempts` — ip, subnet, email_tried, outcome, user_agent, created_at; indexed on (ip, created_at).
+- `ip_bans` — ip, subnet, reason, warning_count, banned_at, expires_at, unbanned_at/by, last_email_tried.
+- Both tables: no anon/authenticated grants; all reads/writes go through security-definer RPCs and service-role server functions. Admin read/unban gated by `has_role`.
+- RPCs: `record_login_attempt`, `check_ip_status` (returns banned / warning level / attempts left), `admin_unban_ip`, `admin_ban_ip`, `admin_list_login_attempts`.
+- Email template rows for `admin_password_reset` and `login_alert`.
 
 **New files**
-- `src/components/auth/SessionGuard.tsx` — idle timer, countdown modal, absolute-expiry check, heartbeat, cross-tab sync.
-- `src/lib/session-registry.functions.ts` — `registerSession`, `heartbeatSession`, `revokeSession`, `listMySessions` (auth-middleware protected; IP read from request headers server-side).
-- `src/lib/session-fingerprint.ts` — browser-safe fingerprint hash.
-- `src/components/account/ActiveSessionsCard.tsx` — shared UI for member + admin views.
+- `src/routes/$.tsx` — catch-all redirecting to `/`.
+- `src/lib/login-security.functions.ts` — `checkAdminEmail`, `recordAttempt`, `ipStatus`, `unbanIp` (IP read from request headers server-side).
+- `src/lib/email-templates/login-alert` + `admin-password-reset` rendering via the existing branded email pipeline.
+- `src/routes/admin.login-security.tsx` — bans + attempts UI.
 
 **Edited**
-- `src/components/auth/AuthProvider.tsx` — centralised `signOut(reason)`, session-start tracking, mounts `SessionGuard`.
-- `src/routes/account.security.tsx` and `src/routes/admin.account.security.tsx` — add Active Sessions card.
-- `src/routes/admin.users.tsx` — per-user session list + force sign-out.
-- `src/components/dashboard/DashboardLayout.tsx` / `AdminShell.tsx` — use the centralised sign-out.
+- `src/routes/admin.login.tsx` — two-step form, sanitisation, ban gate, warning banners, SSR-safe storage reads.
+- `src/routes/__root.tsx` — 404 becomes a homepage redirect.
+- `src/components/site/SiteHeader.tsx` / `SiteFooter.tsx` / `src/routes/login.tsx` — remove admin-login links.
+- `src/components/auth/AuthProvider.tsx` — fire the new-device login alert after sign-in.
+- `src/lib/role-permissions.ts` + admin sidebar — register the new Login Security page.
 
-**Not changed:** RLS on existing tables, login flows, roles, or any business logic. Supabase JWT refresh continues as-is — the idle/absolute rules sit on top of it.
+**Not changed:** member sign-in flow, roles, subscription logic, or any existing business rules.
 
-**Trade-off worth knowing:** a 15-minute idle timeout will interrupt anyone slowly filling a long form (directory listing, application). The timer counts keystrokes as activity, so this only bites on genuinely idle tabs, but the value is easy to change later if members complain.
+**Trade-off worth knowing:** banning a whole `/24` subnet for 24 hours can catch colleagues on the same office network as a careless typist. The unban tool makes that a one-click fix, and the ban only triggers after 15 failed attempts across three warnings.
