@@ -43,7 +43,7 @@ function sameNetwork(a: string | null, b: string | null): boolean {
 export const registerSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (d: { fingerprint: string; deviceLabel: string; browser: string; os: string }) => d,
+    (d: { fingerprint: string; deviceLabel: string; browser: string; os: string; origin?: string }) => d,
   )
   .handler(async ({ data, context }) => {
     const ip = clientIp();
