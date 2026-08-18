@@ -8,6 +8,8 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { listMyActivity } from "@/lib/activity.functions";
 import { ActiveSessionsCard } from "@/components/account/ActiveSessionsCard";
 import { ProfileCard } from "@/components/account/ProfileCard";
+import { EmailMfaCard } from "@/components/account/EmailMfaCard";
+
 
 
 
