@@ -1,5 +1,10 @@
 # Readiness, Members CSV, Profile & 2FA, Member IDs, Event Gallery
 
+## 0. Fix current build break (first)
+Navigating to `/dashboard` now requires the `tab` search param, so seven call sites (login, apply, payment callback, receipt, reset password) fail typecheck. Make the dashboard's `tab` param optional so plain `/dashboard` links compile and default to the Overview tab.
+
+
+
 ## 1. Readiness tab cleanup
 - Remove the **Weight** column from the readiness checklist table and the weight input from the add/edit form (weight stays in the database at its default so existing score calculations keep working).
 - Rename **Display order** to **Serial No.** in the table header and the form label; rows keep their drag/move-up-down reordering, and the serial number shown is the row's position (1, 2, 3 …).
