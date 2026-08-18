@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { X, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
+import { X, Upload, AlertCircle, CheckCircle2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { bulkInviteMembers, type BulkInviteResult } from "@/lib/users.functions";
@@ -7,6 +7,7 @@ import { bulkInviteMembers, type BulkInviteResult } from "@/lib/users.functions"
 type Row = {
   email: string;
   full_name: string;
+  password?: string;
   phone?: string;
   company_name?: string;
   tier?: string;
@@ -15,6 +16,21 @@ type Row = {
 
 const TIERS = new Set(["associate", "standard", "corporate"]);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const SAMPLE_CSV = `email,full_name,password,phone,company_name,tier
+jane@example.com,Jane Mensah,ChangeMe123!,+233201234567,Mensah Exports Ltd,associate
+kofi@example.com,Kofi Boateng,ChangeMe123!,+233240000000,Boateng Agro Ltd,corporate
+`;
+
+function downloadSample() {
+  const blob = new Blob([SAMPLE_CSV], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "fage-members-sample.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function parseCsv(text: string): Row[] {
   const lines = text
@@ -28,7 +44,8 @@ function parseCsv(text: string): Row[] {
     .map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ""));
   const idx = (name: string) => header.indexOf(name);
   const iEmail = idx("email");
-  const iName = idx("full_name");
+  const iName = idx("full_name") >= 0 ? idx("full_name") : idx("name");
+  const iPass = idx("password");
   const iPhone = idx("phone");
   const iCo = idx("company_name");
   const iTier = idx("tier");
@@ -43,18 +60,22 @@ function parseCsv(text: string): Row[] {
     const r: Row = {
       email: cols[iEmail] ?? "",
       full_name: cols[iName] ?? "",
+      password: iPass >= 0 ? cols[iPass] : undefined,
       phone: iPhone >= 0 ? cols[iPhone] : undefined,
       company_name: iCo >= 0 ? cols[iCo] : undefined,
       tier: iTier >= 0 ? cols[iTier] : undefined,
     };
     if (!EMAIL_RE.test(r.email)) r.__error = "Invalid email";
     else if (!r.full_name) r.__error = "Missing full_name";
+    else if (r.password && r.password.length < 8)
+      r.__error = "Password must be at least 8 characters";
     else if (r.tier && !TIERS.has(r.tier.toLowerCase()))
       r.__error = "tier must be associate, standard or corporate";
     rows.push(r);
   }
   return rows;
 }
+
 
 export function BulkInviteMembersDialog({
   onClose,
