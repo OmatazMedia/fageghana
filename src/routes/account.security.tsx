@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { listMyActivity } from "@/lib/activity.functions";
 import { ActiveSessionsCard } from "@/components/account/ActiveSessionsCard";
+import { ProfileCard } from "@/components/account/ProfileCard";
+
 
 
 export const Route = createFileRoute("/account/security")({
