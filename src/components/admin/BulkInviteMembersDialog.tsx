@@ -205,6 +205,8 @@ export function BulkInviteMembersDialog({
                     <tr>
                       <th className="px-3 py-2">Email</th>
                       <th className="px-3 py-2">Full name</th>
+                      <th className="px-3 py-2">Password</th>
+
                       <th className="px-3 py-2">Phone</th>
                       <th className="px-3 py-2">Company</th>
                       <th className="px-3 py-2">Tier</th>
