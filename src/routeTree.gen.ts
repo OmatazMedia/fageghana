@@ -51,6 +51,7 @@ import { Route as AdminMembersRouteImport } from './routes/admin.members'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminLoginSecurityRouteImport } from './routes/admin.login-security'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminHelpRouteImport } from './routes/admin.help'
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
 import { Route as AdminEmailTemplatesRouteImport } from './routes/admin.email-templates'
@@ -289,6 +290,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminHelpRoute = AdminHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminGatewaysRoute = AdminGatewaysRouteImport.update({
   id: '/gateways',
   path: '/gateways',
@@ -460,6 +466,7 @@ export interface FileRoutesByFullPath {
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
+  '/admin/help': typeof AdminHelpRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
@@ -530,6 +537,7 @@ export interface FileRoutesByTo {
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
+  '/admin/help': typeof AdminHelpRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
@@ -601,6 +609,7 @@ export interface FileRoutesById {
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
+  '/admin/help': typeof AdminHelpRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
@@ -673,6 +682,7 @@ export interface FileRouteTypes {
     | '/admin/email-templates'
     | '/admin/forms'
     | '/admin/gateways'
+    | '/admin/help'
     | '/admin/login'
     | '/admin/login-security'
     | '/admin/media'
@@ -743,6 +753,7 @@ export interface FileRouteTypes {
     | '/admin/email-templates'
     | '/admin/forms'
     | '/admin/gateways'
+    | '/admin/help'
     | '/admin/login'
     | '/admin/login-security'
     | '/admin/media'
@@ -813,6 +824,7 @@ export interface FileRouteTypes {
     | '/admin/email-templates'
     | '/admin/forms'
     | '/admin/gateways'
+    | '/admin/help'
     | '/admin/login'
     | '/admin/login-security'
     | '/admin/media'
@@ -1173,6 +1185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/help': {
+      id: '/admin/help'
+      path: '/help'
+      fullPath: '/admin/help'
+      preLoaderRoute: typeof AdminHelpRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/gateways': {
       id: '/admin/gateways'
       path: '/gateways'
@@ -1389,6 +1408,7 @@ interface AdminRouteChildren {
   AdminEmailTemplatesRoute: typeof AdminEmailTemplatesRoute
   AdminFormsRoute: typeof AdminFormsRoute
   AdminGatewaysRoute: typeof AdminGatewaysRoute
+  AdminHelpRoute: typeof AdminHelpRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminLoginSecurityRoute: typeof AdminLoginSecurityRoute
   AdminMediaRoute: typeof AdminMediaRoute
@@ -1430,6 +1450,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEmailTemplatesRoute: AdminEmailTemplatesRoute,
   AdminFormsRoute: AdminFormsRoute,
   AdminGatewaysRoute: AdminGatewaysRoute,
+  AdminHelpRoute: AdminHelpRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminLoginSecurityRoute: AdminLoginSecurityRoute,
   AdminMediaRoute: AdminMediaRoute,
