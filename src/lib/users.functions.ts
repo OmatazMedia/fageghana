@@ -238,10 +238,52 @@ export const bulkInviteMembers = createServerFn({ method: "POST" })
         }
 
         succeeded++;
+        welcomed.push({
+          email: row.email,
+          full_name: row.full_name,
+          withPassword: !!row.password,
+        });
       } catch (e: any) {
         failed.push({ email: row.email, reason: e?.message ?? String(e) });
       }
     }
 
+    // Branded welcome emails (best-effort — never fails the import).
+    if (welcomed.length) {
+      const { sendEmail } = await import("@/lib/email/send.server");
+      const { brandedEmail } = await import("@/lib/email/branded");
+      for (const w of welcomed) {
+        try {
+          const { html, text } = brandedEmail({
+            title: "Your FAGE member account is ready",
+            paragraphs: w.withPassword
+              ? [
+                  `Hello ${w.full_name},`,
+                  "An account has been created for you on the FAGE member portal. You can sign in right away using the email below and the password shared with you by the FAGE secretariat.",
+                  "For your security, please change your password after your first sign-in from Account & Security.",
+                ]
+              : [
+                  `Hello ${w.full_name},`,
+                  "An account has been created for you on the FAGE member portal. Check your inbox for the invitation link to set your password, then sign in.",
+                ],
+            rows: [{ label: "Your login email", value: w.email }],
+            ctaLabel: "Sign in to the member portal",
+            ctaHref: loginUrl,
+            footNote: "If you did not expect this email, please contact the FAGE secretariat.",
+          });
+          await sendEmail({
+            to: w.email,
+            subject: "Your FAGE member account is ready",
+            html,
+            text,
+            templateKey: "member_welcome",
+          });
+        } catch {
+          /* ignore email failures */
+        }
+      }
+    }
+
     return { succeeded, failed };
   });
+
