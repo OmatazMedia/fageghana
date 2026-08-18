@@ -147,11 +147,14 @@ export function BulkInviteMembersDialog({
       <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h3 className="text-lg font-semibold">Bulk invite members</h3>
+            <h3 className="text-lg font-semibold">Import members via CSV</h3>
             <p className="text-xs text-muted-foreground">
-              Upload a CSV with columns: <code>email, full_name, phone, company_name, tier</code>.
-              Each member receives an email invite to set a password.
+              Columns: <code>email, full_name, password</code> (optional:{" "}
+              <code>phone, company_name, tier</code>). With a password the account is created
+              confirmed so the member can sign in immediately; leave it blank to send an invite
+              link instead.
             </p>
+
           </div>
           <button onClick={onClose} className="rounded-full p-2 hover:bg-muted">
             <X className="h-4 w-4" />
