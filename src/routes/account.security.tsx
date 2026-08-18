@@ -21,14 +21,17 @@ export function SecurityPage({ passwordHref = "/account/change-password" }: { pa
       <div>
         <h2 className="text-2xl font-bold">Account & Security</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your email address and two-factor authentication. Password changes have their own page.
+          Manage your profile, email address and two-factor authentication. Password changes have
+          their own page.
         </p>
       </div>
+      <ProfileCard />
       <PasswordLinkCard href={passwordHref} />
       <EmailCard currentEmail={user?.email ?? ""} />
       <MfaCard />
       <ActiveSessionsCard />
       <MyActivityCard />
+
 
     </div>
   );
