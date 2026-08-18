@@ -130,6 +130,8 @@ const navSections: NavSection[] = [
       { to: "/admin/users", label: "User Management", icon: ShieldCheck, roles: DEV_ONLY },
       { to: "/admin/roles", label: "Role Permissions", icon: KeyRound, roles: ANY_ADMIN },
       { to: "/admin/login-security", label: "Login Security", icon: ShieldCheck, roles: ANY_ADMIN },
+      { to: "/admin/security-settings", label: "Session & Auto Sign-out", icon: ShieldCheck, roles: ANY_ADMIN },
+      { to: "/admin/help", label: "Help Guide", icon: BookOpen },
     ],
   },
 ];
@@ -183,6 +185,7 @@ function AdminLayout() {
     "/admin/activity-log",
     "/admin/users",
     "/admin/login-security",
+    "/admin/security-settings",
   ];
   const isDevPath = DEV_ONLY_PATHS.some(
     (p) => location.pathname === p || location.pathname.startsWith(p + "/"),

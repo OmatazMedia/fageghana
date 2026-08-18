@@ -51,6 +51,7 @@ const TAB_ITEMS: Item[] = [
 const ACCOUNT_ITEMS: Item[] = [
   { label: "Account & Security", icon: ShieldCheck, to: "/account/security" },
   { label: "Change Password", icon: KeyRound, to: "/account/change-password" },
+  { label: "Help Guide", icon: BookOpen, to: "/account/help" },
 ];
 
 export function DashboardLayout({ children }: { children: ReactNode }) {

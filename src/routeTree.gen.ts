@@ -36,6 +36,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminSiteMediaRouteImport } from './routes/admin.site-media'
+import { Route as AdminSecuritySettingsRouteImport } from './routes/admin.security-settings'
 import { Route as AdminRolesRouteImport } from './routes/admin.roles'
 import { Route as AdminResourcesRouteImport } from './routes/admin.resources'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
@@ -50,6 +51,7 @@ import { Route as AdminMembersRouteImport } from './routes/admin.members'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminLoginSecurityRouteImport } from './routes/admin.login-security'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminHelpRouteImport } from './routes/admin.help'
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminFormsRouteImport } from './routes/admin.forms'
 import { Route as AdminEmailTemplatesRouteImport } from './routes/admin.email-templates'
@@ -68,6 +70,7 @@ import { Route as AdminApplicationsRouteImport } from './routes/admin.applicatio
 import { Route as AdminActivityLogRouteImport } from './routes/admin.activity-log'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as AccountSecurityRouteImport } from './routes/account.security'
+import { Route as AccountHelpRouteImport } from './routes/account.help'
 import { Route as AccountChangePasswordRouteImport } from './routes/account.change-password'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
@@ -212,6 +215,11 @@ const AdminSiteMediaRoute = AdminSiteMediaRouteImport.update({
   path: '/site-media',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSecuritySettingsRoute = AdminSecuritySettingsRouteImport.update({
+  id: '/security-settings',
+  path: '/security-settings',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRolesRoute = AdminRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
@@ -281,6 +289,11 @@ const AdminLoginSecurityRoute = AdminLoginSecurityRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHelpRoute = AdminHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminGatewaysRoute = AdminGatewaysRouteImport.update({
@@ -373,6 +386,11 @@ const AccountSecurityRoute = AccountSecurityRouteImport.update({
   path: '/security',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountHelpRoute = AccountHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AccountRoute,
+} as any)
 const AccountChangePasswordRoute = AccountChangePasswordRouteImport.update({
   id: '/change-password',
   path: '/change-password',
@@ -436,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/account/change-password': typeof AccountChangePasswordRoute
+  '/account/help': typeof AccountHelpRoute
   '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/activity-log': typeof AdminActivityLogRoute
@@ -454,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
+  '/admin/help': typeof AdminHelpRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
@@ -468,6 +488,7 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/resources': typeof AdminResourcesRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/admin/security-settings': typeof AdminSecuritySettingsRoute
   '/admin/site-media': typeof AdminSiteMediaRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
@@ -505,6 +526,7 @@ export interface FileRoutesByTo {
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/account/change-password': typeof AccountChangePasswordRoute
+  '/account/help': typeof AccountHelpRoute
   '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/activity-log': typeof AdminActivityLogRoute
@@ -523,6 +545,7 @@ export interface FileRoutesByTo {
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
+  '/admin/help': typeof AdminHelpRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
@@ -537,6 +560,7 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/resources': typeof AdminResourcesRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/admin/security-settings': typeof AdminSecuritySettingsRoute
   '/admin/site-media': typeof AdminSiteMediaRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
@@ -575,6 +599,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/account/change-password': typeof AccountChangePasswordRoute
+  '/account/help': typeof AccountHelpRoute
   '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/activity-log': typeof AdminActivityLogRoute
@@ -593,6 +618,7 @@ export interface FileRoutesById {
   '/admin/email-templates': typeof AdminEmailTemplatesRoute
   '/admin/forms': typeof AdminFormsRoute
   '/admin/gateways': typeof AdminGatewaysRoute
+  '/admin/help': typeof AdminHelpRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/login-security': typeof AdminLoginSecurityRoute
   '/admin/media': typeof AdminMediaRoute
@@ -607,6 +633,7 @@ export interface FileRoutesById {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/resources': typeof AdminResourcesRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/admin/security-settings': typeof AdminSecuritySettingsRoute
   '/admin/site-media': typeof AdminSiteMediaRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
@@ -646,6 +673,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/about/who-we-are'
     | '/account/change-password'
+    | '/account/help'
     | '/account/security'
     | '/admin/activities'
     | '/admin/activity-log'
@@ -664,6 +692,7 @@ export interface FileRouteTypes {
     | '/admin/email-templates'
     | '/admin/forms'
     | '/admin/gateways'
+    | '/admin/help'
     | '/admin/login'
     | '/admin/login-security'
     | '/admin/media'
@@ -678,6 +707,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/resources'
     | '/admin/roles'
+    | '/admin/security-settings'
     | '/admin/site-media'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
@@ -715,6 +745,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/about/who-we-are'
     | '/account/change-password'
+    | '/account/help'
     | '/account/security'
     | '/admin/activities'
     | '/admin/activity-log'
@@ -733,6 +764,7 @@ export interface FileRouteTypes {
     | '/admin/email-templates'
     | '/admin/forms'
     | '/admin/gateways'
+    | '/admin/help'
     | '/admin/login'
     | '/admin/login-security'
     | '/admin/media'
@@ -747,6 +779,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/resources'
     | '/admin/roles'
+    | '/admin/security-settings'
     | '/admin/site-media'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
@@ -784,6 +817,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/about/who-we-are'
     | '/account/change-password'
+    | '/account/help'
     | '/account/security'
     | '/admin/activities'
     | '/admin/activity-log'
@@ -802,6 +836,7 @@ export interface FileRouteTypes {
     | '/admin/email-templates'
     | '/admin/forms'
     | '/admin/gateways'
+    | '/admin/help'
     | '/admin/login'
     | '/admin/login-security'
     | '/admin/media'
@@ -816,6 +851,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/resources'
     | '/admin/roles'
+    | '/admin/security-settings'
     | '/admin/site-media'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
@@ -1056,6 +1092,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSiteMediaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/security-settings': {
+      id: '/admin/security-settings'
+      path: '/security-settings'
+      fullPath: '/admin/security-settings'
+      preLoaderRoute: typeof AdminSecuritySettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/roles': {
       id: '/admin/roles'
       path: '/roles'
@@ -1152,6 +1195,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/help': {
+      id: '/admin/help'
+      path: '/help'
+      fullPath: '/admin/help'
+      preLoaderRoute: typeof AdminHelpRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/gateways': {
@@ -1280,6 +1330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountSecurityRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/help': {
+      id: '/account/help'
+      path: '/help'
+      fullPath: '/account/help'
+      preLoaderRoute: typeof AccountHelpRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/account/change-password': {
       id: '/account/change-password'
       path: '/change-password'
@@ -1341,11 +1398,13 @@ declare module '@tanstack/react-router' {
 
 interface AccountRouteChildren {
   AccountChangePasswordRoute: typeof AccountChangePasswordRoute
+  AccountHelpRoute: typeof AccountHelpRoute
   AccountSecurityRoute: typeof AccountSecurityRoute
 }
 
 const AccountRouteChildren: AccountRouteChildren = {
   AccountChangePasswordRoute: AccountChangePasswordRoute,
+  AccountHelpRoute: AccountHelpRoute,
   AccountSecurityRoute: AccountSecurityRoute,
 }
 
@@ -1370,6 +1429,7 @@ interface AdminRouteChildren {
   AdminEmailTemplatesRoute: typeof AdminEmailTemplatesRoute
   AdminFormsRoute: typeof AdminFormsRoute
   AdminGatewaysRoute: typeof AdminGatewaysRoute
+  AdminHelpRoute: typeof AdminHelpRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminLoginSecurityRoute: typeof AdminLoginSecurityRoute
   AdminMediaRoute: typeof AdminMediaRoute
@@ -1384,6 +1444,7 @@ interface AdminRouteChildren {
   AdminReportsRoute: typeof AdminReportsRoute
   AdminResourcesRoute: typeof AdminResourcesRoute
   AdminRolesRoute: typeof AdminRolesRoute
+  AdminSecuritySettingsRoute: typeof AdminSecuritySettingsRoute
   AdminSiteMediaRoute: typeof AdminSiteMediaRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
   AdminTradeOpportunitiesRoute: typeof AdminTradeOpportunitiesRoute
@@ -1410,6 +1471,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEmailTemplatesRoute: AdminEmailTemplatesRoute,
   AdminFormsRoute: AdminFormsRoute,
   AdminGatewaysRoute: AdminGatewaysRoute,
+  AdminHelpRoute: AdminHelpRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminLoginSecurityRoute: AdminLoginSecurityRoute,
   AdminMediaRoute: AdminMediaRoute,
@@ -1424,6 +1486,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminReportsRoute: AdminReportsRoute,
   AdminResourcesRoute: AdminResourcesRoute,
   AdminRolesRoute: AdminRolesRoute,
+  AdminSecuritySettingsRoute: AdminSecuritySettingsRoute,
   AdminSiteMediaRoute: AdminSiteMediaRoute,
   AdminTicketsRoute: AdminTicketsRoute,
   AdminTradeOpportunitiesRoute: AdminTradeOpportunitiesRoute,

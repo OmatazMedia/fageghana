@@ -5,14 +5,23 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const roleEnum = z.enum(["admin", "superadmin", "staff", "moderator", "finance", "ceo", "developer", "coordinator"]);
 
+/** Full-access roles: `developer` is a super-admin equivalent. */
+const FULL_ACCESS_ROLES = ["admin", "superadmin", "developer"] as const;
+
 async function assertAdmin(context: any) {
-  const { data: roleRow } = await context.supabase
+  const { data: roleRows } = await context.supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", context.userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (!roleRow) throw new Error("Forbidden: admin only");
+    .in("role", FULL_ACCESS_ROLES as unknown as string[]);
+  if (!roleRows || roleRows.length === 0) throw new Error("Forbidden: admin only");
+}
+
+/** One role per user — replace any existing rows so no duplicates appear. */
+async function setSoleRole(userId: string, role: string) {
+  await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+  const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: userId, role } as any);
+  if (error) throw new Error(error.message);
 }
 
 export type AdminUserRow = {
@@ -85,10 +94,7 @@ export const createAdminUser = createServerFn({ method: "POST" })
       userId = invited.user!.id;
     }
 
-    const { error: insErr } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: userId, role: data.role });
-    if (insErr) throw new Error(insErr.message);
+    await setSoleRole(userId, data.role);
 
     return { userId };
   });
@@ -103,14 +109,13 @@ export const changeUserRole = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => changeRoleSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    if (data.user_id === context.userId && data.role !== "admin") {
+    if (
+      data.user_id === context.userId &&
+      !(FULL_ACCESS_ROLES as readonly string[]).includes(data.role)
+    ) {
       throw new Error("You cannot demote your own admin account.");
     }
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
-    const { error } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: data.user_id, role: data.role });
-    if (error) throw new Error(error.message);
+    await setSoleRole(data.user_id, data.role);
     return { ok: true };
   });
 

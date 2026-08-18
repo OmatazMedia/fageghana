@@ -1,13 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 
 import { getDeviceInfo } from "@/lib/session-fingerprint";
 import { registerSession, heartbeatSession } from "@/lib/session-registry.functions";
+import {
+  fetchSecuritySettings,
+  readIdlePrefs,
+  playBeep,
+  DEFAULT_SECURITY_SETTINGS,
+  type SecuritySettings,
+} from "@/lib/security-settings";
 
-export const IDLE_LIMIT_MS = 15 * 60 * 1000; // 15 minutes without activity
-export const WARN_WINDOW_MS = 60 * 1000; // 60s countdown before auto sign-out
+/** Fallback idle limit used until the admin settings have loaded. */
+export const IDLE_LIMIT_MS = 10 * 60 * 1000;
+export const WARN_WINDOW_MS = 10 * 1000; // countdown before auto sign-out
 export const ABSOLUTE_LIMIT_MS = 12 * 60 * 60 * 1000; // hard 12h session cap
 const HEARTBEAT_MS = 2 * 60 * 1000;
 
@@ -44,14 +52,42 @@ function writeNumber(key: string, value: number) {
  * signs out the rest.
  */
 export function SessionGuard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, roles } = useAuth();
   const register = useServerFn(registerSession);
   const heartbeat = useServerFn(heartbeatSession);
 
   const [warning, setWarning] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(60);
+  const [secondsLeft, setSecondsLeft] = useState(10);
+  const [settings, setSettings] = useState<SecuritySettings>(DEFAULT_SECURITY_SETTINGS);
   const sessionIdRef = useRef<string | null>(null);
   const signingOutRef = useRef(false);
+  const lastBeepRef = useRef(0);
+
+  // Admin-defined timings, overridable per user in their own browser.
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    void fetchSecuritySettings().then((s) => {
+      if (alive) setSettings(s);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user]);
+
+  const isConsoleUser = roles.length > 0 && !roles.every((r) => r === "member");
+  const { idleMs, warnMs, beep } = useMemo(() => {
+    const prefs = readIdlePrefs();
+    const adminMinutes = isConsoleUser
+      ? settings.console_idle_minutes
+      : settings.member_idle_minutes;
+    const minutes = prefs.minutes && prefs.minutes > 0 ? prefs.minutes : adminMinutes;
+    return {
+      idleMs: Math.max(1, minutes) * 60 * 1000,
+      warnMs: Math.max(3, settings.countdown_seconds) * 1000,
+      beep: prefs.beep === null ? settings.beep_enabled : prefs.beep,
+    };
+  }, [settings, isConsoleUser]);
 
   const bumpActivity = useCallback(() => {
     writeNumber(LAST_ACTIVITY_KEY, now());
@@ -162,13 +198,19 @@ export function SessionGuard() {
       const last = readNumber(LAST_ACTIVITY_KEY) ?? now();
       const idleFor = now() - last;
 
-      if (idleFor >= IDLE_LIMIT_MS + WARN_WINDOW_MS) {
+      if (idleFor >= idleMs + warnMs) {
         endSession("idle_timeout", "You were signed out due to inactivity.");
         return;
       }
-      if (idleFor >= IDLE_LIMIT_MS) {
+      if (idleFor >= idleMs) {
         setWarning(true);
-        setSecondsLeft(Math.max(0, Math.ceil((IDLE_LIMIT_MS + WARN_WINDOW_MS - idleFor) / 1000)));
+        const left = Math.max(0, Math.ceil((idleMs + warnMs - idleFor) / 1000));
+        setSecondsLeft(left);
+        // One beep per second of the countdown.
+        if (beep && now() - lastBeepRef.current > 800) {
+          lastBeepRef.current = now();
+          playBeep();
+        }
       } else {
         setWarning(false);
       }
@@ -176,7 +218,7 @@ export function SessionGuard() {
     tick();
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
-  }, [user, endSession]);
+  }, [user, endSession, idleMs, warnMs, beep]);
 
   // Heartbeat: refresh last_seen_at and honour remote revocation / anomalies.
   useEffect(() => {

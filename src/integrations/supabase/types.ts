@@ -1713,6 +1713,30 @@ export type Database = {
         }
         Relationships: []
       }
+      role_help: {
+        Row: {
+          created_at: string
+          details: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          summary?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           enabled: boolean
@@ -1730,6 +1754,39 @@ export type Database = {
           enabled?: boolean
           permission_key?: string
           role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      security_settings: {
+        Row: {
+          beep_enabled: boolean
+          console_idle_minutes: number
+          countdown_seconds: number
+          created_at: string
+          id: string
+          member_idle_minutes: number
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          beep_enabled?: boolean
+          console_idle_minutes?: number
+          countdown_seconds?: number
+          created_at?: string
+          id?: string
+          member_idle_minutes?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          beep_enabled?: boolean
+          console_idle_minutes?: number
+          countdown_seconds?: number
+          created_at?: string
+          id?: string
+          member_idle_minutes?: number
+          singleton?: boolean
           updated_at?: string
         }
         Relationships: []
