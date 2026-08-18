@@ -162,18 +162,34 @@ export const bulkInviteMembers = createServerFn({ method: "POST" })
     const failed: { email: string; reason: string }[] = [];
     let succeeded = 0;
 
+    const loginUrl = `${data.redirectOrigin.replace(/\/$/, "")}/login`;
+    const welcomed: { email: string; full_name: string; withPassword: boolean }[] = [];
+
     for (const row of data.rows) {
       try {
-        // Try invite first; if user already exists, fall back to upserting profile only.
-        const { data: invited, error: invErr } =
-          await supabaseAdmin.auth.admin.inviteUserByEmail(row.email, {
-            data: { full_name: row.full_name },
-            redirectTo,
+        let userId: string | undefined;
+        let firstError: string | null = null;
+
+        if (row.password) {
+          // Create a ready-to-use, confirmed account with the supplied password.
+          const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+            email: row.email,
+            password: row.password,
+            email_confirm: true,
+            user_metadata: { full_name: row.full_name },
           });
+          userId = created?.user?.id;
+          firstError = error?.message ?? null;
+        } else {
+          const { data: invited, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+            row.email,
+            { data: { full_name: row.full_name }, redirectTo: `${loginUrl.replace(/\/login$/, "")}/reset-password` },
+          );
+          userId = invited?.user?.id;
+          firstError = error?.message ?? null;
+        }
 
-        let userId: string | undefined = invited?.user?.id;
-
-        if (invErr) {
+        if (!userId && firstError) {
           // Likely "User already registered" — look them up so we still seed profile fields.
           const { data: list } = await supabaseAdmin.auth.admin.listUsers({
             page: 1,
@@ -183,16 +199,23 @@ export const bulkInviteMembers = createServerFn({ method: "POST" })
             (u) => u.email?.toLowerCase() === row.email.toLowerCase(),
           );
           if (!existing) {
-            failed.push({ email: row.email, reason: invErr.message });
+            failed.push({ email: row.email, reason: firstError });
             continue;
           }
           userId = existing.id;
+          if (row.password) {
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+              password: row.password,
+              email_confirm: true,
+            });
+          }
         }
 
         if (!userId) {
           failed.push({ email: row.email, reason: "No user id returned" });
           continue;
         }
+
 
         // Upsert member_profiles with provided fields. Subscription stays unset
         // until the member pays for a plan (or admin attaches one separately).
