@@ -166,9 +166,6 @@ function ItemsPanel() {
                   </td>
                   <td className="px-4 py-3">{r.category}</td>
                   <td className="px-4 py-3 font-medium">{r.label}</td>
-                  <td className="px-4 py-3 text-muted-foreground" title="Higher weight = bigger impact on score">
-                    {r.weight}
-                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${r.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
