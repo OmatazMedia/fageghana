@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Play, X } from "lucide-react";
+import { Play, X, Download } from "lucide-react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadFile } from "@/lib/forceDownload";
+
 
 export const Route = createFileRoute("/media")({
   head: () => ({
