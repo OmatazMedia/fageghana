@@ -135,6 +135,7 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
 const bulkRowSchema = z.object({
   email: z.string().trim().email(),
   full_name: z.string().trim().min(1).max(120),
+  password: z.string().min(8).max(72).optional().nullable(),
   phone: z.string().trim().max(40).optional().nullable(),
   company_name: z.string().trim().max(160).optional().nullable(),
   tier: z.enum(["associate", "standard", "corporate"]).optional().nullable(),
@@ -144,6 +145,7 @@ const bulkInviteSchema = z.object({
   rows: z.array(bulkRowSchema).min(1).max(500),
   redirectOrigin: z.string().url(),
 });
+
 
 export type BulkInviteResult = {
   succeeded: number;
