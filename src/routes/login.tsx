@@ -4,7 +4,7 @@ import { Mail, Lock, Eye, EyeOff, CheckCircle2, ArrowLeft, KeyRound } from "luci
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { MfaChallengeDialog, getRequiredMfaFactorId } from "@/components/auth/MfaChallengeDialog";
+import { MfaChallengeDialog, getRequiredMfaChallenge, type MfaChallenge } from "@/components/auth/MfaChallengeDialog";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Member Login — FAGE Ghana" }] }),
@@ -252,13 +252,13 @@ function MemberLogin() {
   const [shake, setShake] = useState(false);
   const [cardFocused, setCardFocused] = useState(false);
   const [visible, setVisible] = useState(true);
-  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null);
 
   const isConsoleRole =
     isAdmin || hasAnyRole(["staff", "finance", "ceo", "developer", "coordinator"]);
 
   useEffect(() => {
-    if (loading || !roleChecked || mfaFactorId) return;
+    if (loading || !roleChecked || mfaChallenge) return;
     if (!user) return;
     if (isConsoleRole) {
       // Staff/admin roles must use the admin login page.
@@ -267,7 +267,7 @@ function MemberLogin() {
       return;
     }
     navigate({ to: "/dashboard" });
-  }, [loading, roleChecked, user, isConsoleRole, mfaFactorId, navigate, signOut]);
+  }, [loading, roleChecked, user, isConsoleRole, mfaChallenge, navigate, signOut]);
 
 
   function switchMode(next: "login" | "reset") {
@@ -288,10 +288,10 @@ function MemberLogin() {
       setTimeout(() => setShake(false), 500);
       return toast.error(error);
     }
-    const factorId = await getRequiredMfaFactorId();
+    const challenge = await getRequiredMfaChallenge();
     setBusy(false);
-    if (factorId) {
-      setMfaFactorId(factorId);
+    if (challenge) {
+      setMfaChallenge(challenge);
       return;
     }
     toast.success("Welcome back!");
@@ -501,17 +501,17 @@ function MemberLogin() {
           <TypingPanel />
         </div>
       </div>
-      {mfaFactorId && (
+      {mfaChallenge && (
         <MfaChallengeDialog
-          factorId={mfaFactorId}
+          challenge={mfaChallenge}
           onSuccess={() => {
-            setMfaFactorId(null);
+            setMfaChallenge(null);
             toast.success("Welcome back!");
             navigate({ to: "/dashboard" });
           }}
           onCancel={async () => {
             await supabase.auth.signOut();
-            setMfaFactorId(null);
+            setMfaChallenge(null);
           }}
         />
       )}
