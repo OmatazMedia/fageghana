@@ -277,7 +277,7 @@ export function BulkInviteMembersDialog({
           >
             {busy
               ? "Inviting…"
-              : `Invite ${valid.length} member${valid.length === 1 ? "" : "s"}`}
+              : `Import ${valid.length} member${valid.length === 1 ? "" : "s"}`}
           </button>
         </div>
       </div>
