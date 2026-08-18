@@ -70,6 +70,7 @@ import { Route as AdminApplicationsRouteImport } from './routes/admin.applicatio
 import { Route as AdminActivityLogRouteImport } from './routes/admin.activity-log'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as AccountSecurityRouteImport } from './routes/account.security'
+import { Route as AccountHelpRouteImport } from './routes/account.help'
 import { Route as AccountChangePasswordRouteImport } from './routes/account.change-password'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
@@ -385,6 +386,11 @@ const AccountSecurityRoute = AccountSecurityRouteImport.update({
   path: '/security',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountHelpRoute = AccountHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AccountRoute,
+} as any)
 const AccountChangePasswordRoute = AccountChangePasswordRouteImport.update({
   id: '/change-password',
   path: '/change-password',
@@ -448,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/account/change-password': typeof AccountChangePasswordRoute
+  '/account/help': typeof AccountHelpRoute
   '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/activity-log': typeof AdminActivityLogRoute
@@ -519,6 +526,7 @@ export interface FileRoutesByTo {
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/account/change-password': typeof AccountChangePasswordRoute
+  '/account/help': typeof AccountHelpRoute
   '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/activity-log': typeof AdminActivityLogRoute
@@ -591,6 +599,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRouteWithChildren
   '/about/who-we-are': typeof AboutWhoWeAreRoute
   '/account/change-password': typeof AccountChangePasswordRoute
+  '/account/help': typeof AccountHelpRoute
   '/account/security': typeof AccountSecurityRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/activity-log': typeof AdminActivityLogRoute
@@ -664,6 +673,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/about/who-we-are'
     | '/account/change-password'
+    | '/account/help'
     | '/account/security'
     | '/admin/activities'
     | '/admin/activity-log'
@@ -735,6 +745,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/about/who-we-are'
     | '/account/change-password'
+    | '/account/help'
     | '/account/security'
     | '/admin/activities'
     | '/admin/activity-log'
@@ -806,6 +817,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/about/who-we-are'
     | '/account/change-password'
+    | '/account/help'
     | '/account/security'
     | '/admin/activities'
     | '/admin/activity-log'
@@ -1318,6 +1330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountSecurityRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/help': {
+      id: '/account/help'
+      path: '/help'
+      fullPath: '/account/help'
+      preLoaderRoute: typeof AccountHelpRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/account/change-password': {
       id: '/account/change-password'
       path: '/change-password'
@@ -1379,11 +1398,13 @@ declare module '@tanstack/react-router' {
 
 interface AccountRouteChildren {
   AccountChangePasswordRoute: typeof AccountChangePasswordRoute
+  AccountHelpRoute: typeof AccountHelpRoute
   AccountSecurityRoute: typeof AccountSecurityRoute
 }
 
 const AccountRouteChildren: AccountRouteChildren = {
   AccountChangePasswordRoute: AccountChangePasswordRoute,
+  AccountHelpRoute: AccountHelpRoute,
   AccountSecurityRoute: AccountSecurityRoute,
 }
 
