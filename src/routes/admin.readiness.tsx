@@ -130,7 +130,7 @@ function ItemsPanel() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium">Order</th>
+                <th className="px-4 py-3 font-medium">Serial No.</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Label</th>
                 <th className="px-4 py-3 font-medium">Weight</th>
