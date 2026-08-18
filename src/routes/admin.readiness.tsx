@@ -302,15 +302,6 @@ function ItemEditor({
               />
             </FormField>
           </div>
-          <FormField label="Weight" hint="Higher = bigger impact on score">
-            <input
-              type="number"
-              min={1}
-              value={form.weight}
-              onChange={(e) => upd("weight", Math.max(1, Number(e.target.value)))}
-              className={inputCls}
-            />
-          </FormField>
           <label className="flex items-end gap-2 pb-2">
             <input
               type="checkbox"
