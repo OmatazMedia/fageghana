@@ -158,7 +158,7 @@ export const bulkInviteMembers = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<BulkInviteResult> => {
     await assertAdmin(context);
 
-    const redirectTo = `${data.redirectOrigin.replace(/\/$/, "")}/reset-password`;
+    
     const failed: { email: string; reason: string }[] = [];
     let succeeded = 0;
 
