@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Save, Eye, ListChecks, Layers } from "lucide-react";
+import { Upload, Save, Eye, EyeOff, ListChecks, Layers, X, Download, FileText } from "lucide-react";
+import jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { Slider } from "@/components/ui/slider";
@@ -10,6 +11,7 @@ import {
   mergeLayout,
   normalizeSigners,
   defaultSigner,
+  renderCertificate,
   FIELD_KEYS,
   FIELD_LABELS,
   fieldValue,
@@ -52,6 +54,7 @@ function DesignerPage() {
   const [activeSignerId, setActiveSignerId] = useState<string | null>(null);
   const [active, setActive] = useState<FieldKey | "qr" | "signers" | null>("name");
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Sample preview values
   const sampleCert = {
@@ -230,6 +233,15 @@ function DesignerPage() {
       description="Visually configure the certificate for each membership tier."
       action={
         <div className="flex gap-2">
+          <button
+            onClick={() => {
+              if (!imageUrl) return toast.error("Upload a background image first");
+              setPreviewOpen(true);
+            }}
+            className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-accent"
+          >
+            <Eye className="h-4 w-4" /> Preview
+          </button>
           <Link
             to="/admin/cert-batch"
             className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-accent"
@@ -416,9 +428,121 @@ function DesignerPage() {
           </div>
         </div>
       </div>
+
+      {previewOpen && (
+        <PreviewModal
+          onClose={() => setPreviewOpen(false)}
+          cert={sampleCert}
+          template={{
+            name,
+            tier,
+            image_url: imageUrl,
+            signature_url: signatureUrl || null,
+            authorized_name: authorizedName,
+            field_positions: layout,
+            signers,
+          }}
+        />
+      )}
     </AdminShell>
   );
 }
+
+/**
+ * Print-accurate preview. Renders through the exact same `renderCertificate`
+ * used for member downloads, so what is shown here is byte-for-byte what
+ * gets exported to PNG/PDF.
+ */
+function PreviewModal({
+  cert,
+  template,
+  onClose,
+}: {
+  cert: any;
+  template: any;
+  onClose: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    setReady(false);
+    setError("");
+    renderCertificate(canvasRef.current, cert, template)
+      .then(() => setReady(true))
+      .catch((e: any) => setError(e?.message ?? "Could not render preview"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function downloadPng() {
+    if (!canvasRef.current) return;
+    const a = document.createElement("a");
+    a.download = `preview-${template.tier}.png`;
+    a.href = canvasRef.current.toDataURL("image/png");
+    a.click();
+  }
+
+  function downloadPdf() {
+    if (!canvasRef.current) return;
+    const w = canvasRef.current.width;
+    const h = canvasRef.current.height;
+    const pdf = new jsPDF({
+      orientation: w >= h ? "landscape" : "portrait",
+      unit: "px",
+      format: [w, h],
+    });
+    pdf.addImage(canvasRef.current.toDataURL("image/png"), "PNG", 0, 0, w, h);
+    pdf.save(`preview-${template.tier}.pdf`);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-auto bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-6xl rounded-2xl border border-border bg-card p-4 shadow-2xl">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold">Print preview — {template.tier}</h2>
+            <p className="text-xs text-muted-foreground">
+              Rendered with the same engine used for member downloads. Sample data shown.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={!ready}
+              onClick={downloadPng}
+              className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-semibold disabled:opacity-50"
+            >
+              <Download className="h-3.5 w-3.5" /> PNG
+            </button>
+            <button
+              disabled={!ready}
+              onClick={downloadPdf}
+              className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              <FileText className="h-3.5 w-3.5" /> PDF
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-full border border-border p-2 hover:bg-accent"
+              aria-label="Close preview"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        {error && <p className="mb-2 text-xs text-destructive">{error}</p>}
+        {!ready && !error && (
+          <p className="mb-2 text-xs text-muted-foreground">Rendering at full resolution…</p>
+        )}
+        <div className="overflow-auto rounded-xl bg-muted/30 p-2">
+          <canvas ref={canvasRef} className="mx-auto h-auto max-w-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function FieldControls({
   fieldKey,
@@ -679,22 +803,45 @@ function SignersControls({
           <div className="text-xs text-muted-foreground">No signers yet. Click Add.</div>
         )}
         {signers.map((s) => (
-          <button
+          <div
             key={s.id}
             onClick={() => setActiveSignerId(s.id)}
-            className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs ${activeSignerId === s.id ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
+            className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs ${activeSignerId === s.id ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
           >
             <span className="truncate">
-              {s.label || "Unlabeled"} — <span className="opacity-80">{s.name || "(no name)"}</span>
+              {s.label || "Unlabeled"} —{" "}
+              <span className="opacity-80">
+                {s.showName === false ? "name hidden" : s.name || "(no name)"}
+              </span>
             </span>
-            <Trash2
-              className="h-3 w-3 shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm(`Remove signer "${s.label}"?`)) onRemove(s.id);
-              }}
-            />
-          </button>
+            <span className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                title={s.showName === false ? "Show signer name on certificate" : "Hide signer name on certificate"}
+                aria-label={s.showName === false ? "Show signer name" : "Hide signer name"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdate(s.id, { showName: s.showName === false });
+                }}
+              >
+                {s.showName === false ? (
+                  <EyeOff className="h-3.5 w-3.5 opacity-70" />
+                ) : (
+                  <Eye className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <button
+                type="button"
+                aria-label="Remove signer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Remove signer "${s.label}"?`)) onRemove(s.id);
+                }}
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </span>
+          </div>
         ))}
       </div>
 
@@ -748,17 +895,28 @@ function SignersControls({
             onChange={(v) => onUpdate(active.id, { y: v })}
           />
           <SliderRow
-            label={`Width: ${active.w}`}
+            label={`Signature size: ${active.w}px wide`}
             value={active.w}
             min={50}
-            max={500}
+            max={600}
+            onChange={(v) => {
+              // Scale proportionally so the signature never distorts.
+              const ratio = active.h / Math.max(1, active.w);
+              onUpdate(active.id, { w: v, h: Math.max(10, Math.round(v * ratio)) });
+            }}
+          />
+          <SliderRow
+            label={`Width (fine): ${active.w}`}
+            value={active.w}
+            min={50}
+            max={600}
             onChange={(v) => onUpdate(active.id, { w: v })}
           />
           <SliderRow
-            label={`Height: ${active.h}`}
+            label={`Height (fine): ${active.h}`}
             value={active.h}
             min={20}
-            max={200}
+            max={300}
             onChange={(v) => onUpdate(active.id, { h: v })}
           />
           <SliderRow
@@ -776,6 +934,21 @@ function SignersControls({
             />
             Visible on certificate
           </label>
+          <button
+            type="button"
+            onClick={() => onUpdate(active.id, { showName: active.showName === false })}
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-input px-2 py-1.5 text-xs font-medium hover:bg-accent"
+          >
+            {active.showName === false ? (
+              <>
+                <EyeOff className="h-3.5 w-3.5" /> Signer name hidden — click to show
+              </>
+            ) : (
+              <>
+                <Eye className="h-3.5 w-3.5" /> Signer name shown — click to hide
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>
@@ -983,7 +1156,7 @@ function PreviewCanvas({
                 {s.label}
               </div>
             )}
-            {s.name && (
+            {s.name && s.showName !== false && (
               <div
                 className="absolute left-1/2 whitespace-nowrap"
                 style={{

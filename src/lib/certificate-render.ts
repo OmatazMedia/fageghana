@@ -41,6 +41,8 @@ export type Signer = {
   nameFontWeight: string;
   nameColor: string;
   visible: boolean;
+  /** Print the signer's name under the signature. Independent of `visible`. */
+  showName: boolean;
 };
 
 export type TemplateLayout = {
@@ -224,6 +226,7 @@ export function defaultSigner(partial: Partial<Signer> = {}): Signer {
     nameFontWeight: "600",
     nameColor: "#1a1a1a",
     visible: true,
+    showName: true,
     ...partial,
   };
 }
@@ -359,7 +362,7 @@ export async function renderCertificate(canvas: HTMLCanvasElement, cert: any, te
         /* ignore broken signature */
       }
     }
-    if (s.name) {
+    if (s.name && s.showName !== false) {
       ctx.fillStyle = s.nameColor;
       ctx.font = `${s.nameFontWeight} ${s.nameFontSize}px ${s.nameFontFamily}`;
       ctx.textAlign = "center";

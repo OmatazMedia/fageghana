@@ -36,6 +36,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminSiteMediaRouteImport } from './routes/admin.site-media'
+import { Route as AdminSecuritySettingsRouteImport } from './routes/admin.security-settings'
 import { Route as AdminRolesRouteImport } from './routes/admin.roles'
 import { Route as AdminResourcesRouteImport } from './routes/admin.resources'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
@@ -210,6 +211,11 @@ const AdminTicketsRoute = AdminTicketsRouteImport.update({
 const AdminSiteMediaRoute = AdminSiteMediaRouteImport.update({
   id: '/site-media',
   path: '/site-media',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSecuritySettingsRoute = AdminSecuritySettingsRouteImport.update({
+  id: '/security-settings',
+  path: '/security-settings',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminRolesRoute = AdminRolesRouteImport.update({
@@ -468,6 +474,7 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/resources': typeof AdminResourcesRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/admin/security-settings': typeof AdminSecuritySettingsRoute
   '/admin/site-media': typeof AdminSiteMediaRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
@@ -537,6 +544,7 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/resources': typeof AdminResourcesRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/admin/security-settings': typeof AdminSecuritySettingsRoute
   '/admin/site-media': typeof AdminSiteMediaRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
@@ -607,6 +615,7 @@ export interface FileRoutesById {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/resources': typeof AdminResourcesRoute
   '/admin/roles': typeof AdminRolesRoute
+  '/admin/security-settings': typeof AdminSecuritySettingsRoute
   '/admin/site-media': typeof AdminSiteMediaRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
@@ -678,6 +687,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/resources'
     | '/admin/roles'
+    | '/admin/security-settings'
     | '/admin/site-media'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
@@ -747,6 +757,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/resources'
     | '/admin/roles'
+    | '/admin/security-settings'
     | '/admin/site-media'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
@@ -816,6 +827,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/resources'
     | '/admin/roles'
+    | '/admin/security-settings'
     | '/admin/site-media'
     | '/admin/tickets'
     | '/admin/trade-opportunities'
@@ -1054,6 +1066,13 @@ declare module '@tanstack/react-router' {
       path: '/site-media'
       fullPath: '/admin/site-media'
       preLoaderRoute: typeof AdminSiteMediaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/security-settings': {
+      id: '/admin/security-settings'
+      path: '/security-settings'
+      fullPath: '/admin/security-settings'
+      preLoaderRoute: typeof AdminSecuritySettingsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/roles': {
@@ -1384,6 +1403,7 @@ interface AdminRouteChildren {
   AdminReportsRoute: typeof AdminReportsRoute
   AdminResourcesRoute: typeof AdminResourcesRoute
   AdminRolesRoute: typeof AdminRolesRoute
+  AdminSecuritySettingsRoute: typeof AdminSecuritySettingsRoute
   AdminSiteMediaRoute: typeof AdminSiteMediaRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
   AdminTradeOpportunitiesRoute: typeof AdminTradeOpportunitiesRoute
@@ -1424,6 +1444,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminReportsRoute: AdminReportsRoute,
   AdminResourcesRoute: AdminResourcesRoute,
   AdminRolesRoute: AdminRolesRoute,
+  AdminSecuritySettingsRoute: AdminSecuritySettingsRoute,
   AdminSiteMediaRoute: AdminSiteMediaRoute,
   AdminTicketsRoute: AdminTicketsRoute,
   AdminTradeOpportunitiesRoute: AdminTradeOpportunitiesRoute,
