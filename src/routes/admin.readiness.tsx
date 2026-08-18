@@ -274,7 +274,7 @@ function ItemEditor({
               placeholder="e.g. Documentation"
             />
           </FormField>
-          <FormField label="Display order">
+          <FormField label="Serial No.">
             <input
               type="number"
               value={form.display_order}
@@ -282,6 +282,7 @@ function ItemEditor({
               className={inputCls}
             />
           </FormField>
+
           <div className="md:col-span-2">
             <FormField label="Label">
               <input
