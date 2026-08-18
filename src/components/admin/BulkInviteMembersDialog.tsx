@@ -117,6 +117,8 @@ export function BulkInviteMembersDialog({
           rows: valid.map((r) => ({
             email: r.email,
             full_name: r.full_name,
+            password: r.password || null,
+
             phone: r.phone || null,
             company_name: r.company_name || null,
             tier: (r.tier?.toLowerCase() as any) || null,
