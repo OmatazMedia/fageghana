@@ -73,7 +73,8 @@ function Dashboard() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const { tab: urlTab } = Route.useSearch();
-  const [tab, setTab] = useState<Tab>(urlTab);
+  const [tab, setTab] = useState<Tab>(urlTab ?? "overview");
+
   const [profile, setProfile] = useState<any>(null);
   const [busy, setBusy] = useState(true);
   const [unread, setUnread] = useState(0);
