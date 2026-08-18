@@ -198,12 +198,24 @@ function MfaCard() {
   }
 
   async function disable(factorId: string) {
-    if (!confirm("Disable two-factor authentication? This makes your account less secure.")) return;
+    // Require a valid current code before turning 2FA off.
+    const entered = window.prompt(
+      "Enter the current 6-digit code from your authenticator app to disable two-factor authentication:",
+    );
+    if (entered === null) return;
+    const clean = entered.replace(/\D/g, "");
+    if (clean.length !== 6) return toast.error("Enter the 6-digit code to continue");
+    const { error: verifyErr } = await supabase.auth.mfa.challengeAndVerify({
+      factorId,
+      code: clean,
+    });
+    if (verifyErr) return toast.error("That code is not valid — 2FA is still enabled");
     const { error } = await supabase.auth.mfa.unenroll({ factorId });
     if (error) return toast.error(error.message);
     toast.success("Two-factor authentication disabled");
     void load();
   }
+
 
   const verified = factors.filter((f) => f.status === "verified");
   const hasMfa = verified.length > 0;
