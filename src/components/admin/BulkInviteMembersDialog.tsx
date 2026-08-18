@@ -162,13 +162,21 @@ export function BulkInviteMembersDialog({
         </div>
 
         <div className="max-h-[calc(90vh-150px)] overflow-auto px-6 py-5">
+          <div className="mb-3 flex justify-end">
+            <button
+              onClick={downloadSample}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+            >
+              <Download className="h-3.5 w-3.5" /> Download sample CSV
+            </button>
+          </div>
           <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 px-6 py-8 hover:bg-muted/50">
             <Upload className="h-6 w-6 text-muted-foreground" />
             <span className="text-sm font-medium">
               {fileName || "Click to choose a .csv file"}
             </span>
             <span className="text-xs text-muted-foreground">
-              Max 500 rows per upload
+              Max 500 rows per upload · passwords must be at least 8 characters
             </span>
             <input
               type="file"
@@ -177,6 +185,7 @@ export function BulkInviteMembersDialog({
               onChange={onFile}
             />
           </label>
+
 
           {rows.length > 0 && (
             <div className="mt-5">
