@@ -218,6 +218,10 @@ export function BulkInviteMembersDialog({
                       <tr key={i} className="border-t border-border">
                         <td className="px-3 py-1.5">{r.email}</td>
                         <td className="px-3 py-1.5">{r.full_name}</td>
+                        <td className="px-3 py-1.5 text-muted-foreground">
+                          {r.password ? "••••••••" : "invite link"}
+                        </td>
+
                         <td className="px-3 py-1.5">{r.phone}</td>
                         <td className="px-3 py-1.5">{r.company_name}</td>
                         <td className="px-3 py-1.5">{r.tier}</td>
