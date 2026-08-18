@@ -143,7 +143,7 @@ function ItemsPanel() {
                 <tr key={r.id} className="border-t border-border">
                   <td className="px-4 py-3 text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <span className="tabular-nums">{r.display_order}</span>
+                      <span className="tabular-nums">{idx + 1}</span>
                       <div className="flex flex-col">
                         <button
                           disabled={idx === 0}
