@@ -36,6 +36,7 @@ export function SecurityPage({ passwordHref = "/account/change-password" }: { pa
       <MfaCard />
       <EmailMfaCard />
 
+      <AutoSignOutCard />
       <ActiveSessionsCard />
       <MyActivityCard />
 
