@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Play, X } from "lucide-react";
+import { Play, X, Download } from "lucide-react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadFile } from "@/lib/forceDownload";
+
 
 export const Route = createFileRoute("/media")({
   head: () => ({
@@ -143,10 +145,27 @@ function MediaPage() {
             ) : (
               <video src={lightbox.url} controls className="max-h-[80vh] rounded-xl" />
             )}
-            <p className="mt-4 text-center text-white">{lightbox.title}</p>
+            <div className="mt-4 flex flex-col items-center gap-3">
+              <p className="text-center text-white">{lightbox.title}</p>
+              <button
+                onClick={() =>
+                  void downloadFile(
+                    lightbox.url,
+                    `${lightbox.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.${
+                      lightbox.url.split(".").pop()?.split("?")[0] ||
+                      (lightbox.media_type === "video" ? "mp4" : "jpg")
+                    }`,
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-foreground hover:opacity-90"
+              >
+                <Download className="h-4 w-4" /> Download
+              </button>
+            </div>
           </div>
         </div>
       )}
+
     </SiteLayout>
   );
 }

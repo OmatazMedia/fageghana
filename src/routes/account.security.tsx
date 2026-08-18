@@ -7,6 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { listMyActivity } from "@/lib/activity.functions";
 import { ActiveSessionsCard } from "@/components/account/ActiveSessionsCard";
+import { ProfileCard } from "@/components/account/ProfileCard";
+import { EmailMfaCard } from "@/components/account/EmailMfaCard";
+
+
 
 
 export const Route = createFileRoute("/account/security")({
@@ -21,14 +25,19 @@ export function SecurityPage({ passwordHref = "/account/change-password" }: { pa
       <div>
         <h2 className="text-2xl font-bold">Account & Security</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your email address and two-factor authentication. Password changes have their own page.
+          Manage your profile, email address and two-factor authentication. Password changes have
+          their own page.
         </p>
       </div>
+      <ProfileCard />
       <PasswordLinkCard href={passwordHref} />
       <EmailCard currentEmail={user?.email ?? ""} />
       <MfaCard />
+      <EmailMfaCard />
+
       <ActiveSessionsCard />
       <MyActivityCard />
+
 
     </div>
   );
@@ -193,12 +202,24 @@ function MfaCard() {
   }
 
   async function disable(factorId: string) {
-    if (!confirm("Disable two-factor authentication? This makes your account less secure.")) return;
+    // Require a valid current code before turning 2FA off.
+    const entered = window.prompt(
+      "Enter the current 6-digit code from your authenticator app to disable two-factor authentication:",
+    );
+    if (entered === null) return;
+    const clean = entered.replace(/\D/g, "");
+    if (clean.length !== 6) return toast.error("Enter the 6-digit code to continue");
+    const { error: verifyErr } = await supabase.auth.mfa.challengeAndVerify({
+      factorId,
+      code: clean,
+    });
+    if (verifyErr) return toast.error("That code is not valid — 2FA is still enabled");
     const { error } = await supabase.auth.mfa.unenroll({ factorId });
     if (error) return toast.error(error.message);
     toast.success("Two-factor authentication disabled");
     void load();
   }
+
 
   const verified = factors.filter((f) => f.status === "verified");
   const hasMfa = verified.length > 0;

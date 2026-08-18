@@ -107,11 +107,11 @@ function ItemsPanel() {
         <p className="flex items-start gap-2 text-xs text-muted-foreground">
           <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
           <span>
-            <strong>Weight</strong> controls how strongly an item counts toward a member's readiness
-            score (higher = bigger impact). <strong>Order</strong> controls the top-to-bottom
-            position members see. Use the arrows to reorder.
+            <strong>Serial No.</strong> is the top-to-bottom position members see. Use the arrows to
+            reorder.
           </span>
         </p>
+
         <button
           onClick={() => setCreating(true)}
           className="flex flex-shrink-0 items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
@@ -130,10 +130,10 @@ function ItemsPanel() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium">Order</th>
+                <th className="px-4 py-3 font-medium">Serial No.</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Label</th>
-                <th className="px-4 py-3 font-medium">Weight</th>
+                
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -143,7 +143,7 @@ function ItemsPanel() {
                 <tr key={r.id} className="border-t border-border">
                   <td className="px-4 py-3 text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <span className="tabular-nums">{r.display_order}</span>
+                      <span className="tabular-nums">{idx + 1}</span>
                       <div className="flex flex-col">
                         <button
                           disabled={idx === 0}
@@ -166,9 +166,6 @@ function ItemsPanel() {
                   </td>
                   <td className="px-4 py-3">{r.category}</td>
                   <td className="px-4 py-3 font-medium">{r.label}</td>
-                  <td className="px-4 py-3 text-muted-foreground" title="Higher weight = bigger impact on score">
-                    {r.weight}
-                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${r.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
@@ -277,7 +274,7 @@ function ItemEditor({
               placeholder="e.g. Documentation"
             />
           </FormField>
-          <FormField label="Display order">
+          <FormField label="Serial No.">
             <input
               type="number"
               value={form.display_order}
@@ -285,6 +282,7 @@ function ItemEditor({
               className={inputCls}
             />
           </FormField>
+
           <div className="md:col-span-2">
             <FormField label="Label">
               <input
@@ -305,15 +303,6 @@ function ItemEditor({
               />
             </FormField>
           </div>
-          <FormField label="Weight" hint="Higher = bigger impact on score">
-            <input
-              type="number"
-              min={1}
-              value={form.weight}
-              onChange={(e) => upd("weight", Math.max(1, Number(e.target.value)))}
-              className={inputCls}
-            />
-          </FormField>
           <label className="flex items-end gap-2 pb-2">
             <input
               type="checkbox"

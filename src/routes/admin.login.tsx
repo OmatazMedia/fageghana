@@ -5,7 +5,7 @@ import { ShieldCheck, Eye, EyeOff, Lock, Mail, ArrowLeft, ArrowRight, AlertTrian
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { MfaChallengeDialog, getRequiredMfaFactorId } from "@/components/auth/MfaChallengeDialog";
+import { MfaChallengeDialog, getRequiredMfaChallenge, type MfaChallenge } from "@/components/auth/MfaChallengeDialog";
 import { sanitizeEmail } from "@/lib/login-security.shared";
 import {
   getLoginGate,
@@ -53,7 +53,7 @@ function AdminLogin() {
   const [warning, setWarning] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
   const [gateChecked, setGateChecked] = useState(false);
-  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null);
   const [resetMode, setResetMode] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
@@ -87,18 +87,18 @@ function AdminLogin() {
   }, [gateFn, navigate]);
 
   useEffect(() => {
-    if (loading || !roleChecked || mfaFactorId) return;
+    if (loading || !roleChecked || mfaChallenge) return;
     if (user && canAccessConsole) navigate({ to: "/admin" });
-  }, [loading, roleChecked, user, canAccessConsole, navigate, mfaFactorId]);
+  }, [loading, roleChecked, user, canAccessConsole, navigate, mfaChallenge]);
 
   // If a pure member (no console role) signs in here, sign them out and warn.
   useEffect(() => {
-    if (loading || !roleChecked || busy || mfaFactorId) return;
+    if (loading || !roleChecked || busy || mfaChallenge) return;
     if (user && !canAccessConsole) {
       toast.error("This account is not authorised to access the admin dashboard.");
       void signOut("wrong_portal", "");
     }
-  }, [loading, roleChecked, busy, mfaFactorId, user, canAccessConsole, signOut]);
+  }, [loading, roleChecked, busy, mfaChallenge, user, canAccessConsole, signOut]);
 
   function applyStatus(status: any) {
     if (status?.banned) {
@@ -169,10 +169,10 @@ function AdminLogin() {
     } catch {
       /* noop */
     }
-    const factorId = await getRequiredMfaFactorId();
+    const challenge = await getRequiredMfaChallenge();
     setBusy(false);
-    if (factorId) {
-      setMfaFactorId(factorId);
+    if (challenge) {
+      setMfaChallenge(challenge);
       return;
     }
     toast.success("Welcome back");
@@ -481,17 +481,17 @@ function AdminLogin() {
         </div>
       </div>
 
-      {mfaFactorId && (
+      {mfaChallenge && (
         <MfaChallengeDialog
-          factorId={mfaFactorId}
+          challenge={mfaChallenge}
           onSuccess={() => {
-            setMfaFactorId(null);
+            setMfaChallenge(null);
             toast.success("Welcome back");
             navigate({ to: "/admin" });
           }}
           onCancel={async () => {
             await supabase.auth.signOut();
-            setMfaFactorId(null);
+            setMfaChallenge(null);
           }}
         />
       )}

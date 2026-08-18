@@ -58,10 +58,11 @@ const VALID_TABS: Tab[] = ["overview","subscription","certificate","notification
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Member Dashboard — FAGE Ghana" }] }),
-  validateSearch: (search: Record<string, unknown>) => {
-    const t = typeof search?.tab === "string" ? (search.tab as Tab) : "overview";
-    return { tab: (VALID_TABS as string[]).includes(t) ? t : ("overview" as Tab) };
+  validateSearch: (search: Record<string, unknown>): { tab?: Tab } => {
+    const t = typeof search?.tab === "string" ? (search.tab as Tab) : undefined;
+    return t && (VALID_TABS as string[]).includes(t) ? { tab: t } : {};
   },
+
   component: Dashboard,
 });
 
@@ -72,7 +73,8 @@ function Dashboard() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const { tab: urlTab } = Route.useSearch();
-  const [tab, setTab] = useState<Tab>(urlTab);
+  const [tab, setTab] = useState<Tab>(urlTab ?? "overview");
+
   const [profile, setProfile] = useState<any>(null);
   const [busy, setBusy] = useState(true);
   const [unread, setUnread] = useState(0);

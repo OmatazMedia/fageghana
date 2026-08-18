@@ -135,6 +135,7 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
 const bulkRowSchema = z.object({
   email: z.string().trim().email(),
   full_name: z.string().trim().min(1).max(120),
+  password: z.string().min(8).max(72).optional().nullable(),
   phone: z.string().trim().max(40).optional().nullable(),
   company_name: z.string().trim().max(160).optional().nullable(),
   tier: z.enum(["associate", "standard", "corporate"]).optional().nullable(),
@@ -144,6 +145,7 @@ const bulkInviteSchema = z.object({
   rows: z.array(bulkRowSchema).min(1).max(500),
   redirectOrigin: z.string().url(),
 });
+
 
 export type BulkInviteResult = {
   succeeded: number;
@@ -156,22 +158,38 @@ export const bulkInviteMembers = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<BulkInviteResult> => {
     await assertAdmin(context);
 
-    const redirectTo = `${data.redirectOrigin.replace(/\/$/, "")}/reset-password`;
+    
     const failed: { email: string; reason: string }[] = [];
     let succeeded = 0;
 
+    const loginUrl = `${data.redirectOrigin.replace(/\/$/, "")}/login`;
+    const welcomed: { email: string; full_name: string; withPassword: boolean }[] = [];
+
     for (const row of data.rows) {
       try {
-        // Try invite first; if user already exists, fall back to upserting profile only.
-        const { data: invited, error: invErr } =
-          await supabaseAdmin.auth.admin.inviteUserByEmail(row.email, {
-            data: { full_name: row.full_name },
-            redirectTo,
+        let userId: string | undefined;
+        let firstError: string | null = null;
+
+        if (row.password) {
+          // Create a ready-to-use, confirmed account with the supplied password.
+          const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+            email: row.email,
+            password: row.password,
+            email_confirm: true,
+            user_metadata: { full_name: row.full_name },
           });
+          userId = created?.user?.id;
+          firstError = error?.message ?? null;
+        } else {
+          const { data: invited, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+            row.email,
+            { data: { full_name: row.full_name }, redirectTo: `${loginUrl.replace(/\/login$/, "")}/reset-password` },
+          );
+          userId = invited?.user?.id;
+          firstError = error?.message ?? null;
+        }
 
-        let userId: string | undefined = invited?.user?.id;
-
-        if (invErr) {
+        if (!userId && firstError) {
           // Likely "User already registered" — look them up so we still seed profile fields.
           const { data: list } = await supabaseAdmin.auth.admin.listUsers({
             page: 1,
@@ -181,16 +199,23 @@ export const bulkInviteMembers = createServerFn({ method: "POST" })
             (u) => u.email?.toLowerCase() === row.email.toLowerCase(),
           );
           if (!existing) {
-            failed.push({ email: row.email, reason: invErr.message });
+            failed.push({ email: row.email, reason: firstError });
             continue;
           }
           userId = existing.id;
+          if (row.password) {
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+              password: row.password,
+              email_confirm: true,
+            });
+          }
         }
 
         if (!userId) {
           failed.push({ email: row.email, reason: "No user id returned" });
           continue;
         }
+
 
         // Upsert member_profiles with provided fields. Subscription stays unset
         // until the member pays for a plan (or admin attaches one separately).
@@ -213,10 +238,52 @@ export const bulkInviteMembers = createServerFn({ method: "POST" })
         }
 
         succeeded++;
+        welcomed.push({
+          email: row.email,
+          full_name: row.full_name,
+          withPassword: !!row.password,
+        });
       } catch (e: any) {
         failed.push({ email: row.email, reason: e?.message ?? String(e) });
       }
     }
 
+    // Branded welcome emails (best-effort — never fails the import).
+    if (welcomed.length) {
+      const { sendEmail } = await import("@/lib/email/send.server");
+      const { brandedEmail } = await import("@/lib/email/branded");
+      for (const w of welcomed) {
+        try {
+          const { html, text } = brandedEmail({
+            title: "Your FAGE member account is ready",
+            paragraphs: w.withPassword
+              ? [
+                  `Hello ${w.full_name},`,
+                  "An account has been created for you on the FAGE member portal. You can sign in right away using the email below and the password shared with you by the FAGE secretariat.",
+                  "For your security, please change your password after your first sign-in from Account & Security.",
+                ]
+              : [
+                  `Hello ${w.full_name},`,
+                  "An account has been created for you on the FAGE member portal. Check your inbox for the invitation link to set your password, then sign in.",
+                ],
+            rows: [{ label: "Your login email", value: w.email }],
+            ctaLabel: "Sign in to the member portal",
+            ctaHref: loginUrl,
+            footNote: "If you did not expect this email, please contact the FAGE secretariat.",
+          });
+          await sendEmail({
+            to: w.email,
+            subject: "Your FAGE member account is ready",
+            html,
+            text,
+            templateKey: "member_welcome",
+          });
+        } catch {
+          /* ignore email failures */
+        }
+      }
+    }
+
     return { succeeded, failed };
   });
+
