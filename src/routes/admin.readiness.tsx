@@ -107,11 +107,11 @@ function ItemsPanel() {
         <p className="flex items-start gap-2 text-xs text-muted-foreground">
           <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
           <span>
-            <strong>Weight</strong> controls how strongly an item counts toward a member's readiness
-            score (higher = bigger impact). <strong>Order</strong> controls the top-to-bottom
-            position members see. Use the arrows to reorder.
+            <strong>Serial No.</strong> is the top-to-bottom position members see. Use the arrows to
+            reorder.
           </span>
         </p>
+
         <button
           onClick={() => setCreating(true)}
           className="flex flex-shrink-0 items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
