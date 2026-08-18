@@ -133,7 +133,7 @@ function ItemsPanel() {
                 <th className="px-4 py-3 font-medium">Serial No.</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Label</th>
-                <th className="px-4 py-3 font-medium">Weight</th>
+                
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3" />
               </tr>
