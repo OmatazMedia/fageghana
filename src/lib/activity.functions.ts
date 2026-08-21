@@ -1,33 +1,26 @@
-import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+// @ts-nocheck
+import { api } from "@/integrations/api/client";
 
 type LogInput = {
   event_type: string;
   detail?: string | null;
 };
 
-export const logActivity = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: LogInput) => d)
-  .handler(async ({ data, context }) => {
-    const ua = getRequestHeader("user-agent") ?? null;
-    let ip: string | null = null;
-    try {
-      ip = getRequestIP({ xForwardedFor: true }) ?? null;
-    } catch {
-      ip = null;
-    }
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("activity_log" as any).insert({
-      user_id: context.userId,
-      event_type: data.event_type,
-      detail: data.detail ?? null,
-      ip_address: ip,
-      user_agent: ua,
-    } as any);
-    return { ok: true };
-  });
+const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r;
+
+/** Best-effort activity log for the signed-in user (never blocks the caller). */
+export async function logActivity(input: any): Promise<{ ok: boolean }> {
+  const data: LogInput = input?.data ?? input ?? {};
+  try {
+    await api.request("/member/activity-log", {
+      method: "POST",
+      body: JSON.stringify({ action: data.event_type, details: data.detail ?? null }),
+    });
+  } catch {
+    /* best-effort */
+  }
+  return { ok: true };
+}
 
 export type ActivityLogRow = {
   id: string;
@@ -53,138 +46,86 @@ type ListInput = {
   to?: string | null;
 };
 
-async function assertAdminOrDev(context: any) {
-  const roles = ["admin", "superadmin", "developer"] as const;
-  for (const r of roles) {
-    const { data } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: r as any,
-    });
-    if (data) return;
+async function requireAdminOrDev() {
+  const { data } = await api.auth.getUser();
+  const roles: string[] = Array.isArray(data?.user?.roles)
+    ? data.user.roles.map((r: any) => (typeof r === "string" ? r : r?.role ?? ""))
+    : [];
+  if (!["admin", "superadmin", "developer"].some((r) => roles.includes(r))) {
+    throw new Error("Forbidden");
   }
-  throw new Error("Forbidden");
 }
 
-export const listActivityLog = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: ListInput) => d)
-  .handler(async ({ data, context }): Promise<{ rows: ActivityLogRow[]; total: number }> => {
-    await assertAdminOrDev(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+export async function listActivityLog(input: any): Promise<{ rows: ActivityLogRow[]; total: number }> {
+  await requireAdminOrDev();
+  const data: ListInput = input?.data ?? input ?? {};
+  const page = Math.max(1, data.page ?? 1);
+  const size = Math.min(200, Math.max(1, data.page_size ?? 25));
 
-    const page = Math.max(1, data.page ?? 1);
-    const size = Math.min(200, Math.max(1, data.page_size ?? 25));
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  const raw = await api.request<any>(`/admin/activity-log?${params.toString()}`);
+  if (raw.error) throw new Error(raw.error.message ?? "Failed to load activity log");
 
-    // If filtering by role or user-search, resolve target user_ids first.
-    let userIdFilter: string[] | null = null;
+  const payload = unwrap(raw) ?? {};
+  const rowsRaw: any[] = Array.isArray(payload) ? payload : payload.data ?? payload.rows ?? [];
+  const total = typeof payload.total === "number" ? payload.total : rowsRaw.length;
 
-    if (data.role) {
-      const { data: rrows } = await supabaseAdmin
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", data.role as any);
-      userIdFilter = (rrows ?? []).map((r: any) => r.user_id);
-      if (userIdFilter.length === 0) return { rows: [], total: 0 };
+  const ids = Array.from(new Set(rowsRaw.map((r: any) => r.user_id).filter(Boolean))) as string[];
+
+  let roleMap = new Map<string, string[]>();
+  let nameMap = new Map<string, { email: string | null; full_name: string | null }>();
+  if (ids.length) {
+    try {
+      const rolesRaw = await api.from("user_roles").select("user_id, role").in("user_id", ids);
+      const roleRows = Array.isArray(rolesRaw?.data) ? rolesRaw.data : [];
+      roleRows.forEach((r: any) => {
+        const arr = roleMap.get(r.user_id) ?? [];
+        arr.push(r.role);
+        roleMap.set(r.user_id, arr);
+      });
+    } catch {
+      /* best-effort enrichment */
     }
-
-    if (data.q && data.q.trim().length >= 2) {
-      const term = data.q.trim();
-      // Search auth users via list (up to 200 pages of 1000 would be too much — cap 500 users)
-      const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 500 });
-      const lower = term.toLowerCase();
-      const matched = (list?.users ?? [])
-        .filter(
-          (u) =>
-            (u.email ?? "").toLowerCase().includes(lower) ||
-            ((u.user_metadata as any)?.full_name ?? "").toLowerCase().includes(lower),
-        )
-        .map((u) => u.id);
-      userIdFilter = userIdFilter
-        ? userIdFilter.filter((id) => matched.includes(id))
-        : matched;
-      if (userIdFilter.length === 0) return { rows: [], total: 0 };
-    }
-
-    if (data.user_id) {
-      userIdFilter = userIdFilter
-        ? userIdFilter.filter((id) => id === data.user_id)
-        : [data.user_id];
-      if (userIdFilter.length === 0) return { rows: [], total: 0 };
-    }
-
-    let q = supabaseAdmin
-      .from("activity_log" as any)
-      .select("id, user_id, event_type, detail, ip_address, user_agent, created_at", {
-        count: "exact",
-      })
-      .order("created_at", { ascending: false });
-
-    if (data.event_type) q = q.eq("event_type", data.event_type);
-    if (userIdFilter) q = q.in("user_id", userIdFilter);
-    if (data.from) q = q.gte("created_at", data.from);
-    if (data.to) q = q.lte("created_at", data.to);
-
-    const start = (page - 1) * size;
-    q = q.range(start, start + size - 1);
-
-    const { data: rows, count, error } = await q;
-    if (error) throw new Error(error.message);
-
-    // Enrich with email + roles
-    const ids = Array.from(new Set((rows ?? []).map((r: any) => r.user_id).filter(Boolean))) as string[];
-    const userMap = new Map<string, { email: string | null; full_name: string | null }>();
-    for (const id of ids) {
-      try {
-        const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
-        if (u?.user) {
-          userMap.set(id, {
-            email: u.user.email ?? null,
-            full_name: ((u.user.user_metadata as any)?.full_name as string | undefined) ?? null,
-          });
+    try {
+      for (const id of ids) {
+        const u = await api.request<any>(`/admin/users/${id}`);
+        if (!u.error) {
+          const user = unwrap(u)?.user ?? unwrap(u);
+          if (user) {
+            nameMap.set(id, {
+              email: user.email ?? null,
+              full_name: user.name ?? user.full_name ?? null,
+            });
+          }
         }
-      } catch {
-        /* ignore */
       }
+    } catch {
+      /* best-effort enrichment */
     }
+  }
 
-    const { data: allRoles } = await supabaseAdmin
-      .from("user_roles")
-      .select("user_id, role")
-      .in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
-    const roleMap = new Map<string, string[]>();
-    (allRoles ?? []).forEach((r: any) => {
-      const arr = roleMap.get(r.user_id) ?? [];
-      arr.push(r.role);
-      roleMap.set(r.user_id, arr);
-    });
+  const rows: ActivityLogRow[] = rowsRaw.map((r: any) => ({
+    id: r.id,
+    user_id: r.user_id,
+    email: r.user_id ? nameMap.get(r.user_id)?.email ?? null : null,
+    full_name: r.user_id ? nameMap.get(r.user_id)?.full_name ?? null : null,
+    roles: r.user_id ? roleMap.get(r.user_id) ?? [] : [],
+    event_type: r.event_type,
+    detail: r.detail,
+    ip_address: r.ip_address,
+    user_agent: r.user_agent,
+    created_at: r.created_at,
+  }));
 
-    const enriched: ActivityLogRow[] = (rows ?? []).map((r: any) => ({
-      id: r.id,
-      user_id: r.user_id,
-      email: r.user_id ? userMap.get(r.user_id)?.email ?? null : null,
-      full_name: r.user_id ? userMap.get(r.user_id)?.full_name ?? null : null,
-      roles: r.user_id ? roleMap.get(r.user_id) ?? [] : [],
-      event_type: r.event_type,
-      detail: r.detail,
-      ip_address: r.ip_address,
-      user_agent: r.user_agent,
-      created_at: r.created_at,
-    }));
+  return { rows, total };
+}
 
-    return { rows: enriched, total: count ?? enriched.length };
-  });
-
-export const listMyActivity = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { limit?: number }) => d)
-  .handler(async ({ data, context }) => {
-    const limit = Math.min(100, Math.max(1, data.limit ?? 20));
-    const { data: rows, error } = await context.supabase
-      .from("activity_log" as any)
-      .select("id, event_type, detail, ip_address, user_agent, created_at")
-      .eq("user_id", context.userId)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    if (error) throw new Error(error.message);
-    return (rows ?? []) as any[];
-  });
+export async function listMyActivity(input: any): Promise<any[]> {
+  const data = input?.data ?? input ?? {};
+  const limit = Math.min(100, Math.max(1, data.limit ?? 20));
+  const { data: rows, error } = await api.request<any>(`/member/activity-log?limit=${limit}`);
+  if (error) throw new Error(error.message ?? "Failed to load activity");
+  const list = unwrap(rows);
+  return Array.isArray(list) ? list : [];
+}

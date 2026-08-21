@@ -1,62 +1,82 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+// @ts-nocheck
+import { api } from "@/integrations/api/client";
 
-const codeSchema = z.object({
-  code: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/, "Enter the 6-digit code"),
-});
+const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r;
+
+function maskEmail(email: string): string {
+  const [name, domain] = email.split("@");
+  return `${name.slice(0, 2)}${"•".repeat(Math.max(2, name.length - 2))}@${domain}`;
+}
+
+async function currentEmail(): Promise<string> {
+  const { data } = await api.auth.getUser();
+  const user = data?.user ?? data;
+  const email = user?.email ?? user?.user?.email ?? "";
+  if (!email) throw new Error("Could not find your email address");
+  return email;
+}
+
+function extractCode(input: any): string {
+  const data = input?.data ?? input ?? {};
+  const code = String(data.code ?? "").trim();
+  if (!/^\d{6}$/.test(code)) throw new Error("Enter the 6-digit code");
+  return code;
+}
 
 /** Sends a fresh 6-digit code to the signed-in user's email address. */
-export const sendEmailMfaCode = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { issueEmailOtp } = await import("./email-mfa.server");
-    return issueEmailOtp(context.userId);
-  });
+export async function sendEmailMfaCode(): Promise<{ sent: boolean; to: string; expires_at: string }> {
+  const email = await currentEmail();
+  const { data, error } = await api.request<any>("/auth/mfa/send-code", { method: "POST" });
+  if (error) throw new Error(error.message ?? "Could not send the verification email");
+
+  const body = unwrap(data) ?? {};
+  const expiresInSec = typeof body.expires_in === "number" ? body.expires_in : 300;
+  return {
+    sent: true,
+    to: maskEmail(email),
+    expires_at: new Date(Date.now() + expiresInSec * 1000).toISOString(),
+  };
+}
 
 /** Verifies a code and turns email 2FA on for the signed-in user. */
-export const enableEmailMfa = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => codeSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const { consumeEmailOtp, setEmailMfa } = await import("./email-mfa.server");
-    await consumeEmailOtp(context.userId, data.code);
-    await setEmailMfa(context.userId, true);
-    return { ok: true };
+export async function enableEmailMfa(input: any): Promise<{ ok: boolean }> {
+  const code = extractCode(input);
+  const { error } = await api.request("/auth/mfa/enable", {
+    method: "POST",
+    body: JSON.stringify({ code }),
   });
+  if (error) throw new Error(error.message ?? "Could not enable email two-factor");
+  return { ok: true };
+}
 
 /** Verifies a code and turns email 2FA off for the signed-in user. */
-export const disableEmailMfa = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => codeSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const { consumeEmailOtp, setEmailMfa } = await import("./email-mfa.server");
-    await consumeEmailOtp(context.userId, data.code);
-    await setEmailMfa(context.userId, false);
-    return { ok: true };
+export async function disableEmailMfa(input: any): Promise<{ ok: boolean }> {
+  const code = extractCode(input);
+  const { error } = await api.request("/auth/mfa/disable", {
+    method: "POST",
+    body: JSON.stringify({ code }),
   });
+  if (error) throw new Error(error.message ?? "Could not disable email two-factor");
+  return { ok: true };
+}
 
 /** Verifies a code during sign-in (session already exists at aal1). */
-export const verifyEmailMfaChallenge = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => codeSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const { consumeEmailOtp } = await import("./email-mfa.server");
-    await consumeEmailOtp(context.userId, data.code);
-    return { ok: true };
+export async function verifyEmailMfaChallenge(input: any): Promise<{ ok: boolean }> {
+  const code = extractCode(input);
+  const { data, error } = await api.request<any>("/auth/mfa/verify", {
+    method: "POST",
+    body: JSON.stringify({ code }),
   });
+  if (error) throw new Error(error.message ?? "Verification failed");
+  const body = unwrap(data) ?? {};
+  if (body.verified === false) throw new Error(body.message ?? "Verification failed");
+  return { ok: true };
+}
 
 /** Whether the signed-in user has email 2FA switched on. */
-export const getEmailMfaStatus = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data } = await context.supabase
-      .from("user_email_mfa")
-      .select("enabled, enabled_at")
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    return { enabled: !!data?.enabled, enabled_at: data?.enabled_at ?? null };
-  });
+export async function getEmailMfaStatus(): Promise<{ enabled: boolean; enabled_at: string | null }> {
+  const { data, error } = await api.request<any>("/auth/mfa/status");
+  if (error) return { enabled: false, enabled_at: null };
+  const body = unwrap(data) ?? {};
+  return { enabled: !!body.enabled, enabled_at: body.enabled_at ?? null };
+}

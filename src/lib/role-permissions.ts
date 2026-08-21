@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import type { AppRole } from "@/components/auth/AuthProvider";
 
 export type PermRow = { role: AppRole; permission_key: string; enabled: boolean };

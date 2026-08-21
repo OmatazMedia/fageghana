@@ -16,7 +16,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 
 export const Route = createFileRoute("/admin/forms")({

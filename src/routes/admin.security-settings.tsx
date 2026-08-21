@@ -1,8 +1,9 @@
+// @ts-nocheck
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Save, Volume2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell } from "@/components/admin/AdminShell";
 import {
   DEFAULT_SECURITY_SETTINGS,

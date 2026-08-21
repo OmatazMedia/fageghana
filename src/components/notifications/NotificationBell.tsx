@@ -20,7 +20,7 @@ import {
   markRead,
   type FeedItem,
 } from "@/lib/notifications";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 
 const ICONS: Record<FeedItem["type"], any> = {
   notification: BellRing,

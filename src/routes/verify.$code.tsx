@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { FIELD_LABELS, mergeLayout, type FieldKey } from "@/lib/certificate-render";
 
 export const Route = createFileRoute("/verify/$code")({

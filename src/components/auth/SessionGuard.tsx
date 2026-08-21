@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 
 import { getDeviceInfo } from "@/lib/session-fingerprint";
 import { registerSession, heartbeatSession } from "@/lib/session-registry.functions";
@@ -53,8 +52,8 @@ function writeNumber(key: string, value: number) {
  */
 export function SessionGuard() {
   const { user, signOut, roles } = useAuth();
-  const register = useServerFn(registerSession);
-  const heartbeat = useServerFn(heartbeatSession);
+  const register = registerSession;
+  const heartbeat = heartbeatSession;
 
   const [warning, setWarning] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(10);

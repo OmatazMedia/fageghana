@@ -31,7 +31,6 @@ import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
 import { Route as CertificateIdRouteImport } from './routes/certificate.$id'
 import { Route as ApplyTierRouteImport } from './routes/apply.$tier'
-import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTradeOpportunitiesRouteImport } from './routes/admin.trade-opportunities'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
@@ -73,12 +72,8 @@ import { Route as AccountSecurityRouteImport } from './routes/account.security'
 import { Route as AccountHelpRouteImport } from './routes/account.help'
 import { Route as AccountChangePasswordRouteImport } from './routes/account.change-password'
 import { Route as AboutWhoWeAreRouteImport } from './routes/about.who-we-are'
-import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
-import { Route as ApiPublicHubtelCallbackRouteImport } from './routes/api/public/hubtel-callback'
-import { Route as ApiPublicFlutterwaveWebhookRouteImport } from './routes/api/public/flutterwave-webhook'
 import { Route as AdminAccountSecurityRouteImport } from './routes/admin.account.security'
 import { Route as AdminAccountChangePasswordRouteImport } from './routes/admin.account.change-password'
-import { Route as ApiPublicHooksRunScheduledBackupRouteImport } from './routes/api/public/hooks/run-scheduled-backup'
 
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
@@ -188,11 +183,6 @@ const CertificateIdRoute = CertificateIdRouteImport.update({
 const ApplyTierRoute = ApplyTierRouteImport.update({
   id: '/apply/$tier',
   path: '/apply/$tier',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiChatRoute = ApiChatRouteImport.update({
-  id: '/api/chat',
-  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -401,23 +391,6 @@ const AboutWhoWeAreRoute = AboutWhoWeAreRouteImport.update({
   path: '/about/who-we-are',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicPaystackWebhookRoute =
-  ApiPublicPaystackWebhookRouteImport.update({
-    id: '/api/public/paystack-webhook',
-    path: '/api/public/paystack-webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHubtelCallbackRoute = ApiPublicHubtelCallbackRouteImport.update({
-  id: '/api/public/hubtel-callback',
-  path: '/api/public/hubtel-callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicFlutterwaveWebhookRoute =
-  ApiPublicFlutterwaveWebhookRouteImport.update({
-    id: '/api/public/flutterwave-webhook',
-    path: '/api/public/flutterwave-webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AdminAccountSecurityRoute = AdminAccountSecurityRouteImport.update({
   id: '/account/security',
   path: '/account/security',
@@ -428,12 +401,6 @@ const AdminAccountChangePasswordRoute =
     id: '/account/change-password',
     path: '/account/change-password',
     getParentRoute: () => AdminRoute,
-  } as any)
-const ApiPublicHooksRunScheduledBackupRoute =
-  ApiPublicHooksRunScheduledBackupRouteImport.update({
-    id: '/api/public/hooks/run-scheduled-backup',
-    path: '/api/public/hooks/run-scheduled-backup',
-    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -493,7 +460,6 @@ export interface FileRoutesByFullPath {
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
-  '/api/chat': typeof ApiChatRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
@@ -503,10 +469,6 @@ export interface FileRoutesByFullPath {
   '/verify/$code': typeof VerifyCodeRoute
   '/admin/account/change-password': typeof AdminAccountChangePasswordRoute
   '/admin/account/security': typeof AdminAccountSecurityRoute
-  '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
-  '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
-  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
-  '/api/public/hooks/run-scheduled-backup': typeof ApiPublicHooksRunScheduledBackupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -565,7 +527,6 @@ export interface FileRoutesByTo {
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
-  '/api/chat': typeof ApiChatRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
@@ -575,10 +536,6 @@ export interface FileRoutesByTo {
   '/verify/$code': typeof VerifyCodeRoute
   '/admin/account/change-password': typeof AdminAccountChangePasswordRoute
   '/admin/account/security': typeof AdminAccountSecurityRoute
-  '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
-  '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
-  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
-  '/api/public/hooks/run-scheduled-backup': typeof ApiPublicHooksRunScheduledBackupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -638,7 +595,6 @@ export interface FileRoutesById {
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/trade-opportunities': typeof AdminTradeOpportunitiesRoute
   '/admin/users': typeof AdminUsersRoute
-  '/api/chat': typeof ApiChatRoute
   '/apply/$tier': typeof ApplyTierRoute
   '/certificate/$id': typeof CertificateIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
@@ -648,10 +604,6 @@ export interface FileRoutesById {
   '/verify/$code': typeof VerifyCodeRoute
   '/admin/account/change-password': typeof AdminAccountChangePasswordRoute
   '/admin/account/security': typeof AdminAccountSecurityRoute
-  '/api/public/flutterwave-webhook': typeof ApiPublicFlutterwaveWebhookRoute
-  '/api/public/hubtel-callback': typeof ApiPublicHubtelCallbackRoute
-  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
-  '/api/public/hooks/run-scheduled-backup': typeof ApiPublicHooksRunScheduledBackupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -712,7 +664,6 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
-    | '/api/chat'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/directory/$slug'
@@ -722,10 +673,6 @@ export interface FileRouteTypes {
     | '/verify/$code'
     | '/admin/account/change-password'
     | '/admin/account/security'
-    | '/api/public/flutterwave-webhook'
-    | '/api/public/hubtel-callback'
-    | '/api/public/paystack-webhook'
-    | '/api/public/hooks/run-scheduled-backup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -784,7 +731,6 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
-    | '/api/chat'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/directory/$slug'
@@ -794,10 +740,6 @@ export interface FileRouteTypes {
     | '/verify/$code'
     | '/admin/account/change-password'
     | '/admin/account/security'
-    | '/api/public/flutterwave-webhook'
-    | '/api/public/hubtel-callback'
-    | '/api/public/paystack-webhook'
-    | '/api/public/hooks/run-scheduled-backup'
   id:
     | '__root__'
     | '/'
@@ -856,7 +798,6 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/trade-opportunities'
     | '/admin/users'
-    | '/api/chat'
     | '/apply/$tier'
     | '/certificate/$id'
     | '/directory/$slug'
@@ -866,10 +807,6 @@ export interface FileRouteTypes {
     | '/verify/$code'
     | '/admin/account/change-password'
     | '/admin/account/security'
-    | '/api/public/flutterwave-webhook'
-    | '/api/public/hubtel-callback'
-    | '/api/public/paystack-webhook'
-    | '/api/public/hooks/run-scheduled-backup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -889,16 +826,11 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   VerifyRoute: typeof VerifyRouteWithChildren
   AboutWhoWeAreRoute: typeof AboutWhoWeAreRoute
-  ApiChatRoute: typeof ApiChatRoute
   ApplyTierRoute: typeof ApplyTierRoute
   CertificateIdRoute: typeof CertificateIdRoute
   DirectorySlugRoute: typeof DirectorySlugRoute
   PaymentCallbackRoute: typeof PaymentCallbackRoute
   ReceiptIdRoute: typeof ReceiptIdRoute
-  ApiPublicFlutterwaveWebhookRoute: typeof ApiPublicFlutterwaveWebhookRoute
-  ApiPublicHubtelCallbackRoute: typeof ApiPublicHubtelCallbackRoute
-  ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
-  ApiPublicHooksRunScheduledBackupRoute: typeof ApiPublicHooksRunScheduledBackupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1055,13 +987,6 @@ declare module '@tanstack/react-router' {
       path: '/apply/$tier'
       fullPath: '/apply/$tier'
       preLoaderRoute: typeof ApplyTierRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/chat': {
-      id: '/api/chat'
-      path: '/api/chat'
-      fullPath: '/api/chat'
-      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/users': {
@@ -1351,27 +1276,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutWhoWeAreRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/paystack-webhook': {
-      id: '/api/public/paystack-webhook'
-      path: '/api/public/paystack-webhook'
-      fullPath: '/api/public/paystack-webhook'
-      preLoaderRoute: typeof ApiPublicPaystackWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hubtel-callback': {
-      id: '/api/public/hubtel-callback'
-      path: '/api/public/hubtel-callback'
-      fullPath: '/api/public/hubtel-callback'
-      preLoaderRoute: typeof ApiPublicHubtelCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/flutterwave-webhook': {
-      id: '/api/public/flutterwave-webhook'
-      path: '/api/public/flutterwave-webhook'
-      fullPath: '/api/public/flutterwave-webhook'
-      preLoaderRoute: typeof ApiPublicFlutterwaveWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/account/security': {
       id: '/admin/account/security'
       path: '/account/security'
@@ -1385,13 +1289,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/account/change-password'
       preLoaderRoute: typeof AdminAccountChangePasswordRouteImport
       parentRoute: typeof AdminRoute
-    }
-    '/api/public/hooks/run-scheduled-backup': {
-      id: '/api/public/hooks/run-scheduled-backup'
-      path: '/api/public/hooks/run-scheduled-backup'
-      fullPath: '/api/public/hooks/run-scheduled-backup'
-      preLoaderRoute: typeof ApiPublicHooksRunScheduledBackupRouteImport
-      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -1535,16 +1432,11 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   VerifyRoute: VerifyRouteWithChildren,
   AboutWhoWeAreRoute: AboutWhoWeAreRoute,
-  ApiChatRoute: ApiChatRoute,
   ApplyTierRoute: ApplyTierRoute,
   CertificateIdRoute: CertificateIdRoute,
   DirectorySlugRoute: DirectorySlugRoute,
   PaymentCallbackRoute: PaymentCallbackRoute,
   ReceiptIdRoute: ReceiptIdRoute,
-  ApiPublicFlutterwaveWebhookRoute: ApiPublicFlutterwaveWebhookRoute,
-  ApiPublicHubtelCallbackRoute: ApiPublicHubtelCallbackRoute,
-  ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
-  ApiPublicHooksRunScheduledBackupRoute: ApiPublicHooksRunScheduledBackupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

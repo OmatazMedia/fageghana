@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X, ArrowUp, ArrowDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import type { CustomFieldDef } from "@/components/admin/DynamicFieldRenderer";
 

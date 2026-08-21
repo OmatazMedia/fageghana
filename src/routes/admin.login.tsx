@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Eye, EyeOff, Lock, Mail, ArrowLeft, ArrowRight, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { MfaChallengeDialog, getRequiredMfaChallenge, type MfaChallenge } from "@/components/auth/MfaChallengeDialog";
 import { sanitizeEmail } from "@/lib/login-security.shared";
 import {
@@ -34,10 +33,10 @@ function AdminLogin() {
   const { signIn, signOut, user, isAdmin, hasAnyRole, loading, roleChecked } = useAuth();
   const navigate = useNavigate();
 
-  const gateFn = useServerFn(getLoginGate);
-  const checkEmailFn = useServerFn(checkAdminEmail);
-  const recordOutcomeFn = useServerFn(recordPasswordOutcome);
-  const resetFn = useServerFn(requestAdminPasswordReset);
+  const gateFn = getLoginGate;
+  const checkEmailFn = checkAdminEmail;
+  const recordOutcomeFn = recordPasswordOutcome;
+  const resetFn = requestAdminPasswordReset;
 
   // Any non-member role may log in here.
   const canAccessConsole =
@@ -69,7 +68,7 @@ function AdminLogin() {
   // Banned networks never see the form — straight to the homepage.
   useEffect(() => {
     let alive = true;
-    gateFn({})
+    gateFn()
       .then((s: any) => {
         if (!alive) return;
         if (s?.banned) {

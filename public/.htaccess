@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Handle API routes — proxy to Laravel backend
+    RewriteRule ^api/(.*)$ http://localhost:8000/api/$1 [L,QSA]
+
+    # Handle asset files (JS, CSS, images, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # SPA fallback — serve index.html for all other routes
+    RewriteRule ^ index.html [L]
+</IfModule>

@@ -4,7 +4,7 @@ import { Check, Globe, Network, TrendingUp, Award, Download } from "lucide-react
 import { toast } from "sonner";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { downloadFile } from "@/lib/forceDownload";
 import { PostDownloadModal } from "@/components/membership/PostDownloadModal";
 

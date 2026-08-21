@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Upload, X, Plus, AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { uploadImage } from "@/lib/uploadImage";
 import { DynamicFieldRenderer, type CustomFieldDef } from "@/components/admin/DynamicFieldRenderer";
 

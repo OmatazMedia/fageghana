@@ -4,7 +4,7 @@ import { Mail, Phone, MapPin, Send, Facebook, Linkedin, Instagram } from "lucide
 import { toast } from "sonner";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({

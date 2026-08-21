@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAGE Laravel API — Test Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #1e3a5f 0%, #0d9488 100%); padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .header h1 { font-size: 1.5rem; color: white; }
+        .header .status { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #94a3b8; }
+        .header .status .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .header .status .dot.online { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        .header .status .dot.offline { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-2px); }
+        .card h3 { color: #38bdf8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .card .value { font-size: 2rem; font-weight: 700; color: white; }
+        .card .sub { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
+        .section { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-bottom: 20px; }
+        .section h2 { color: #38bdf8; font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .section h2 .icon { font-size: 1.2rem; }
+
+        /* Login Form */
+        .login-section { max-width: 400px; margin: 60px auto; }
+        .login-section .card { padding: 30px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+        .form-group input:focus { border-color: #38bdf8; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; }
+        .btn-primary { background: #0d9488; color: white; }
+        .btn-primary:hover { background: #0f766e; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-sm { padding: 6px 12px; width: auto; font-size: 0.8rem; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 10px 12px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; border-bottom: 1px solid #334155; }
+        td { padding: 10px 12px; border-bottom: 1px solid #1e293b; font-size: 0.9rem; }
+        tr:hover td { background: rgba(56,189,248,0.05); }
+        .badge { padding: 3px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-green { background: #166534; color: #86efac; }
+        .badge-blue { background: #1e3a5f; color: #93c5fd; }
+        .badge-yellow { background: #854d0e; color: #fde047; }
+
+        /* Test Results */
+        .test-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1e293b; }
+        .test-row:last-child { border-bottom: none; }
+        .test-icon { width: 20px; text-align: center; }
+        .test-name { flex: 1; font-size: 0.9rem; }
+        .test-status { font-size: 0.8rem; font-weight: 600; }
+        .test-pass { color: #22c55e; }
+        .test-fail { color: #ef4444; }
+        .test-pending { color: #f59e0b; }
+
+        .hidden { display: none; }
+        #auth-section.hidden, #dashboard-section.hidden { display: none; }
+        .token-display { background: #0f172a; padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: 0.75rem; color: #94a3b8; word-break: break-all; margin-top: 8px; }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #0d9488; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 1.1rem; }
+        .user-name { font-weight: 600; color: white; }
+        .user-email { font-size: 0.8rem; color: #94a3b8; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab { padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; background: transparent; color: #94a3b8; border: 1px solid #334155; transition: all 0.2s; }
+        .tab.active { background: #0d9488; color: white; border-color: #0d9488; }
+        .tab:hover:not(.active) { background: #334155; color: white; }
+        .loading { text-align: center; padding: 40px; color: #94a3b8; }
+        .error-msg { background: #450a0a; border: 1px solid #7f1d1d; padding: 10px 14px; border-radius: 8px; color: #fca5a5; font-size: 0.9rem; margin-bottom: 12px; }
+        .success-msg { background: #052e16; border: 1px solid #14532d; padding: 10px 14px; border-radius: 8px; color: #86efac; font-size: 0.9rem; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🇬🇭 FAGE Ghana — Laravel API Test Dashboard</h1>
+        <div class="status">
+            <div class="dot" id="api-dot"></div>
+            <span id="api-status">Checking API...</span>
+        </div>
+    </div>
+
+    <!-- Login Section -->
+    <div id="auth-section" class="container">
+        <div class="login-section">
+            <div class="card">
+                <h2 style="color: #38bdf8; margin-bottom: 20px; text-align: center;">🔐 Member Login</h2>
+                <div id="login-error" class="error-msg hidden"></div>
+                <div id="login-success" class="success-msg hidden"></div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" value="admin@test.com" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" value="password" placeholder="Enter your password">
+                </div>
+                <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+                <p style="text-align: center; margin-top: 12px; font-size: 0.8rem; color: #64748b;">
+                    Test credentials: admin@test.com / password
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" class="container hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">A</div>
+                <div>
+                    <div class="user-name" id="user-name">Admin</div>
+                    <div class="user-email" id="user-email">admin@test.com</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="badge badge-green" id="user-roles">superadmin</span>
+                <button class="btn btn-danger btn-sm" onclick="doLogout()">Sign Out</button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid" id="stats-grid">
+            <div class="card"><h3>Total Users</h3><div class="value" id="stat-users">—</div></div>
+            <div class="card"><h3>Active Members</h3><div class="value" id="stat-members">—</div></div>
+            <div class="card"><h3>News Articles</h3><div class="value" id="stat-news">—</div></div>
+            <div class="card"><h3>Directory Listings</h3><div class="value" id="stat-directory">—</div></div>
+            <div class="card"><h3>Total Revenue</h3><div class="value" id="stat-revenue">—</div></div>
+            <div class="card"><h3>Open Tickets</h3><div class="value" id="stat-tickets">—</div></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('tests')">🧪 API Tests</div>
+            <div class="tab" onclick="showTab('news')">📰 News</div>
+            <div class="tab" onclick="showTab('directory')">🏢 Directory</div>
+            <div class="tab" onclick="showTab('profile')">👤 Profile</div>
+            <div class="tab" onclick="showTab('admin')">🛡️ Admin Panel</div>
+        </div>
+
+        <!-- API Tests Tab -->
+        <div id="tab-tests" class="section">
+            <h2><span class="icon">🧪</span> Live API Test Results</h2>
+            <div id="test-results">
+                <div class="loading">Running tests...</div>
+            </div>
+        </div>
+
+        <!-- News Tab -->
+        <div id="tab-news" class="section hidden">
+            <h2><span class="icon">📰</span> News Articles</h2>
+            <div id="news-content"><div class="loading">Loading...</div></div>
+        </div>
+
+        <!-- Directory Tab -->
+        <div id="tab-directory" class="section hidden">
+            <h2><span class="icon">🏢</span> Directory Listings</h2>
+            <div id="directory-content"><div class="loading">Loading...</div></div>
+        </div>
+
+        <!-- Profile Tab -->
+        <div id="tab-profile" class="section hidden">
+            <h2><span class="icon">👤</span> My Profile</h2>
+            <div id="profile-content"><div class="loading">Loading...</div></div>
+        </div>
+
+        <!-- Admin Tab -->
+        <div id="tab-admin" class="section hidden">
+            <h2><span class="icon">🛡️</span> Admin Panel Data</h2>
+            <div id="admin-content"><div class="loading">Loading...</div></div>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://127.0.0.1:8088/api';
+        let TOKEN = null;
+
+        async function apiFetch(path, options = {}) {
+            const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json', ...options.headers };
+            if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
+            try {
+                const resp = await fetch(`${API}${path}`, { ...options, headers });
+                const data = await resp.json();
+                return { ok: resp.ok, status: resp.status, data };
+            } catch (e) {
+                return { ok: false, status: 0, data: { message: e.message } };
+            }
+        }
+
+        // Check API health on load
+        async function checkHealth() {
+            const { ok, data } = await apiFetch('/health');
+            const dot = document.getElementById('api-dot');
+            const status = document.getElementById('api-status');
+            if (ok) {
+                dot.className = 'dot online';
+                status.textContent = `API Online (v${data.version || '?'})`;
+            } else {
+                dot.className = 'dot offline';
+                status.textContent = 'API Offline';
+            }
+        }
+
+        // Login
+        async function doLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errDiv = document.getElementById('login-error');
+            const sucDiv = document.getElementById('login-success');
+            errDiv.className = 'error-msg hidden';
+            sucDiv.className = 'success-msg hidden';
+
+            const { ok, status, data } = await apiFetch('/public/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+
+            if (!ok) {
+                errDiv.textContent = data.message || `Login failed (${status})`;
+                errDiv.className = 'error-msg';
+                return;
+            }
+
+            TOKEN = data.token || data.access_token;
+            sucDiv.textContent = 'Login successful! Loading dashboard...';
+            sucDiv.className = 'success-msg';
+
+            setTimeout(async () => {
+                document.getElementById('auth-section').className = 'container hidden';
+                document.getElementById('dashboard-section').className = 'container';
+                document.getElementById('user-name').textContent = data.user?.name || 'User';
+                document.getElementById('user-email').textContent = data.user?.email || email;
+                document.getElementById('user-avatar').textContent = (data.user?.name || 'U')[0].toUpperCase();
+                document.getElementById('user-roles').textContent = (data.user?.roles || []).join(', ') || 'user';
+                await loadDashboard();
+            }, 500);
+        }
+
+        // Logout
+        async function doLogout() {
+            await apiFetch('/auth/logout', { method: 'POST' });
+            TOKEN = null;
+            document.getElementById('auth-section').className = 'container';
+            document.getElementById('dashboard-section').className = 'container hidden';
+        }
+
+        // Load dashboard data
+        async function loadDashboard() {
+            // Admin Dashboard Stats
+            const dash = await apiFetch('/admin/dashboard');
+            if (dash.ok) {
+                const o = dash.data.overview || dash.data;
+                document.getElementById('stat-users').textContent = o.total_users ?? 0;
+                document.getElementById('stat-members').textContent = o.active_members ?? 0;
+                document.getElementById('stat-news').textContent = o.total_news ?? 0;
+                document.getElementById('stat-directory').textContent = o.total_directory ?? 0;
+                document.getElementById('stat-revenue').textContent = 'GH₵ ' + (o.total_revenue ?? 0).toLocaleString();
+                document.getElementById('stat-tickets').textContent = o.open_tickets ?? 0;
+            }
+
+            // Run API tests
+            await runTests();
+        }
+
+        // Tab switching
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+
+            if (tab === 'news') loadNews();
+            if (tab === 'directory') loadDirectory();
+            if (tab === 'profile') loadProfile();
+            if (tab === 'admin') loadAdminData();
+        }
+
+        // Load news
+        async function loadNews() {
+            const { ok, data } = await apiFetch('/public/news');
+            const container = document.getElementById('news-content');
+            if (!ok) { container.innerHTML = '<div class="error-msg">Failed to load news</div>'; return; }
+            const articles = data.data || [];
+            if (articles.length === 0) { container.innerHTML = '<p style="color:#94a3b8">No news articles yet.</p>'; return; }
+            container.innerHTML = `<table><thead><tr><th>Title</th><th>Category</th><th>Author</th><th>Published</th></tr></thead><tbody>` +
+                articles.map(a => `<tr><td><strong>${a.title}</strong><br><span style="color:#64748b;font-size:0.8rem">${a.slug}</span></td><td>${a.category || '—'}</td><td>${a.author || '—'}</td><td><span class="badge ${a.published ? 'badge-green' : 'badge-yellow'}">${a.published ? 'Yes' : 'Draft'}</span></td></tr>`).join('') +
+                `</tbody></table>`;
+        }
+
+        // Load directory
+        async function loadDirectory() {
+            const { ok, data } = await apiFetch('/public/directory');
+            const container = document.getElementById('directory-content');
+            if (!ok) { container.innerHTML = '<div class="error-msg">Failed to load directory</div>'; return; }
+            const entries = data.data || [];
+            if (entries.length === 0) { container.innerHTML = '<p style="color:#94a3b8">No directory entries yet.</p>'; return; }
+            container.innerHTML = `<table><thead><tr><th>Company</th><th>Contact</th><th>Country</th><th>Type</th><th>Status</th></tr></thead><tbody>` +
+                entries.map(e => `<tr><td><strong>${e.company_name}</strong></td><td>${e.contact_name || '—'}<br><span style="color:#64748b;font-size:0.8rem">${e.email || ''}</span></td><td>${e.country || '—'}</td><td>${e.entry_type}</td><td><span class="badge badge-green">${e.status}</span></td></tr>`).join('') +
+                `</tbody></table>`;
+        }
+
+        // Load profile
+        async function loadProfile() {
+            const { ok, data } = await apiFetch('/auth/me');
+            const container = document.getElementById('profile-content');
+            if (!ok) { container.innerHTML = '<div class="error-msg">Failed to load profile</div>'; return; }
+            const user = data.user || data;
+            const member = user.member || {};
+            container.innerHTML = `
+                <div class="grid">
+                    <div class="card"><h3>Name</h3><div class="value" style="font-size:1.2rem">${user.name}</div></div>
+                    <div class="card"><h3>Email</h3><div class="value" style="font-size:1.2rem">${user.email}</div></div>
+                    <div class="card"><h3>Roles</h3><div class="value" style="font-size:1.2rem">${(user.roles||[]).join(', ')}</div></div>
+                    <div class="card"><h3>Member ID</h3><div class="value" style="font-size:1.2rem">${member.member_id || 'N/A'}</div></div>
+                    <div class="card"><h3>Contact Name</h3><div class="value" style="font-size:1.2rem">${member.contact_name || 'N/A'}</div></div>
+                    <div class="card"><h3>Status</h3><div class="value" style="font-size:1.2rem"><span class="badge badge-green">${member.status || 'N/A'}</span></div></div>
+                </div>
+            `;
+        }
+
+        // Load admin data
+        async function loadAdminData() {
+            const container = document.getElementById('admin-content');
+            const results = [];
+
+            // Test multiple admin endpoints
+            const endpoints = [
+                ['/admin/partner-logos', 'Partner Logos'],
+                ['/admin/subscription-plans', 'Subscription Plans'],
+                ['/admin/payment-gateways', 'Payment Gateways'],
+                ['/admin/readiness-checklist', 'Readiness Checklist'],
+                ['/admin/activity-log', 'Activity Log'],
+                ['/admin/contact-messages', 'Contact Messages'],
+                ['/admin/reports/membership-growth', 'Membership Report'],
+                ['/admin/backups', 'Backup History'],
+            ];
+
+            let html = '<table><thead><tr><th>Endpoint</th><th>Status</th><th>Data Count</th></tr></thead><tbody>';
+            for (const [path, name] of endpoints) {
+                const { ok, data } = await apiFetch(path);
+                const count = Array.isArray(data?.data) ? data.data.length : Array.isArray(data) ? data.length : data?.items?.length || '—';
+                html += `<tr><td><strong>${name}</strong><br><span style="color:#64748b;font-size:0.75rem">${path}</span></td>`;
+                html += `<td><span class="badge ${ok ? 'badge-green' : 'badge-yellow'}">${ok ? 'OK' : 'ERR'}</span></td>`;
+                html += `<td>${count}</td></tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Run API tests
+        async function runTests() {
+            const tests = [
+                ['GET /api/health', '/health', 'GET', null],
+                ['GET /api/setup/status', '/setup/status', 'GET', null],
+                ['GET /api/public/news', '/public/news', 'GET', null],
+                ['GET /api/public/stats', '/public/stats', 'GET', null],
+                ['GET /api/public/directory', '/public/directory', 'GET', null],
+                ['GET /api/public/home-page', '/public/home-page', 'GET', null],
+                ['GET /api/public/trade-opportunities', '/public/trade-opportunities', 'GET', null],
+                ['GET /api/public/subscription-plans', '/public/subscription-plans', 'GET', null],
+                ['GET /api/public/partner-logos', '/public/partner-logos', 'GET', null],
+                ['POST /api/public/auth/login', '/public/auth/login', 'POST', { email: 'admin@test.com', password: 'password' }],
+                ['GET /api/auth/me', '/auth/me', 'GET', null],
+                ['GET /api/admin/dashboard', '/admin/dashboard', 'GET', null],
+                ['GET /api/admin/news', '/admin/news', 'GET', null],
+                ['GET /api/admin/partner-logos', '/admin/partner-logos', 'GET', null],
+                ['GET /api/admin/subscription-plans', '/admin/subscription-plans', 'GET', null],
+                ['GET /api/admin/payment-gateways', '/admin/payment-gateways', 'GET', null],
+                ['GET /api/admin/readiness-checklist', '/admin/readiness-checklist', 'GET', null],
+                ['GET /api/admin/activity-log', '/admin/activity-log', 'GET', null],
+                ['GET /api/admin/contact-messages', '/admin/contact-messages', 'GET', null],
+                ['GET /api/admin/reports/membership-growth', '/admin/reports/membership-growth', 'GET', null],
+                ['GET /api/admin/backups', '/admin/backups', 'GET', null],
+                ['GET /api/member/profile', '/member/profile', 'GET', null],
+                ['GET /api/member/notifications', '/member/notifications', 'GET', null],
+                ['GET /api/member/readiness', '/member/readiness', 'GET', null],
+                ['POST /api/auth/logout', '/auth/logout', 'POST', null],
+            ];
+
+            const container = document.getElementById('test-results');
+            let html = '';
+            let pass = 0, fail = 0;
+
+            for (const [name, path, method, body] of tests) {
+                const opts = { method };
+                if (body) opts.body = JSON.stringify(body);
+                const { ok, status, data } = await apiFetch(path, opts);
+                const passed = ok || (data && !data.message?.includes('Server Error'));
+                if (passed) pass++; else fail++;
+                html += `<div class="test-row">
+                    <span class="test-icon">${passed ? '✅' : '❌'}</span>
+                    <span class="test-name">${name}</span>
+                    <span class="test-status ${passed ? 'test-pass' : 'test-fail'}">${passed ? 'PASS' : 'FAIL'} (${status})</span>
+                </div>`;
+            }
+
+            html = `<div style="margin-bottom:12px;font-weight:600;font-size:1.1rem">
+                <span class="test-pass">✅ ${pass} passed</span> · <span class="test-fail">❌ ${fail} failed</span> · Total: ${tests.length}
+            </div>` + html;
+
+            container.innerHTML = html;
+        }
+
+        // Init
+        checkHealth();
+    </script>
+</body>
+</html>

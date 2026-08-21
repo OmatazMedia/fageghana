@@ -1,4 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
+// @ts-nocheck
+import { supabase } from "@/integrations/api/client";
 
 export type FeedItem = {
   id: string;

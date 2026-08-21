@@ -2,8 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CreditCard, Banknote, Download, ArrowLeft, FileText, ShieldCheck } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { DynamicForm, type FormField } from "@/components/forms/DynamicForm";
 import { initApplicationPayment } from "@/lib/payments.functions";
@@ -31,8 +30,8 @@ function ApplyPage() {
   const [step, setStep] = useState<"loading" | "contact" | "pay" | "manual" | "form">("loading");
   const [contact, setContact] = useState({ full_name: "", email: "", phone: "", company_name: "" });
   const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const initPay = useServerFn(initApplicationPayment);
-  const createPending = useServerFn(createPendingApplication);
+  const initPay = initApplicationPayment;
+  const createPending = createPendingApplication;
 
   const onlineGateways = gateways.filter((g) => g.provider !== "manual_bank");
   const manualGateways = gateways.filter((g) => g.provider === "manual_bank");

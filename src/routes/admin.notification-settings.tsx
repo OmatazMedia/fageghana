@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Mail, Plus, X, Save } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell, inputCls } from "@/components/admin/AdminShell";
 
 export const Route = createFileRoute("/admin/notification-settings")({

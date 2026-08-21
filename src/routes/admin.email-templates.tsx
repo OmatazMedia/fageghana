@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
@@ -46,9 +45,9 @@ function newBlock(type: Block["type"]): Block {
 }
 
 function EmailTemplatesPage() {
-  const loadTemplates = useServerFn(listEmailTemplates);
-  const saveTemplate = useServerFn(saveEmailTemplate);
-  const sendTest = useServerFn(sendTemplateTest);
+  const loadTemplates = listEmailTemplates;
+  const saveTemplate = saveEmailTemplate;
+  const sendTest = sendTemplateTest;
   const [templates, setTemplates] = useState<any[]>([]);
   const [currentId, setCurrentId] = useState("");
   const [draft, setDraft] = useState<any | null>(null);

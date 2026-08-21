@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { X, Upload, AlertCircle, CheckCircle2, Download } from "lucide-react";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
 import { bulkInviteMembers, type BulkInviteResult } from "@/lib/users.functions";
 
 type Row = {
@@ -88,7 +87,7 @@ export function BulkInviteMembersDialog({
   const [fileName, setFileName] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<BulkInviteResult | null>(null);
-  const inviteFn = useServerFn(bulkInviteMembers);
+  const inviteFn = bulkInviteMembers;
 
   const valid = useMemo(() => rows.filter((r) => !r.__error), [rows]);
   const invalid = useMemo(() => rows.filter((r) => r.__error), [rows]);

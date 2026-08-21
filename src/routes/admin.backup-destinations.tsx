@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { testBackupDestination } from "@/lib/backup-destinations.functions";
 import { toast } from "sonner";
 import {
@@ -46,7 +45,7 @@ function BackupDestinationsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Dest | null>(null);
-  const testFn = useServerFn(testBackupDestination);
+  const testFn = testBackupDestination;
 
   async function load() {
     setLoading(true);
@@ -280,7 +279,7 @@ function DestinationForm({
     secret: initial?.config?.secret ?? "",
   });
   const [saving, setSaving] = useState(false);
-  const testFn = useServerFn(testBackupDestination);
+  const testFn = testBackupDestination;
 
   function set(k: string, v: string) {
     setConfig((c) => ({ ...c, [k]: v }));

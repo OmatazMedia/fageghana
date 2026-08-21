@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus, X, Pencil, Trash2, Upload, MoreHorizontal, Star, Settings2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import {
   DropdownMenu,

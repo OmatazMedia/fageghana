@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Plus, X, Pencil, Trash2, ArrowUpDown, MoreHorizontal, Upload } from "lucide-react";
 import { BulkInviteMembersDialog } from "@/components/admin/BulkInviteMembersDialog";
 import { Pagination } from "./admin.users";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import {
   DropdownMenu,
@@ -52,10 +51,10 @@ function MembersPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
-  const create = useServerFn(createMemberAccount);
-  const update = useServerFn(updateMember);
-  const tierFn = useServerFn(changeMemberTier);
-  const del = useServerFn(deleteMember);
+  const create = createMemberAccount;
+  const update = updateMember;
+  const tierFn = changeMemberTier;
+  const del = deleteMember;
 
   async function load() {
     const { data } = await supabase

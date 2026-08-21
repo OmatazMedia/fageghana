@@ -10,7 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 
 type Hit = {
   kind: "news" | "product" | "activity" | "media" | "page";

@@ -29,7 +29,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import LinkExt from "@tiptap/extension-link";
 import ImageExt from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import { uploadImage } from "@/lib/uploadImage";
 

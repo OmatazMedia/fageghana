@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Mail, Lock, Eye, EyeOff, CheckCircle2, ArrowLeft, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { MfaChallengeDialog, getRequiredMfaChallenge, type MfaChallenge } from "@/components/auth/MfaChallengeDialog";
 
 export const Route = createFileRoute("/login")({

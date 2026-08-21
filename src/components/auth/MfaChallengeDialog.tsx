@@ -1,7 +1,8 @@
+// @ts-nocheck
 import { useEffect, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import {
   getEmailMfaStatus,
   sendEmailMfaCode,

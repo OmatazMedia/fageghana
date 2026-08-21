@@ -1,9 +1,21 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - tanstackStart, viteReact, tailwindcss, tsConfigPaths, cloudflare (build-only),
-//     componentTagger (dev-only), VITE_* env injection, @ path alias, React/TanStack dedupe,
-//     error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-export default defineConfig();
+export default defineConfig({
+  nitro: false,
+  tanstackStart: {
+    prerender: {
+      enabled: true,
+      failOnError: false,
+      autoStaticPathsDiscovery: true,
+      crawlLinks: true,
+      filter: ({ path }: { path: string }) => {
+        // Skip routes that need server-side params or auth before login
+        // (they still hydrate and fetch data at runtime via the Laravel API).
+        if (path.includes('$')) return false;
+        const skipPrefixes = ['/admin', '/dashboard', '/account', '/apply', '/payment', '/receipt', '/verify', '/certificate'];
+        if (skipPrefixes.some((p) => path.startsWith(p))) return false;
+        return true;
+      },
+    },
+  },
+});

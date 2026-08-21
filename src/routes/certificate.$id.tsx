@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Download, ArrowLeft, FileText } from "lucide-react";
 import jsPDF from "jspdf";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { renderCertificate } from "@/lib/certificate-render";
 import { useAuth } from "@/components/auth/AuthProvider";
 

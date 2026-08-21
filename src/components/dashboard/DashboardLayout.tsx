@@ -25,7 +25,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 type Item = { label: string; icon: any; to: string; tab?: string };

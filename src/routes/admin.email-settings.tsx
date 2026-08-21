@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MailCheck, Send } from "lucide-react";
@@ -26,9 +25,9 @@ const emptySettings = {
 };
 
 function EmailSettingsPage() {
-  const loadSettings = useServerFn(getEmailSettings);
-  const saveSettings = useServerFn(saveEmailSettings);
-  const sendTest = useServerFn(sendTestEmail);
+  const loadSettings = getEmailSettings;
+  const saveSettings = saveEmailSettings;
+  const sendTest = sendTestEmail;
   const [form, setForm] = useState(emptySettings);
   const [testTo, setTestTo] = useState("");
   const [busy, setBusy] = useState(false);

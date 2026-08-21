@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import { uploadImage } from "@/lib/uploadImage";
 import { downloadFile } from "@/lib/forceDownload";
@@ -284,8 +283,8 @@ function PlansPage() {
 }
 
 function MemberIdStartCard() {
-  const runGet = useServerFn(getMemberIdNext);
-  const runSet = useServerFn(setMemberIdStart);
+  const runGet = getMemberIdNext;
+  const runSet = setMemberIdStart;
   const [next, setNext] = useState<number | null>(null);
   const [input, setInput] = useState<string>("");
   const [busy, setBusy] = useState(false);

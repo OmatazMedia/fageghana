@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Upload, Save, Eye, EyeOff, ListChecks, Layers, X, Download, FileText } from "lucide-react";
 import jsPDF from "jspdf";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { Slider } from "@/components/ui/slider";
 import {

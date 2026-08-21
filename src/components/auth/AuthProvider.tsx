@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
+// Supabase types replaced with inline types
+interface Session { access_token: string; user?: any; refresh_token?: string; expires_in?: number; token_type?: string; }
+interface User { id: string; email?: string; [key: string]: any; }
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { logActivity } from "@/lib/activity.functions";
 import { SessionGuard } from "@/components/auth/SessionGuard";
 

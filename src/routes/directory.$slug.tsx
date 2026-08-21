@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Mail, Phone, MapPin, Globe, Building2, Users, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { useAuth } from "@/components/auth/AuthProvider";
 import {

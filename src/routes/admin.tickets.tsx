@@ -2,7 +2,7 @@ import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router"
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { Send, MessageCircle, Mail, Search, CheckCircle2, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { AdminShell, inputCls } from "@/components/admin/AdminShell";
 

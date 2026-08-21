@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
 import { Loader2, MailCheck, ShieldOff } from "lucide-react";
 import {
   disableEmailMfa,
@@ -11,10 +10,10 @@ import {
 
 /** Email one-time-code second factor (complements the authenticator-app option). */
 export function EmailMfaCard() {
-  const statusFn = useServerFn(getEmailMfaStatus);
-  const sendFn = useServerFn(sendEmailMfaCode);
-  const enableFn = useServerFn(enableEmailMfa);
-  const disableFn = useServerFn(disableEmailMfa);
+  const statusFn = getEmailMfaStatus;
+  const sendFn = sendEmailMfaCode;
+  const enableFn = enableEmailMfa;
+  const disableFn = disableEmailMfa;
 
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);

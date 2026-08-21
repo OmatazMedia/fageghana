@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { listActivityLog } from "@/lib/activity.functions";
@@ -42,7 +41,7 @@ function ActivityLogPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const fetcher = useServerFn(listActivityLog);
+  const fetcher = listActivityLog;
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["activity-log", eventType, role, q, from, to, page, pageSize],
     queryFn: () =>

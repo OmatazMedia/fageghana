@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MessageCircle, X, Send, ArrowLeft, Bot, ThumbsUp, ThumbsDown, Star } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 
 const WHATSAPP_NUMBER = "233535170780";
 const MEMBERSHIP_EMAIL = "membership@fageghana.org";
@@ -233,13 +233,14 @@ export function ChatWidget({ raised }: { raised?: boolean }) {
   const [dancing, setDancing] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>(() => {
     try {
+      if (typeof window === "undefined") return [];
       return JSON.parse(sessionStorage.getItem("fage_chat_msgs") ?? "[]");
     } catch {
       return [];
     }
   });
   const [mode, setMode] = useState<Mode>(
-    () => (sessionStorage.getItem("fage_chat_mode") as Mode) ?? "menu",
+    () => (typeof window !== "undefined" ? (sessionStorage.getItem("fage_chat_mode") as Mode) ?? "menu" : "menu"),
   );
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState("");

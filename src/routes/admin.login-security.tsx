@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ShieldOff, ShieldCheck, RefreshCw, Ban } from "lucide-react";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
@@ -39,10 +38,10 @@ function when(ts: string | null) {
 }
 
 function LoginSecurityPage() {
-  const bansFn = useServerFn(listIpBans);
-  const attemptsFn = useServerFn(listLoginAttempts);
-  const unbanFn = useServerFn(unbanIp);
-  const banFn = useServerFn(banIpManually);
+  const bansFn = listIpBans;
+  const attemptsFn = listLoginAttempts;
+  const unbanFn = unbanIp;
+  const banFn = banIpManually;
 
   const [bans, setBans] = useState<any[]>([]);
   const [attempts, setAttempts] = useState<any[]>([]);
@@ -63,7 +62,7 @@ function LoginSecurityPage() {
     setLoading(true);
     try {
       const [b, a]: any[] = await Promise.all([
-        bansFn({}),
+        bansFn(),
         attemptsFn({
           data: {
             page,

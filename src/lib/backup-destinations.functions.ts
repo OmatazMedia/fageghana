@@ -1,121 +1,98 @@
-import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createSign } from "node:crypto";
+// @ts-nocheck
+import { api } from "@/integrations/api/client";
 
-/** Base64url without padding. */
-function b64url(input: Buffer | string): string {
-  const buf = typeof input === "string" ? Buffer.from(input, "utf8") : input;
-  return buf.toString("base64").replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-
-/** Sign a Google service-account JWT and exchange it for an access token. */
-async function getGoogleAccessToken(saJson: {
-  client_email: string;
-  private_key: string;
-  token_uri?: string;
-}, scope: string): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const claim = {
-    iss: saJson.client_email,
-    scope,
-    aud: saJson.token_uri || "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now,
-  };
-  const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claim))}`;
-  const signer = createSign("RSA-SHA256");
-  signer.update(unsigned);
-  const signature = b64url(signer.sign(saJson.private_key));
-  const jwt = `${unsigned}.${signature}`;
-
-  const res = await fetch(saJson.token_uri || "https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-  const body = await res.text();
-  if (!res.ok) throw new Error(`Google token exchange failed [${res.status}]: ${body}`);
-  const parsed = JSON.parse(body) as { access_token?: string };
-  if (!parsed.access_token) throw new Error("No access token returned by Google");
-  return parsed.access_token;
-}
+const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r;
 
 type TestInput = {
   provider: "google_drive" | "aws_s3" | "dropbox" | "sftp" | "webhook";
   config: Record<string, any>;
 };
 
-export const testBackupDestination = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: TestInput) => input)
-  .handler(async ({ data, context }) => {
-    // Only admins/superadmins may test.
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin" as any,
-    });
-    const { data: isSuper } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "superadmin" as any,
-    });
-    if (!isAdmin && !isSuper) throw new Error("Forbidden");
+export async function testBackupDestination(input: any): Promise<any> {
+  const data = input?.data ?? input;
+  const { provider, config } = data as TestInput;
 
-    const { provider, config } = data;
+  const { data: existing } = await api
+    .from("backup_destinations")
+    .select("id")
+    .eq("provider", provider)
+    .limit(1);
+  let id = Array.isArray(existing) ? existing[0]?.id : null;
+  if (!id) {
+    const inserted = await api
+      .from("backup_destinations")
+      .insert({ name: `${provider} (test)`, provider, config: JSON.stringify(config ?? {}), enabled: false });
+    if (inserted.error) throw new Error(inserted.error.message);
+    const row = unwrap(inserted);
+    id = row?.id ?? null;
+  }
+  if (!id) throw new Error("Could not resolve backup destination");
 
-    if (provider === "google_drive") {
-      let sa: any;
-      try {
-        sa = typeof config.service_account_json === "string"
-          ? JSON.parse(config.service_account_json)
-          : config.service_account_json;
-      } catch {
-        return { ok: false, message: "Service account JSON is not valid JSON." };
-      }
-      if (!sa?.client_email || !sa?.private_key) {
-        return { ok: false, message: "Service account JSON must include client_email and private_key." };
-      }
-      try {
-        const token = await getGoogleAccessToken(sa, "https://www.googleapis.com/auth/drive.file");
-        // Verify token by hitting the About endpoint.
-        const about = await fetch(
-          "https://www.googleapis.com/drive/v3/about?fields=user(emailAddress,displayName),storageQuota(limit,usage)",
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const aboutBody = await about.text();
-        if (!about.ok) return { ok: false, message: `Drive API [${about.status}]: ${aboutBody}` };
-        const info = JSON.parse(aboutBody);
+  const { data: res, error } = await api.request(
+    `/admin/backup-destinations/${encodeURIComponent(id)}/test`,
+    { method: "POST", body: JSON.stringify({ config }) },
+  );
+  if (error) throw new Error(error.message);
+  return { ok: !!res?.ok, message: res?.message ?? (res?.ok ? "Test passed." : "Test failed.") };
+}
 
-        // If folder_id provided, verify it exists and is accessible.
-        if (config.folder_id) {
-          const folder = await fetch(
-            `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(String(config.folder_id))}?fields=id,name,mimeType&supportsAllDrives=true`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          );
-          if (!folder.ok) {
-            const t = await folder.text();
-            return {
-              ok: false,
-              message: `Folder not accessible: ${t}. Share the folder with ${sa.client_email} as Editor.`,
-            };
-          }
-        }
-        return {
-          ok: true,
-          message: `Connected as ${info.user?.emailAddress ?? sa.client_email}${
-            config.folder_id ? " (folder verified)" : ""
-          }`,
-        };
-      } catch (e: any) {
-        return { ok: false, message: e?.message ?? "Unknown error" };
-      }
+export async function listBackupDestinations(input: any): Promise<any> {
+  const { data, error } = await api.from("backup_destinations").select("*").order("name");
+  if (error) throw new Error(error.message);
+  const rows = Array.isArray(data) ? data : [];
+  return {
+    destinations: rows.map((r: any) => ({ ...r, config: parseConfig(r.config) })),
+  };
+}
+
+export async function createBackupDestination(input: any): Promise<any> {
+  const data = input?.data ?? input;
+  const row = {
+    name: data?.name,
+    provider: data?.provider,
+    config: JSON.stringify(data?.config ?? {}),
+    enabled: data?.enabled ?? true,
+    is_default: data?.is_default ?? false,
+  };
+  const inserted = await api.from("backup_destinations").insert(row);
+  if (inserted.error) throw new Error(inserted.error.message);
+  const created = unwrap(inserted);
+  return { destination: { ...created, config: parseConfig(created?.config) } };
+}
+
+export async function updateBackupDestination(input: any): Promise<any> {
+  const data = input?.data ?? input;
+  if (!data?.id) throw new Error("Destination id required");
+  const updates: Record<string, any> = {};
+  if (data.name !== undefined) updates.name = data.name;
+  if (data.provider !== undefined) updates.provider = data.provider;
+  if (data.config !== undefined) updates.config = JSON.stringify(data.config);
+  if (data.enabled !== undefined) updates.enabled = data.enabled;
+  if (data.is_default !== undefined) updates.is_default = data.is_default;
+  const { data: res, error } = await api
+    .from("backup_destinations")
+    .update(updates)
+    .eq("id", data.id);
+  if (error) throw new Error(error.message);
+  return { destination: unwrap(res) ?? { id: data.id, ...updates, config: parseConfig(updates.config) } };
+}
+
+export async function deleteBackupDestination(input: any): Promise<any> {
+  const data = input?.data ?? input;
+  if (!data?.id) throw new Error("Destination id required");
+  const { error } = await api.from("backup_destinations").delete().eq("id", data.id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+function parseConfig(raw: any): Record<string, any> {
+  if (raw == null) return {};
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return { raw };
     }
-
-    return {
-      ok: false,
-      message: `Provider "${provider}" testing is not implemented yet. Save the destination and it will be picked up once its adapter is added.`,
-    };
-  });
+  }
+  return raw;
+}

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -13,7 +12,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { initRenewalPayment } from "@/lib/payments.functions";
 import { openPaystackInline } from "@/lib/paystackInline";
 import { openFlutterwaveInline } from "@/lib/flutterwaveInline";
@@ -73,7 +72,7 @@ export function RenewalLockScreen({
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [openManual, setOpenManual] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const initRenew = useServerFn(initRenewalPayment);
+  const initRenew = initRenewalPayment;
   const fileRef = useRef<HTMLInputElement>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [paymentReference, setPaymentReference] = useState("");

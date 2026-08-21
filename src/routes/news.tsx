@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Search, Calendar, User, Tag, ArrowRight, TrendingUp } from "lucide-react";
 import { SiteLayout, PageHero } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 
 export const Route = createFileRoute("/news")({
   head: () => ({

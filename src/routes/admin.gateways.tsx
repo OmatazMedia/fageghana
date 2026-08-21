@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { AdminShell, FormField, inputCls } from "@/components/admin/AdminShell";
 import { testPaymentGateway } from "@/lib/payments.functions";
 
@@ -15,7 +14,7 @@ function GatewaysPage() {
   const [items, setItems] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
-  const testGateway = useServerFn(testPaymentGateway);
+  const testGateway = testPaymentGateway;
 
   async function load() {
     const { data } = await supabase.from("payment_gateways").select("*").order("display_order");

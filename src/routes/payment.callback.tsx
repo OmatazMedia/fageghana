@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { verifyPayment } from "@/lib/payments.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 
 export const Route = createFileRoute("/payment/callback")({
   head: () => ({ meta: [{ title: "Verifying payment — FAGE Ghana" }] }),
@@ -19,7 +18,7 @@ export const Route = createFileRoute("/payment/callback")({
 function PaymentCallback() {
   const { reference, token } = Route.useSearch();
   const navigate = useNavigate();
-  const verify = useServerFn(verifyPayment);
+  const verify = verifyPayment;
   const [state, setState] = useState<"verifying" | "ok" | "pending" | "error">("verifying");
   const [message, setMessage] = useState("Confirming your payment with the gateway…");
 

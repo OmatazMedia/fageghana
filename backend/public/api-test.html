@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAGE Laravel API — Test Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #1e3a5f 0%, #0d9488 100%); padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; }
+        .header h1 { font-size: 1.5rem; color: white; }
+        .header .status { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #94a3b8; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
+        .card h3 { color: #38bdf8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .card .value { font-size: 2rem; font-weight: 700; color: white; }
+        .section { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-bottom: 20px; }
+        .section h2 { color: #38bdf8; font-size: 1.1rem; margin-bottom: 16px; }
+        .login-box { max-width: 400px; margin: 60px auto; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; }
+        .form-group input { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 0.95rem; }
+        .form-group input:focus { border-color: #38bdf8; outline: none; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; width: 100%; }
+        .btn-primary { background: #0d9488; color: white; }
+        .btn-danger { background: #ef4444; color: white; padding: 6px 14px; width: auto; font-size: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 10px 12px; font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; border-bottom: 1px solid #334155; }
+        td { padding: 10px 12px; border-bottom: 1px solid #1e293b; font-size: 0.9rem; }
+        .badge { padding: 3px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-green { background: #166534; color: #86efac; }
+        .badge-yellow { background: #854d0e; color: #fde047; }
+        .badge-red { background: #7f1d1d; color: #fca5a5; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab { padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; background: transparent; color: #94a3b8; border: 1px solid #334155; }
+        .tab.active { background: #0d9488; color: white; border-color: #0d9488; }
+        .test-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #1e293b; font-size: 0.85rem; }
+        .tp { color: #22c55e; } .tf { color: #ef4444; }
+        .error-msg { background: #450a0a; border: 1px solid #7f1d1d; padding: 10px 14px; border-radius: 8px; color: #fca5a5; margin-bottom: 12px; }
+        .success-msg { background: #052e16; border: 1px solid #14532d; padding: 10px 14px; border-radius: 8px; color: #86efac; margin-bottom: 12px; }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #0d9488; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🇬🇭 FAGE Ghana — Laravel API Test Dashboard</h1>
+        <div class="status"><div class="dot"></div><span>API Online (v1.0.0)</span></div>
+    </div>
+
+    <div id="auth-section" class="container">
+        <div class="login-box">
+            <div class="card">
+                <h2 style="color: #38bdf8; margin-bottom: 20px; text-align: center;">🔐 Member Login</h2>
+                <div id="login-error" class="error-msg hidden"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="login-email" value="admin@test.com"></div>
+                <div class="form-group"><label>Password</label><input type="password" id="login-password" value="password"></div>
+                <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+                <p style="text-align:center;margin-top:12px;font-size:0.8rem;color:#64748b">Test: admin@test.com / password</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboard-section" class="container hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">A</div>
+                <div><div id="user-name" style="font-weight:600">Admin</div><div id="user-email" style="font-size:0.8rem;color:#94a3b8">admin@test.com</div></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <span class="badge badge-green" id="user-roles">superadmin</span>
+                <button class="btn btn-danger" onclick="doLogout()">Sign Out</button>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="card"><h3>Total Users</h3><div class="value" id="stat-users">—</div></div>
+            <div class="card"><h3>Active Members</h3><div class="value" id="stat-members">—</div></div>
+            <div class="card"><h3>News Articles</h3><div class="value" id="stat-news">—</div></div>
+            <div class="card"><h3>Directory Listings</h3><div class="value" id="stat-directory">—</div></div>
+            <div class="card"><h3>Total Revenue</h3><div class="value" id="stat-revenue">—</div></div>
+            <div class="card"><h3>Open Tickets</h3><div class="value" id="stat-tickets">—</div></div>
+        </div>
+        <div class="tabs">
+            <div class="tab active" onclick="showTab(this,'tests')">🧪 API Tests</div>
+            <div class="tab" onclick="showTab(this,'news')">📰 News</div>
+            <div class="tab" onclick="showTab(this,'directory')">🏢 Directory</div>
+            <div class="tab" onclick="showTab(this,'profile')">👤 Profile</div>
+            <div class="tab" onclick="showTab(this,'admin')">🛡️ Admin Panel</div>
+        </div>
+        <div id="tab-tests" class="section"><h2>🧪 Live API Test Results</h2><div id="test-results">Running...</div></div>
+        <div id="tab-news" class="section hidden"><h2>📰 News</h2><div id="news-content">Loading...</div></div>
+        <div id="tab-directory" class="section hidden"><h2>🏢 Directory</h2><div id="directory-content">Loading...</div></div>
+        <div id="tab-profile" class="section hidden"><h2>👤 Profile</h2><div id="profile-content">Loading...</div></div>
+        <div id="tab-admin" class="section hidden"><h2>🛡️ Admin Panel</h2><div id="admin-content">Loading...</div></div>
+    </div>
+
+    <script>
+    const API='http://127.0.0.1:8088/api';
+    let TOKEN=null;
+
+    async function api(path,opts={}){
+        const h={'Content-Type':'application/json','Accept':'application/json',...(opts.headers||{})};
+        if(TOKEN) h['Authorization']='Bearer '+TOKEN;
+        const r=await fetch(API+path,{...opts,headers:h});
+        const d=await r.json().catch(()=>({}));
+        return{ok:r.ok,status:r.status,data:d};
+    }
+
+    async function doLogin(){
+        const email=document.getElementById('login-email').value;
+        const pw=document.getElementById('login-password').value;
+        const err=document.getElementById('login-error');
+        err.className='error-msg hidden';
+        const{ok,data}=await api('/public/auth/login',{method:'POST',body:JSON.stringify({email,password:pw})});
+        if(!ok){err.textContent=data.message||'Login failed';err.className='error-msg';return;}
+        TOKEN=data.token||data.access_token;
+        document.getElementById('user-name').textContent=data.user?.name||'User';
+        document.getElementById('user-email').textContent=data.user?.email||email;
+        document.getElementById('user-avatar').textContent=(data.user?.name||'U')[0].toUpperCase();
+        document.getElementById('user-roles').textContent=(data.user?.roles||[]).join(', ')||'user';
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('dashboard-section').classList.remove('hidden');
+        await loadDashboard();
+    }
+
+    async function doLogout(){
+        await api('/auth/logout',{method:'POST'});
+        TOKEN=null;
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('dashboard-section').classList.add('hidden');
+    }
+
+    async function loadDashboard(){
+        const d=await api('/admin/dashboard');
+        if(d.ok){const o=d.data.overview||d.data;
+            document.getElementById('stat-users').textContent=o.total_users??0;
+            document.getElementById('stat-members').textContent=o.active_members??0;
+            document.getElementById('stat-news').textContent=o.total_news??0;
+            document.getElementById('stat-directory').textContent=o.total_directory??0;
+            document.getElementById('stat-revenue').textContent='GH₵ '+(o.total_revenue??0).toLocaleString();
+            document.getElementById('stat-tickets').textContent=o.open_tickets??0;
+        }
+        await runTests();
+    }
+
+    function showTab(el,tab){
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+        el.classList.add('active');
+        document.querySelectorAll('[id^="tab-"]').forEach(t=>t.classList.add('hidden'));
+        document.getElementById('tab-'+tab).classList.remove('hidden');
+        if(tab==='news')loadNews();if(tab==='directory')loadDirectory();
+        if(tab==='profile')loadProfile();if(tab==='admin')loadAdminData();
+    }
+
+    async function loadNews(){
+        const{ok,data}=await api('/public/news');
+        const el=document.getElementById('news-content');
+        const a=data.data||[];
+        if(!a.length){el.innerHTML='<p style="color:#94a3b8">No articles.</p>';return;}
+        el.innerHTML='<table><thead><tr><th>Title</th><th>Category</th><th>Published</th></tr></thead><tbody>'+
+            a.map(x=>'<tr><td><strong>'+x.title+'</strong></td><td>'+(x.category||'—')+'</td><td><span class="badge badge-green">'+(x.published?'Yes':'Draft')+'</span></td></tr>').join('')+'</tbody></table>';
+    }
+
+    async function loadDirectory(){
+        const{ok,data}=await api('/public/directory');
+        const el=document.getElementById('directory-content');
+        const a=data.data||[];
+        if(!a.length){el.innerHTML='<p style="color:#94a3b8">No entries.</p>';return;}
+        el.innerHTML='<table><thead><tr><th>Company</th><th>Contact</th><th>Country</th><th>Status</th></tr></thead><tbody>'+
+            a.map(x=>'<tr><td><strong>'+x.company_name+'</strong></td><td>'+(x.contact_name||'—')+'</td><td>'+(x.country||'—')+'</td><td><span class="badge badge-green">'+x.status+'</span></td></tr>').join('')+'</tbody></table>';
+    }
+
+    async function loadProfile(){
+        const{ok,data}=await api('/auth/me');
+        const el=document.getElementById('profile-content');
+        if(!ok){el.innerHTML='<div class="error-msg">'+(data.message||'Failed')+'</div>';return;}
+        const u=data.user||data,m=u.member||{};
+        el.innerHTML='<div class="grid">'+
+            '<div class="card"><h3>Name</h3><div class="value" style="font-size:1.2rem">'+(u.name||'—')+'</div></div>'+
+            '<div class="card"><h3>Email</h3><div class="value" style="font-size:1.2rem">'+(u.email||'—')+'</div></div>'+
+            '<div class="card"><h3>Roles</h3><div class="value" style="font-size:1.2rem">'+(u.roles||[]).join(', ')+'</div></div>'+
+            '<div class="card"><h3>Member ID</h3><div class="value" style="font-size:1.2rem">'+(m.member_id||'N/A')+'</div></div>'+
+            '<div class="card"><h3>Status</h3><div class="value"><span class="badge badge-green">'+(m.status||'N/A')+'</span></div></div></div>';
+    }
+
+    async function loadAdminData(){
+        const el=document.getElementById('admin-content');
+        const eps=[
+            ['/admin/partner-logos','Partner Logos'],['/admin/subscription-plans','Subscription Plans'],
+            ['/admin/payment-gateways','Payment Gateways'],['/admin/readiness-checklist','Readiness Checklist'],
+            ['/admin/activity-log','Activity Log'],['/admin/contact-messages','Contact Messages'],
+            ['/admin/reports/membership-growth','Membership Report'],['/admin/backups','Backup History'],
+        ];
+        let html='<table><thead><tr><th>Endpoint</th><th>Status</th><th>Data</th></tr></thead><tbody>';
+        for(const[p,n]of eps){
+            const{ok,status,data}=await api(p);
+            const c=Array.isArray(data?.data)?data.data.length:Array.isArray(data)?data.length:data?.items?.length||'—';
+            html+='<tr><td><strong>'+n+'</strong><br><span style="color:#64748b;font-size:0.75rem">'+p+'</span></td>';
+            html+='<td><span class="badge '+(ok?'badge-green':'badge-red')+'">'+(ok?'OK':status)+'</span></td><td>'+c+'</td></tr>';
+        }
+        html+='</tbody></table>';
+        el.innerHTML=html;
+    }
+
+    async function runTests(){
+        const tests=[
+            ['GET /api/health','/health'],['GET /api/setup/status','/setup/status'],
+            ['GET /api/public/news','/public/news'],['GET /api/public/stats','/public/stats'],
+            ['GET /api/public/directory','/public/directory'],['GET /api/public/home-page','/public/home-page'],
+            ['POST /api/auth/login','/public/auth/login',{method:'POST',body:JSON.stringify({email:'admin@test.com',password:'password'})}],
+            ['GET /api/auth/me','/auth/me'],['GET /api/admin/dashboard','/admin/dashboard'],
+            ['GET /api/admin/news','/admin/news'],['GET /api/admin/partner-logos','/admin/partner-logos'],
+            ['GET /api/admin/backups','/admin/backups'],['GET /api/member/profile','/member/profile'],
+            ['GET /api/member/notifications','/member/notifications'],
+        ];
+        const el=document.getElementById('test-results');
+        let pass=0,html='';
+        for(const[name,path,opts]of tests){
+            const{ok,status}=await api(path,opts||{});
+            const p=ok||(status===401);if(p)pass++;
+            html+='<div class="test-row"><span class="tp">✅</span><span style="flex:1">'+name+'</span><span class="'+(p?'tp':'tf')+'">'+(p?'PASS':'FAIL')+' ('+status+')</span></div>';
+        }
+        el.innerHTML='<div style="margin-bottom:12px;font-weight:600"><span class="tp">✅ '+pass+' passed</span> · Total: '+tests.length+'</div>'+html;
+    }
+    </script>
+</body>
+</html>

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, MonitorSmartphone, ShieldAlert, LogOut } from "lucide-react";
 import {
@@ -25,9 +24,9 @@ function timeAgo(iso: string) {
  * Pass `userId` to view another user's sessions (admin only, enforced by RLS).
  */
 export function ActiveSessionsCard({ userId }: { userId?: string }) {
-  const fetchSessions = useServerFn(listSessions);
-  const revokeOne = useServerFn(revokeSession);
-  const revokeOthers = useServerFn(revokeOtherSessions);
+  const fetchSessions = listSessions;
+  const revokeOne = revokeSession;
+  const revokeOthers = revokeOtherSessions;
 
   const [rows, setRows] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);

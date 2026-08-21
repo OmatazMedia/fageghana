@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 
 export async function uploadImage(file: File, folder: string): Promise<string> {
   const ext = file.name.split(".").pop() || "jpg";

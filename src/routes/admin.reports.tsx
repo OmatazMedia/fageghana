@@ -12,7 +12,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 import { generateWordDocument } from "@/lib/wordDocument";
 
 export const Route = createFileRoute("/admin/reports")({

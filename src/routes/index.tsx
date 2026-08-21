@@ -14,7 +14,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { Reveal } from "@/components/site/Reveal";
 import { AnimatedStat } from "@/components/site/AnimatedStat";
 import { AnimBtn } from "@/components/site/AnimBtn";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/api/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
